@@ -1,8 +1,20 @@
 import { Button } from "@/components/ui/button";
 import { Search, Users, Home } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 import heroImage from "@/assets/hero-image.jpg";
 
 const Hero = () => {
+  const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
+
+  const handleFindClick = () => {
+    if (!isAuthenticated) {
+      navigate('/auth/login');
+    } else {
+      document.getElementById('search-section')?.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
   return (
     <section className="relative min-h-[90vh] flex items-center justify-center overflow-hidden">
       {/* Background Image with Overlay */}
@@ -46,7 +58,7 @@ const Hero = () => {
               size="lg" 
               variant="hero"
               className="text-lg px-8 py-6 h-auto group"
-              onClick={() => document.getElementById('search-section')?.scrollIntoView({ behavior: 'smooth' })}
+              onClick={handleFindClick}
             >
               <Search className="mr-2 h-5 w-5 group-hover:scale-110 transition-transform" />
               Find Rooms
@@ -55,7 +67,7 @@ const Hero = () => {
               size="lg" 
               variant="trust"
               className="text-lg px-8 py-6 h-auto group"
-              onClick={() => document.getElementById('search-section')?.scrollIntoView({ behavior: 'smooth' })}
+              onClick={handleFindClick}
             >
               <Users className="mr-2 h-5 w-5 group-hover:scale-110 transition-transform" />
               Find Roommates
