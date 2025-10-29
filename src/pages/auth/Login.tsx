@@ -62,16 +62,16 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-accent/5 px-4">
-      <div className="w-full max-w-md">
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-accent/5 px-4 py-8">
+      <div className="container mx-auto max-w-md">
         <Button
           variant="ghost"
           size="sm"
           onClick={() => navigate('/')}
-          className="mb-4"
+          className="mb-8 hover:bg-muted/50 transition-colors"
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Home
+          Back
         </Button>
         
         <div 
