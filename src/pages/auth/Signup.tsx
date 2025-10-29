@@ -7,7 +7,7 @@ import { useToast } from '@/hooks/use-toast';
 import { apiClient } from '@/lib/api';
 import { GoogleLogin } from '@react-oauth/google';
 import { useAuth } from '@/contexts/AuthContext';
-import { Home as HomeIcon } from 'lucide-react';
+import { Home as HomeIcon, ArrowLeft } from 'lucide-react';
 
 const Signup = () => {
   const [step, setStep] = useState<'email' | 'verify'>('email');
@@ -110,6 +110,16 @@ const Signup = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-accent/5 px-4">
       <div className="w-full max-w-md">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => navigate('/')}
+          className="mb-4"
+        >
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back to Home
+        </Button>
+        
         <div 
           className="flex items-center justify-center gap-2 mb-8 cursor-pointer group"
           onClick={() => navigate('/')}
