@@ -6,14 +6,22 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Slider } from "@/components/ui/slider";
 import { MapPin, Search, IndianRupee, Bed } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 
 const RoomSearch = () => {
   const [location, setLocation] = useState("");
   const [radius, setRadius] = useState([5]);
   const [roomType, setRoomType] = useState("");
   const [priceRange, setPriceRange] = useState([15000]);
+  const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
 
   const handleSearch = () => {
+    if (!isAuthenticated) {
+      navigate('/auth/login');
+      return;
+    }
     console.log({ location, radius: radius[0], roomType, priceRange: priceRange[0] });
     // TODO: Implement search functionality with backend
   };

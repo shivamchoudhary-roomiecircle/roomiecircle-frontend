@@ -7,14 +7,22 @@ import { Slider } from "@/components/ui/slider";
 import { MapPin, Search, Briefcase, GraduationCap } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 
 const RoommateSearch = () => {
   const [location, setLocation] = useState("");
   const [radius, setRadius] = useState([5]);
   const [occupation, setOccupation] = useState("");
   const [lifestyle, setLifestyle] = useState("");
+  const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
 
   const handleSearch = () => {
+    if (!isAuthenticated) {
+      navigate('/auth/login');
+      return;
+    }
     console.log({ location, radius: radius[0], occupation, lifestyle });
     // TODO: Implement search functionality with backend
   };
