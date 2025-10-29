@@ -187,7 +187,7 @@ const Dashboard = () => {
                   key={card.id}
                   id={card.id}
                   onSwipe={(direction) => handleSwipe(direction, card.id)}
-                  className={`z-[${currentCards.length - index}]`}
+                  style={{ zIndex: currentCards.length - index }}
                 >
                   {mode === 'rooms' ? (
                     <RoomCard room={card as any} />
