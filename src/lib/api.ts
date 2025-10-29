@@ -65,71 +65,116 @@ class ApiClient {
 
   // Auth endpoints
   async initiateSignup(email: string, password: string, name: string) {
-    return this.request<{ message: string; tempId: string }>(
-      '/api/v1/auth/signup/initiate-verification',
-      {
-        method: 'POST',
-        body: JSON.stringify({ email, password, name }),
-      }
-    );
+    const response = await this.request<{
+      success: boolean;
+      data: { message: string; tempId: string };
+    }>('/api/v1/auth/signup/initiate-verification', {
+      method: 'POST',
+      body: JSON.stringify({ email, password, name }),
+    });
+    return response.data;
   }
 
   async verifySignup(tempId: string, code: string) {
-    return this.request<{
-      message: string;
-      accessToken: string;
-      refreshToken: string;
-      user: any;
+    const response = await this.request<{
+      success: boolean;
+      data: {
+        message: string;
+        accessToken: string;
+        refreshToken: string;
+        user: any;
+      };
     }>('/api/v1/auth/signup/verify', {
       method: 'POST',
       body: JSON.stringify({ tempId, code }),
     });
+    return response.data;
   }
 
   async resendVerification(tempId: string) {
-    return this.request<{ message: string }>(
-      '/api/v1/auth/signup/resend-verification',
-      {
-        method: 'POST',
-        body: JSON.stringify({ tempId }),
-      }
-    );
+    const response = await this.request<{
+      success: boolean;
+      data: { message: string };
+    }>('/api/v1/auth/signup/resend-verification', {
+      method: 'POST',
+      body: JSON.stringify({ tempId }),
+    });
+    return response.data;
   }
 
   async login(email: string, password: string) {
-    return this.request<{
-      message: string;
-      accessToken: string;
-      refreshToken: string;
-      user: any;
+    const response = await this.request<{
+      success: boolean;
+      data: {
+        message: string;
+        accessToken: string;
+        refreshToken: string;
+        user: any;
+      };
     }>('/api/v1/auth/login', {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     });
+    return response.data;
+  }
+
+  async initiateOtpLogin(email: string) {
+    const response = await this.request<{
+      success: boolean;
+      data: { message: string; tempId: string };
+    }>('/api/v1/auth/login/initiate-otp', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    });
+    return response.data;
+  }
+
+  async verifyOtpLogin(tempId: string, code: string) {
+    const response = await this.request<{
+      success: boolean;
+      data: {
+        message: string;
+        accessToken: string;
+        refreshToken: string;
+        user: any;
+      };
+    }>('/api/v1/auth/login/verify-otp', {
+      method: 'POST',
+      body: JSON.stringify({ tempId, code }),
+    });
+    return response.data;
   }
 
   async googleSignup(idToken: string) {
-    return this.request<{
-      message: string;
-      accessToken: string;
-      refreshToken: string;
-      user: any;
+    const response = await this.request<{
+      success: boolean;
+      data: {
+        message: string;
+        accessToken: string;
+        refreshToken: string;
+        user: any;
+      };
     }>('/api/v1/auth/google/signup', {
       method: 'POST',
       body: JSON.stringify({ idToken }),
     });
+    return response.data;
   }
 
   async googleLogin(idToken: string) {
-    return this.request<{
-      message: string;
-      accessToken: string;
-      refreshToken: string;
-      user: any;
+    const response = await this.request<{
+      success: boolean;
+      data: {
+        message: string;
+        accessToken: string;
+        refreshToken: string;
+        user: any;
+      };
     }>('/api/v1/auth/google/login', {
       method: 'POST',
       body: JSON.stringify({ idToken }),
     });
+    return response.data;
   }
 }
 

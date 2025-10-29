@@ -10,14 +10,18 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Home as HomeIcon, ArrowLeft } from 'lucide-react';
 
 const Login = () => {
+  const [loginMethod, setLoginMethod] = useState<'password' | 'otp'>('password');
+  const [step, setStep] = useState<'credentials' | 'verify'>('credentials');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [tempId, setTempId] = useState('');
+  const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
   const { login } = useAuth();
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handlePasswordLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
@@ -33,6 +37,52 @@ const Login = () => {
       toast({
         title: 'Error',
         description: error.message || 'Failed to login',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleInitiateOtpLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      const response = await apiClient.initiateOtpLogin(email);
+      setTempId(response.tempId);
+      setStep('verify');
+      toast({
+        title: 'OTP sent',
+        description: 'Please check your email for the verification code.',
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to send OTP',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerifyOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      const response = await apiClient.verifyOtpLogin(tempId, otp);
+      login(response.accessToken, response.refreshToken, response.user);
+      toast({
+        title: 'Success',
+        description: 'Logged in successfully!',
+      });
+      navigate('/dashboard');
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to verify OTP',
         variant: 'destructive',
       });
     } finally {
@@ -89,36 +139,105 @@ const Login = () => {
         <div className="bg-card border border-border rounded-2xl p-8 shadow-lg">
           <h1 className="text-3xl font-bold text-center mb-2">Welcome Back</h1>
           <p className="text-muted-foreground text-center mb-6">
-            Sign in to continue your search
+            {step === 'credentials' ? 'Sign in to continue your search' : 'Enter the verification code sent to your email'}
           </p>
 
-          <form onSubmit={handleLogin} className="space-y-4 mb-6">
-            <div>
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
-                required
-              />
-            </div>
-            <div>
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                required
-              />
-            </div>
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Signing in...' : 'Sign In'}
-            </Button>
-          </form>
+          {step === 'credentials' ? (
+            <>
+              <div className="flex gap-2 mb-6">
+                <Button
+                  type="button"
+                  variant={loginMethod === 'password' ? 'default' : 'outline'}
+                  onClick={() => setLoginMethod('password')}
+                  className="flex-1"
+                >
+                  Password
+                </Button>
+                <Button
+                  type="button"
+                  variant={loginMethod === 'otp' ? 'default' : 'outline'}
+                  onClick={() => setLoginMethod('otp')}
+                  className="flex-1"
+                >
+                  Login with OTP
+                </Button>
+              </div>
+
+              {loginMethod === 'password' ? (
+                <form onSubmit={handlePasswordLogin} className="space-y-4 mb-6">
+                  <div>
+                    <Label htmlFor="email">Email</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="you@example.com"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="password">Password</Label>
+                    <Input
+                      id="password"
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="••••••••"
+                      required
+                    />
+                  </div>
+                  <Button type="submit" className="w-full" disabled={loading}>
+                    {loading ? 'Signing in...' : 'Sign In'}
+                  </Button>
+                </form>
+              ) : (
+                <form onSubmit={handleInitiateOtpLogin} className="space-y-4 mb-6">
+                  <div>
+                    <Label htmlFor="email-otp">Email</Label>
+                    <Input
+                      id="email-otp"
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="you@example.com"
+                      required
+                    />
+                  </div>
+                  <Button type="submit" className="w-full" disabled={loading}>
+                    {loading ? 'Sending OTP...' : 'Send OTP'}
+                  </Button>
+                </form>
+              )}
+            </>
+          ) : (
+            <form onSubmit={handleVerifyOtp} className="space-y-4 mb-6">
+              <div>
+                <Label htmlFor="otp">Verification Code</Label>
+                <Input
+                  id="otp"
+                  type="text"
+                  value={otp}
+                  onChange={(e) => setOtp(e.target.value)}
+                  placeholder="Enter 6-digit code"
+                  maxLength={6}
+                  required
+                />
+              </div>
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? 'Verifying...' : 'Verify & Login'}
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                className="w-full"
+                onClick={() => setStep('credentials')}
+                disabled={loading}
+              >
+                Back
+              </Button>
+            </form>
+          )}
 
           <div className="relative mb-6">
             <div className="absolute inset-0 flex items-center">
