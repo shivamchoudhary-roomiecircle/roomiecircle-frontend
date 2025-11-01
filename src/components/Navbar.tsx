@@ -79,7 +79,7 @@ const Navbar = () => {
             )}
           </div>
 
-          {/* Mobile Menu Button and Theme Toggle */}
+          {/* Mobile Menu Button, Theme Toggle, and Auth */}
           <div className="md:hidden flex items-center gap-2">
             <Button
               variant="ghost"
@@ -90,6 +90,23 @@ const Navbar = () => {
               <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
               <span className="sr-only">Toggle theme</span>
             </Button>
+            {isAuthenticated ? (
+              <Button 
+                variant="ghost" 
+                size="icon"
+                onClick={() => navigate('/dashboard')}
+              >
+                <User className="h-5 w-5" />
+              </Button>
+            ) : (
+              <Button 
+                variant="default" 
+                size="sm"
+                onClick={() => navigate('/auth/login')}
+              >
+                Sign In
+              </Button>
+            )}
             <button 
               className="p-2"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -130,40 +147,16 @@ const Navbar = () => {
             >
               List Your Room
             </Button>
-            {isAuthenticated ? (
-              <>
-                <Button 
-                  variant="ghost" 
-                  className="w-full"
-                  onClick={() => {
-                    navigate('/dashboard');
-                    setMobileMenuOpen(false);
-                  }}
-                >
-                  <User className="h-4 w-4 mr-2" />
-                  {user?.name}
-                </Button>
-                <Button 
-                  variant="outline" 
-                  className="w-full"
-                  onClick={() => {
-                    logout();
-                    setMobileMenuOpen(false);
-                  }}
-                >
-                  Logout
-                </Button>
-              </>
-            ) : (
+            {isAuthenticated && (
               <Button 
-                variant="default" 
+                variant="outline" 
                 className="w-full"
                 onClick={() => {
-                  navigate('/auth/login');
+                  logout();
                   setMobileMenuOpen(false);
                 }}
               >
-                Sign In
+                Logout
               </Button>
             )}
           </div>
