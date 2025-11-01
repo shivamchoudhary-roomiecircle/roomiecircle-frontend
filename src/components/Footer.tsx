@@ -1,4 +1,4 @@
-import { Home as HomeIcon, Mail, MapPin, Phone } from "lucide-react";
+import { Home as HomeIcon, Mail, MapPin, Phone, Instagram, Twitter, Linkedin, Facebook, Youtube } from "lucide-react";
 
 const Footer = () => {
   return (
@@ -18,6 +18,49 @@ const Footer = () => {
             <p className="text-sm text-muted-foreground">
               India's most trusted community for finding rooms and roommates. Build trust, save time, find home.
             </p>
+            {/* Social Media Links */}
+            <div className="flex items-center gap-3 mt-4">
+              <a 
+                href="https://instagram.com/roomiecircle" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="w-9 h-9 rounded-full bg-muted hover:bg-primary/10 flex items-center justify-center transition-colors group"
+              >
+                <Instagram className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+              </a>
+              <a 
+                href="https://twitter.com/roomiecircle" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="w-9 h-9 rounded-full bg-muted hover:bg-primary/10 flex items-center justify-center transition-colors group"
+              >
+                <Twitter className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+              </a>
+              <a 
+                href="https://linkedin.com/company/roomiecircle" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="w-9 h-9 rounded-full bg-muted hover:bg-primary/10 flex items-center justify-center transition-colors group"
+              >
+                <Linkedin className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+              </a>
+              <a 
+                href="https://facebook.com/roomiecircle" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="w-9 h-9 rounded-full bg-muted hover:bg-primary/10 flex items-center justify-center transition-colors group"
+              >
+                <Facebook className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+              </a>
+              <a 
+                href="https://youtube.com/@roomiecircle" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="w-9 h-9 rounded-full bg-muted hover:bg-primary/10 flex items-center justify-center transition-colors group"
+              >
+                <Youtube className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+              </a>
+            </div>
           </div>
 
           {/* Quick Links */}
@@ -48,11 +91,15 @@ const Footer = () => {
             <ul className="space-y-3 text-sm text-muted-foreground">
               <li className="flex items-center gap-2">
                 <Mail className="h-4 w-4" />
-                <span>support@roomiecircle.com</span>
+                <a href="mailto:shivamchoudhary.roomiecircle@gmail.com" className="hover:text-primary transition-colors">
+                  shivamchoudhary.roomiecircle@gmail.com
+                </a>
               </li>
               <li className="flex items-center gap-2">
                 <Phone className="h-4 w-4" />
-                <span>+91 98765 43210</span>
+                <a href="tel:+917251931085" className="hover:text-primary transition-colors">
+                  +91 72519 31085
+                </a>
               </li>
               <li className="flex items-center gap-2">
                 <MapPin className="h-4 w-4" />
