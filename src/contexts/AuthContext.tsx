@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { jwtDecode } from 'jwt-decode';
 
 interface User {
@@ -22,6 +22,45 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  const logout = useCallback(() => {
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('refreshToken');
+    localStorage.removeItem('user');
+    setUser(null);
+  }, []);
+
+  const refreshAccessToken = useCallback(async (): Promise<boolean> => {
+    const refreshToken = localStorage.getItem('refreshToken');
+    if (!refreshToken) return false;
+
+    try {
+      const response = await fetch('https://api-staging.roomiecircle.com/api/v1/auth/token/refresh', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refreshToken }),
+      });
+
+      if (!response.ok) return false;
+
+      const data = await response.json();
+      const accessToken = data.accessToken || data.data?.accessToken;
+      if (accessToken) {
+        localStorage.setItem('accessToken', accessToken);
+        return true;
+      }
+      return false;
+    } catch {
+      return false;
+    }
+  }, []);
+
+  const login = useCallback((accessToken: string, refreshToken: string, userData: User) => {
+    localStorage.setItem('accessToken', accessToken);
+    localStorage.setItem('refreshToken', refreshToken);
+    localStorage.setItem('user', JSON.stringify(userData));
+    setUser(userData);
+  }, []);
 
   useEffect(() => {
     const initAuth = async () => {
@@ -55,7 +94,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     initAuth();
-  }, []);
+  }, [logout, refreshAccessToken]);
 
   // Auto-refresh token before it expires
   useEffect(() => {
@@ -87,42 +126,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     checkAndRefreshToken();
 
     return () => clearInterval(interval);
-  }, [user]);
-
-  const refreshAccessToken = async (): Promise<boolean> => {
-    const refreshToken = localStorage.getItem('refreshToken');
-    if (!refreshToken) return false;
-
-    try {
-      const response = await fetch('https://api-staging.roomiecircle.com/api/v1/auth/token/refresh', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ refreshToken }),
-      });
-
-      if (!response.ok) return false;
-
-      const data = await response.json();
-      localStorage.setItem('accessToken', data.accessToken || data.data?.accessToken);
-      return true;
-    } catch {
-      return false;
-    }
-  };
-
-  const login = (accessToken: string, refreshToken: string, userData: User) => {
-    localStorage.setItem('accessToken', accessToken);
-    localStorage.setItem('refreshToken', refreshToken);
-    localStorage.setItem('user', JSON.stringify(userData));
-    setUser(userData);
-  };
-
-  const logout = () => {
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
-    localStorage.removeItem('user');
-    setUser(null);
-  };
+  }, [user, refreshAccessToken]);
 
   return (
     <AuthContext.Provider
