@@ -1,4 +1,4 @@
-const API_BASE_URL = 'https://roomiecircle-prod.com';
+const API_BASE_URL = 'http://35.200.192.212:80';
 
 class ApiClient {
   private getAuthHeader(): HeadersInit {
