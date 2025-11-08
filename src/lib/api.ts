@@ -1,19 +1,16 @@
-const API_BASE_URL = 'https://api-staging.roomiecircle.com';
+const API_BASE_URL = "https://api-staging.roomiecircle.com";
 
 class ApiClient {
   private getAuthHeader(): HeadersInit {
-    const token = localStorage.getItem('accessToken');
+    const token = localStorage.getItem("accessToken");
     return token ? { Authorization: `Bearer ${token}` } : {};
   }
 
-  private async request<T>(
-    endpoint: string,
-    options: RequestInit = {}
-  ): Promise<T> {
+  private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
       ...options,
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
         ...this.getAuthHeader(),
         ...options.headers,
       },
@@ -27,29 +24,29 @@ class ApiClient {
         return this.request(endpoint, options);
       } else {
         // Clear auth and redirect to login
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('refreshToken');
-        window.location.href = '/auth/login';
-        throw new Error('Authentication failed');
+        localStorage.removeItem("accessToken");
+        localStorage.removeItem("refreshToken");
+        window.location.href = "/auth/login";
+        throw new Error("Authentication failed");
       }
     }
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: 'Request failed' }));
-      throw new Error(error.message || 'Request failed');
+      const error = await response.json().catch(() => ({ message: "Request failed" }));
+      throw new Error(error.message || "Request failed");
     }
 
     return response.json();
   }
 
   async refreshToken(): Promise<boolean> {
-    const refreshToken = localStorage.getItem('refreshToken');
+    const refreshToken = localStorage.getItem("refreshToken");
     if (!refreshToken) return false;
 
     try {
       const response = await fetch(`${API_BASE_URL}/api/v1/auth/token/refresh`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ refreshToken }),
       });
 
@@ -58,7 +55,7 @@ class ApiClient {
       const data = await response.json();
       const accessToken = data.accessToken || data.data?.accessToken;
       if (accessToken) {
-        localStorage.setItem('accessToken', accessToken);
+        localStorage.setItem("accessToken", accessToken);
         return true;
       }
       return false;
@@ -72,8 +69,8 @@ class ApiClient {
     const response = await this.request<{
       success: boolean;
       data: { message: string; tempId: string };
-    }>('/api/v1/auth/signup/initiate-verification', {
-      method: 'POST',
+    }>("/api/v1/auth/signup/initiate-verification", {
+      method: "POST",
       body: JSON.stringify({ email, password, name }),
     });
     return response.data;
@@ -88,8 +85,8 @@ class ApiClient {
         refreshToken: string;
         user: any;
       };
-    }>('/api/v1/auth/signup/verify', {
-      method: 'POST',
+    }>("/api/v1/auth/signup/verify", {
+      method: "POST",
       body: JSON.stringify({ tempId, code }),
     });
     return response.data;
@@ -99,8 +96,8 @@ class ApiClient {
     const response = await this.request<{
       success: boolean;
       data: { message: string };
-    }>('/api/v1/auth/signup/resend-verification', {
-      method: 'POST',
+    }>("/api/v1/auth/signup/resend-verification", {
+      method: "POST",
       body: JSON.stringify({ tempId }),
     });
     return response.data;
@@ -115,8 +112,8 @@ class ApiClient {
         refreshToken: string;
         user: any;
       };
-    }>('/api/v1/auth/login', {
-      method: 'POST',
+    }>("/api/v1/auth/login", {
+      method: "POST",
       body: JSON.stringify({ email, password }),
     });
     return response.data;
@@ -126,8 +123,8 @@ class ApiClient {
     const response = await this.request<{
       success: boolean;
       data: { message: string; tempId: string };
-    }>('/login/otp/initiate', {
-      method: 'POST',
+    }>("/api/v1/auth/login/otp/initiate", {
+      method: "POST",
       body: JSON.stringify({ email }),
     });
     return response.data;
@@ -142,8 +139,8 @@ class ApiClient {
         refreshToken: string;
         user: any;
       };
-    }>('/api/v1/auth/login/verify-otp', {
-      method: 'POST',
+    }>("/api/v1/auth/login/verify-otp", {
+      method: "POST",
       body: JSON.stringify({ tempId, code }),
     });
     return response.data;
@@ -158,8 +155,8 @@ class ApiClient {
         refreshToken: string;
         user: any;
       };
-    }>('/api/v1/auth/google/signup', {
-      method: 'POST',
+    }>("/api/v1/auth/google/signup", {
+      method: "POST",
       body: JSON.stringify({ idToken }),
     });
     return response.data;
@@ -174,8 +171,8 @@ class ApiClient {
         refreshToken: string;
         user: any;
       };
-    }>('/api/v1/auth/google/login', {
-      method: 'POST',
+    }>("/api/v1/auth/google/login", {
+      method: "POST",
       body: JSON.stringify({ idToken }),
     });
     return response.data;
