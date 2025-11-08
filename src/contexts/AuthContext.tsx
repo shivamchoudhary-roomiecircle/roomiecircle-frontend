@@ -76,7 +76,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           // If token is expired, try to refresh
           if (expirationTime < now) {
             const refreshed = await refreshAccessToken();
-            if (!refreshed) {
+            if (refreshed) {
+              const storedUser = localStorage.getItem('user');
+              if (storedUser) {
+                setUser(JSON.parse(storedUser));
+              }
+            } else {
               logout();
             }
           } else {

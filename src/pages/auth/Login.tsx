@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { apiClient } from '@/lib/api';
-import { GoogleLogin } from '@react-oauth/google';
+
 import { useAuth } from '@/contexts/AuthContext';
 import { Home as HomeIcon, ArrowLeft } from 'lucide-react';
 
@@ -248,17 +248,11 @@ const Login = () => {
             </div>
           </div>
 
+          {/* Google login temporarily disabled */}
           <div className="flex justify-center">
-            <GoogleLogin
-              onSuccess={handleGoogleSuccess}
-              onError={() => {
-                toast({
-                  title: 'Error',
-                  description: 'Failed to login with Google',
-                  variant: 'destructive',
-                });
-              }}
-            />
+            <Button variant="outline" disabled>
+              Google login unavailable
+            </Button>
           </div>
 
           <p className="text-center text-sm text-muted-foreground mt-6">

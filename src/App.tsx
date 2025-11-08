@@ -3,7 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { GoogleOAuthProvider } from '@react-oauth/google';
+
 import { AuthProvider } from "./contexts/AuthContext";
 import { ThemeProvider } from "./components/ThemeProvider";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -15,11 +15,10 @@ import Dashboard from "./pages/Dashboard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
-const GOOGLE_CLIENT_ID = "1007848955357-f687ag4c9jg6ljhm9dn2htfo6u3j72hc.apps.googleusercontent.com";
+
 
 const App = () => (
-  <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
-    <QueryClientProvider client={queryClient}>
+  <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <AuthProvider>
           <TooltipProvider>
@@ -40,7 +39,7 @@ const App = () => (
         </AuthProvider>
       </ThemeProvider>
     </QueryClientProvider>
-  </GoogleOAuthProvider>
+  
 );
 
 export default App;
