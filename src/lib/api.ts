@@ -126,7 +126,7 @@ class ApiClient {
     const response = await this.request<{
       success: boolean;
       data: { message: string; tempId: string };
-    }>('/api/v1/auth/login/initiate-otp', {
+    }>('/login/otp/initiate', {
       method: 'POST',
       body: JSON.stringify({ email }),
     });
