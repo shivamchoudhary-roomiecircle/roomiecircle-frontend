@@ -56,8 +56,12 @@ class ApiClient {
       if (!response.ok) return false;
 
       const data = await response.json();
-      localStorage.setItem('accessToken', data.accessToken);
-      return true;
+      const accessToken = data.accessToken || data.data?.accessToken;
+      if (accessToken) {
+        localStorage.setItem('accessToken', accessToken);
+        return true;
+      }
+      return false;
     } catch {
       return false;
     }

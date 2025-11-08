@@ -24,27 +24,91 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Check for existing token on mount
-    const token = localStorage.getItem('accessToken');
-    if (token) {
+    const initAuth = async () => {
+      const token = localStorage.getItem('accessToken');
+      const refreshToken = localStorage.getItem('refreshToken');
+      
+      if (token && refreshToken) {
+        try {
+          const decoded: any = jwtDecode(token);
+          const now = Date.now();
+          const expirationTime = decoded.exp * 1000;
+          
+          // If token is expired, try to refresh
+          if (expirationTime < now) {
+            const refreshed = await refreshAccessToken();
+            if (!refreshed) {
+              logout();
+            }
+          } else {
+            // Token is valid, restore user
+            const storedUser = localStorage.getItem('user');
+            if (storedUser) {
+              setUser(JSON.parse(storedUser));
+            }
+          }
+        } catch {
+          logout();
+        }
+      }
+      setIsLoading(false);
+    };
+
+    initAuth();
+  }, []);
+
+  // Auto-refresh token before it expires
+  useEffect(() => {
+    if (!user) return;
+
+    const checkAndRefreshToken = async () => {
+      const token = localStorage.getItem('accessToken');
+      if (!token) return;
+
       try {
         const decoded: any = jwtDecode(token);
-        // Check if token is expired
-        if (decoded.exp * 1000 < Date.now()) {
-          logout();
-        } else {
-          // Get user from localStorage
-          const storedUser = localStorage.getItem('user');
-          if (storedUser) {
-            setUser(JSON.parse(storedUser));
-          }
+        const now = Date.now();
+        const expirationTime = decoded.exp * 1000;
+        const timeUntilExpiry = expirationTime - now;
+
+        // Refresh if token expires in less than 5 minutes
+        if (timeUntilExpiry < 5 * 60 * 1000 && timeUntilExpiry > 0) {
+          await refreshAccessToken();
         }
-      } catch {
-        logout();
+      } catch (error) {
+        console.error('Error checking token expiration:', error);
       }
+    };
+
+    // Check token expiration every minute
+    const interval = setInterval(checkAndRefreshToken, 60 * 1000);
+    
+    // Also check immediately
+    checkAndRefreshToken();
+
+    return () => clearInterval(interval);
+  }, [user]);
+
+  const refreshAccessToken = async (): Promise<boolean> => {
+    const refreshToken = localStorage.getItem('refreshToken');
+    if (!refreshToken) return false;
+
+    try {
+      const response = await fetch('https://api-staging.roomiecircle.com/api/v1/auth/token/refresh', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refreshToken }),
+      });
+
+      if (!response.ok) return false;
+
+      const data = await response.json();
+      localStorage.setItem('accessToken', data.accessToken || data.data?.accessToken);
+      return true;
+    } catch {
+      return false;
     }
-    setIsLoading(false);
-  }, []);
+  };
 
   const login = (accessToken: string, refreshToken: string, userData: User) => {
     localStorage.setItem('accessToken', accessToken);
