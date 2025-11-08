@@ -139,7 +139,7 @@ class ApiClient {
         refreshToken: string;
         user: any;
       };
-    }>("/api/v1/auth/login/verify-otp", {
+    }>("/api/v1/auth/login/otp/verify", {
       method: "POST",
       body: JSON.stringify({ tempId, code }),
     });
