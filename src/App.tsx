@@ -15,7 +15,7 @@ import Dashboard from "./pages/Dashboard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
-const GOOGLE_CLIENT_ID = "1007848955357-f687ag4c9jg6ljhm9dn2htfo6u3j72hc.apps.googleusercontent.com";
+const GOOGLE_CLIENT_ID = "485816600289-hgcsah1r27iopptput2o71rbal0g8es3.apps.googleusercontent.com";
 
 
 const App = () => (
