@@ -5,7 +5,12 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "next-themes";
 
-const Navbar = () => {
+interface NavbarProps {
+  activeTab?: "rooms" | "roommates";
+  onTabChange?: (tab: "rooms" | "roommates") => void;
+}
+
+const Navbar = ({ activeTab, onTabChange }: NavbarProps) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
   const { isAuthenticated, user, logout } = useAuth();
@@ -38,18 +43,30 @@ const Navbar = () => {
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-6">
-            <button 
-              onClick={() => handleProtectedAction('/#search-section')}
-              className="text-foreground hover:text-primary transition-colors font-medium"
-            >
-              Find Rooms
-            </button>
-            <button 
-              onClick={() => handleProtectedAction('/#search-section')}
-              className="text-foreground hover:text-secondary transition-colors font-medium"
-            >
-              Find Roommates
-            </button>
+            {onTabChange && (
+              <div className="flex items-center gap-4">
+                <button 
+                  onClick={() => onTabChange("rooms")}
+                  className={`text-base transition-colors ${
+                    activeTab === "rooms" 
+                      ? "text-foreground font-semibold" 
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  Rooms
+                </button>
+                <button 
+                  onClick={() => onTabChange("roommates")}
+                  className={`text-base transition-colors ${
+                    activeTab === "roommates" 
+                      ? "text-foreground font-semibold" 
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  Roommates
+                </button>
+              </div>
+            )}
             <Button variant="outline" onClick={() => handleProtectedAction('/post-room')}>
               List Your Room
             </Button>
@@ -119,24 +136,36 @@ const Navbar = () => {
         {/* Mobile Menu */}
         {mobileMenuOpen && (
           <div className="md:hidden py-4 space-y-3 border-t border-border">
-            <button 
-              onClick={() => {
-                handleProtectedAction('/#search-section');
-                setMobileMenuOpen(false);
-              }}
-              className="block w-full text-left py-2 text-foreground hover:text-primary transition-colors font-medium"
-            >
-              Find Rooms
-            </button>
-            <button 
-              onClick={() => {
-                handleProtectedAction('/#search-section');
-                setMobileMenuOpen(false);
-              }}
-              className="block w-full text-left py-2 text-foreground hover:text-secondary transition-colors font-medium"
-            >
-              Find Roommates
-            </button>
+            {onTabChange && (
+              <div className="flex gap-4 pb-3 mb-3 border-b border-border">
+                <button 
+                  onClick={() => {
+                    onTabChange("rooms");
+                    setMobileMenuOpen(false);
+                  }}
+                  className={`text-base transition-colors ${
+                    activeTab === "rooms" 
+                      ? "text-foreground font-semibold" 
+                      : "text-muted-foreground"
+                  }`}
+                >
+                  Rooms
+                </button>
+                <button 
+                  onClick={() => {
+                    onTabChange("roommates");
+                    setMobileMenuOpen(false);
+                  }}
+                  className={`text-base transition-colors ${
+                    activeTab === "roommates" 
+                      ? "text-foreground font-semibold" 
+                      : "text-muted-foreground"
+                  }`}
+                >
+                  Roommates
+                </button>
+              </div>
+            )}
             <Button 
               variant="outline" 
               className="w-full"
