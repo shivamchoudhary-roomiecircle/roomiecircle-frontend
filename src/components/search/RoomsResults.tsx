@@ -54,7 +54,7 @@ export const RoomsResults = () => {
       {viewMode === "list" ? (
         <div className="min-h-screen bg-background">
           {/* Search Bar */}
-          <div className="sticky top-0 z-40 bg-background border-b border-border">
+          <div className="md:sticky top-0 z-40 bg-background border-b border-border">
             <div className="container mx-auto px-4 py-4">
               <div className="flex flex-wrap gap-2 items-center">
                 <div className="flex-1 min-w-[300px]">

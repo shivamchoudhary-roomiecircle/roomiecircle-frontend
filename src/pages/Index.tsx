@@ -1,6 +1,7 @@
 import { useState } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import ScrollToTop from "@/components/ScrollToTop";
 import { RoomsResults } from "@/components/search/RoomsResults";
 import { RoommatesResults } from "@/components/search/RoommatesResults";
 
@@ -16,6 +17,7 @@ const Index = () => {
       </main>
       
       <Footer />
+      <ScrollToTop />
     </div>
   );
 };
