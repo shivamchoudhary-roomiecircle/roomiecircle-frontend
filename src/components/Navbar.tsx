@@ -36,17 +36,17 @@ const Navbar = ({ activeTab, onTabChange }: NavbarProps) => {
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center group-hover:scale-110 transition-transform">
               <HomeIcon className="h-5 w-5 text-white" />
             </div>
-            <span className="text-xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+            <span className="hidden md:inline text-xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
               RoomieCircle
             </span>
           </div>
 
-          {/* Centered Toggle - Desktop */}
+          {/* Centered Toggle - Desktop & Mobile */}
           {onTabChange && (
-            <div className="hidden md:flex absolute left-1/2 -translate-x-1/2 items-center bg-muted/30 backdrop-blur-md p-1 rounded-full border border-border/30 shadow-sm">
+            <div className="absolute left-1/2 -translate-x-1/2 flex items-center bg-muted/30 backdrop-blur-md p-1 rounded-full border border-border/30 shadow-sm">
               <button 
                 onClick={() => onTabChange("rooms")}
-                className={`relative px-6 py-2 rounded-full text-sm font-medium transition-all duration-300 ease-out ${
+                className={`relative px-4 md:px-6 py-1.5 md:py-2 rounded-full text-xs md:text-sm font-medium transition-all duration-300 ease-out ${
                   activeTab === "rooms" 
                     ? "text-foreground" 
                     : "text-muted-foreground hover:text-foreground"
@@ -59,7 +59,7 @@ const Navbar = ({ activeTab, onTabChange }: NavbarProps) => {
               </button>
               <button 
                 onClick={() => onTabChange("roommates")}
-                className={`relative px-6 py-2 rounded-full text-sm font-medium transition-all duration-300 ease-out ${
+                className={`relative px-4 md:px-6 py-1.5 md:py-2 rounded-full text-xs md:text-sm font-medium transition-all duration-300 ease-out ${
                   activeTab === "roommates" 
                     ? "text-foreground" 
                     : "text-muted-foreground hover:text-foreground"
@@ -104,7 +104,7 @@ const Navbar = ({ activeTab, onTabChange }: NavbarProps) => {
             )}
           </div>
 
-          {/* Mobile Menu Button, Theme Toggle, and Auth */}
+          {/* Mobile Menu Button and Theme Toggle */}
           <div className="md:hidden flex items-center gap-2">
             <Button
               variant="ghost"
@@ -115,23 +115,6 @@ const Navbar = ({ activeTab, onTabChange }: NavbarProps) => {
               <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
               <span className="sr-only">Toggle theme</span>
             </Button>
-            {isAuthenticated ? (
-              <Button 
-                variant="ghost" 
-                size="icon"
-                onClick={() => navigate('/dashboard')}
-              >
-                <User className="h-5 w-5" />
-              </Button>
-            ) : (
-              <Button 
-                variant="default" 
-                size="sm"
-                onClick={() => navigate('/auth/login')}
-              >
-                Sign In
-              </Button>
-            )}
             <button 
               className="p-2"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -144,41 +127,30 @@ const Navbar = ({ activeTab, onTabChange }: NavbarProps) => {
         {/* Mobile Menu */}
         {mobileMenuOpen && (
           <div className="md:hidden py-4 space-y-3 border-t border-border">
-            {onTabChange && (
-              <div className="flex items-center bg-muted/30 backdrop-blur-md p-1 rounded-full border border-border/30 shadow-sm mb-4">
-                <button 
-                  onClick={() => {
-                    onTabChange("rooms");
-                    setMobileMenuOpen(false);
-                  }}
-                  className={`relative flex-1 px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 ease-out ${
-                    activeTab === "rooms" 
-                      ? "text-foreground" 
-                      : "text-muted-foreground"
-                  }`}
-                >
-                  {activeTab === "rooms" && (
-                    <span className="absolute inset-0 bg-background rounded-full shadow-md -z-10 animate-scale-in" />
-                  )}
-                  <span className="relative z-10">Rooms</span>
-                </button>
-                <button 
-                  onClick={() => {
-                    onTabChange("roommates");
-                    setMobileMenuOpen(false);
-                  }}
-                  className={`relative flex-1 px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 ease-out ${
-                    activeTab === "roommates" 
-                      ? "text-foreground" 
-                      : "text-muted-foreground"
-                  }`}
-                >
-                  {activeTab === "roommates" && (
-                    <span className="absolute inset-0 bg-background rounded-full shadow-md -z-10 animate-scale-in" />
-                  )}
-                  <span className="relative z-10">Roommates</span>
-                </button>
-              </div>
+            {!isAuthenticated && (
+              <Button 
+                variant="default" 
+                className="w-full"
+                onClick={() => {
+                  navigate('/auth/login');
+                  setMobileMenuOpen(false);
+                }}
+              >
+                Sign In
+              </Button>
+            )}
+            {isAuthenticated && (
+              <Button 
+                variant="ghost" 
+                className="w-full justify-start"
+                onClick={() => {
+                  navigate('/dashboard');
+                  setMobileMenuOpen(false);
+                }}
+              >
+                <User className="h-4 w-4 mr-2" />
+                {user?.name}
+              </Button>
             )}
             <Button 
               variant="outline" 
