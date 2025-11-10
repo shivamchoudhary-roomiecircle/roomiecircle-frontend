@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { ArrowUpDown, Plus, Minus, Grid3x3, Heart } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -39,6 +40,15 @@ export const RoommatesResults = () => {
 
   const adjustRadius = (delta: number) => {
     setRadius(prev => Math.max(1, Math.min(100, prev + delta)));
+  };
+
+  const handleRadiusInput = (value: string) => {
+    const num = parseInt(value);
+    if (!isNaN(num)) {
+      setRadius(Math.max(1, Math.min(100, num)));
+    } else if (value === "") {
+      setRadius(1);
+    }
   };
 
   return (
@@ -135,33 +145,42 @@ export const RoommatesResults = () => {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => adjustRadius(-5)}
+                onClick={() => adjustRadius(-1)}
                 className="h-8 w-8 p-0"
               >
                 <Minus className="h-4 w-4" />
               </Button>
-              <span className="text-sm font-medium min-w-[60px] text-center">
-                {radius} km
-              </span>
+              <Input
+                type="number"
+                value={radius}
+                onChange={(e) => handleRadiusInput(e.target.value)}
+                className="h-8 w-16 text-center text-sm border-0 p-0 focus-visible:ring-0"
+                min={1}
+                max={100}
+              />
+              <span className="text-sm font-medium">km</span>
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => adjustRadius(5)}
+                onClick={() => adjustRadius(1)}
                 className="h-8 w-8 p-0"
               >
                 <Plus className="h-4 w-4" />
               </Button>
             </div>
 
-            <Popover>
-              <PopoverTrigger asChild>
+            <Sheet>
+              <SheetTrigger asChild>
                 <Button variant="outline" className="h-12">
-                  <Minus className="h-4 w-4 mr-2" />
-                  Less
+                  <Plus className="h-4 w-4 mr-2" />
+                  More
                 </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-96">
-                <div className="space-y-4">
+              </SheetTrigger>
+              <SheetContent className="overflow-y-auto">
+                <SheetHeader>
+                  <SheetTitle>More Filters</SheetTitle>
+                </SheetHeader>
+                <div className="space-y-4 mt-6">
                   <div>
                     <Label>Gender</Label>
                     <Select value={gender} onValueChange={setGender}>
@@ -240,8 +259,8 @@ export const RoommatesResults = () => {
                     </Select>
                   </div>
                 </div>
-              </PopoverContent>
-            </Popover>
+              </SheetContent>
+            </Sheet>
 
             <Button
               variant={viewMode === "swipe" ? "default" : "outline"}
