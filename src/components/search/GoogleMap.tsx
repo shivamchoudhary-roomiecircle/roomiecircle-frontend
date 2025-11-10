@@ -9,20 +9,21 @@ export const GoogleMap = () => {
   useEffect(() => {
     const loadGoogleMaps = () => {
       if ((window as any).google?.maps) {
-        initializeMap();
+        // Delay initialization to ensure DOM is ready
+        setTimeout(initializeMap, 100);
         return;
       }
 
       const script = document.createElement("script");
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=places`;
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=places&loading=async`;
       script.async = true;
       script.defer = true;
-      script.onload = initializeMap;
+      script.onload = () => setTimeout(initializeMap, 100);
       document.head.appendChild(script);
     };
 
     const initializeMap = () => {
-      if (!mapRef.current || !(window as any).google) return;
+      if (!mapRef.current || !(window as any).google?.maps) return;
 
       const google = (window as any).google;
       
@@ -107,7 +108,7 @@ export const GoogleMap = () => {
   }, []);
 
   return (
-    <div className="relative h-[calc(100vh-200px)] rounded-lg overflow-hidden">
+    <div className="w-full h-full">
       <div ref={mapRef} className="w-full h-full" />
     </div>
   );
