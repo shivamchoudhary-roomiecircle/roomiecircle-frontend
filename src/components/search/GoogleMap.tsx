@@ -7,30 +7,20 @@ export const GoogleMap = () => {
   const mapInstanceRef = useRef<any>(null);
 
   useEffect(() => {
-    const loadGoogleMaps = () => {
-      if ((window as any).google?.maps) {
-        // Delay initialization to ensure DOM is ready
-        setTimeout(initializeMap, 100);
-        return;
-      }
+    let initialized = false;
+    let resizeObserver: ResizeObserver | null = null;
+    let loadListener: ((this: HTMLScriptElement, ev: Event) => any) | null = null;
 
-      const script = document.createElement("script");
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=places&loading=async`;
-      script.async = true;
-      script.defer = true;
-      script.onload = () => setTimeout(initializeMap, 100);
-      document.head.appendChild(script);
-    };
-
-    const initializeMap = () => {
-      if (!mapRef.current || !(window as any).google?.maps) return;
-
+    const tryInit = () => {
+      const el = mapRef.current as HTMLDivElement | null;
       const google = (window as any).google;
-      
-      // Default to a central location (e.g., San Francisco)
+      if (!el || !google?.maps || initialized) return;
+      // Wait until the element is in the DOM and has size
+      if (!el.isConnected || el.offsetWidth === 0 || el.offsetHeight === 0) return;
+
       const defaultCenter = { lat: 37.7749, lng: -122.4194 };
 
-      mapInstanceRef.current = new google.maps.Map(mapRef.current, {
+      mapInstanceRef.current = new google.maps.Map(el, {
         center: defaultCenter,
         zoom: 12,
         styles: [
@@ -45,8 +35,33 @@ export const GoogleMap = () => {
         streetViewControl: false,
       });
 
-      // Add sample markers (this will be replaced with actual room data)
+      initialized = true;
       addSampleMarkers();
+      // Stop observing once initialized
+      resizeObserver?.disconnect();
+    };
+
+    const loadGoogleMaps = () => {
+      if ((window as any).google?.maps) {
+        tryInit();
+        return;
+      }
+
+      let script = document.querySelector('script[data-google-maps]') as HTMLScriptElement | null;
+      if (!script) {
+        script = document.createElement("script");
+        script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=places&v=weekly`;
+        script.async = true;
+        script.defer = true;
+        script.setAttribute('data-google-maps', 'true');
+        document.head.appendChild(script);
+      }
+
+      loadListener = () => {
+        // Give React a frame to commit the DOM
+        requestAnimationFrame(tryInit);
+      };
+      script.addEventListener('load', loadListener, { once: true } as any);
     };
 
     const addSampleMarkers = () => {
@@ -100,10 +115,21 @@ export const GoogleMap = () => {
 
     loadGoogleMaps();
 
+    // Observe size changes of the container and (re)try init
+    if (mapRef.current && 'ResizeObserver' in window) {
+      resizeObserver = new ResizeObserver(() => tryInit());
+      resizeObserver.observe(mapRef.current);
+    }
+    // Fallback attempt on next frame
+    const raf = requestAnimationFrame(() => tryInit());
+
     return () => {
-      if (mapInstanceRef.current) {
-        mapInstanceRef.current = null;
-      }
+      resizeObserver?.disconnect();
+      cancelAnimationFrame(raf);
+      // No need to remove script, but detach listener if any
+      const script = document.querySelector('script[data-google-maps]') as HTMLScriptElement | null;
+      if (script && loadListener) script.removeEventListener('load', loadListener as any);
+      mapInstanceRef.current = null;
     };
   }, []);
 
