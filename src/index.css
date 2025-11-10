@@ -45,6 +45,8 @@ All colors MUST be HSL.
     --shadow-soft: 0 2px 20px -5px hsl(25 25% 15% / 0.08);
     --shadow-medium: 0 8px 30px -10px hsl(25 25% 15% / 0.12);
     --shadow-card: 0 4px 24px -8px hsl(25 25% 15% / 0.1);
+    --shadow-raised: 0 4px 12px -2px hsl(25 25% 15% / 0.15), 0 2px 4px -1px hsl(25 25% 15% / 0.08);
+    --shadow-inset: inset 0 2px 8px -2px hsl(25 25% 15% / 0.15);
 
     --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
@@ -85,6 +87,8 @@ All colors MUST be HSL.
     --shadow-soft: 0 2px 20px -5px hsl(0 0% 0% / 0.3);
     --shadow-medium: 0 8px 30px -10px hsl(0 0% 0% / 0.4);
     --shadow-card: 0 4px 24px -8px hsl(0 0% 0% / 0.35);
+    --shadow-raised: 0 4px 12px -2px hsl(0 0% 0% / 0.4), 0 2px 4px -1px hsl(0 0% 0% / 0.2);
+    --shadow-inset: inset 0 2px 8px -2px hsl(0 0% 0% / 0.4);
   }
 }
 

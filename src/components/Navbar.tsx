@@ -41,32 +41,44 @@ const Navbar = ({ activeTab, onTabChange }: NavbarProps) => {
             </span>
           </div>
 
+          {/* Centered Toggle - Desktop */}
+          {onTabChange && (
+            <div className="hidden md:flex absolute left-1/2 -translate-x-1/2 items-center bg-muted/50 backdrop-blur-sm p-1.5 rounded-xl border border-border/50">
+              <button 
+                onClick={() => onTabChange("rooms")}
+                className={`px-6 py-2.5 rounded-lg text-base font-semibold transition-all duration-300 ${
+                  activeTab === "rooms" 
+                    ? "bg-background text-foreground translate-y-0" 
+                    : "text-muted-foreground hover:text-foreground translate-y-0.5"
+                }`}
+                style={{
+                  boxShadow: activeTab === "rooms" 
+                    ? "var(--shadow-raised)" 
+                    : "var(--shadow-inset)"
+                }}
+              >
+                Rooms
+              </button>
+              <button 
+                onClick={() => onTabChange("roommates")}
+                className={`px-6 py-2.5 rounded-lg text-base font-semibold transition-all duration-300 ${
+                  activeTab === "roommates" 
+                    ? "bg-background text-foreground translate-y-0" 
+                    : "text-muted-foreground hover:text-foreground translate-y-0.5"
+                }`}
+                style={{
+                  boxShadow: activeTab === "roommates" 
+                    ? "var(--shadow-raised)" 
+                    : "var(--shadow-inset)"
+                }}
+              >
+                Roommates
+              </button>
+            </div>
+          )}
+
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-6">
-            {onTabChange && (
-              <div className="flex items-center gap-4">
-                <button 
-                  onClick={() => onTabChange("rooms")}
-                  className={`text-base transition-colors ${
-                    activeTab === "rooms" 
-                      ? "text-foreground font-semibold" 
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  Rooms
-                </button>
-                <button 
-                  onClick={() => onTabChange("roommates")}
-                  className={`text-base transition-colors ${
-                    activeTab === "roommates" 
-                      ? "text-foreground font-semibold" 
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  Roommates
-                </button>
-              </div>
-            )}
             <Button variant="outline" onClick={() => handleProtectedAction('/post-room')}>
               List Your Room
             </Button>
@@ -137,17 +149,22 @@ const Navbar = ({ activeTab, onTabChange }: NavbarProps) => {
         {mobileMenuOpen && (
           <div className="md:hidden py-4 space-y-3 border-t border-border">
             {onTabChange && (
-              <div className="flex gap-4 pb-3 mb-3 border-b border-border">
+              <div className="flex items-center bg-muted/50 backdrop-blur-sm p-1.5 rounded-xl border border-border/50 mb-4">
                 <button 
                   onClick={() => {
                     onTabChange("rooms");
                     setMobileMenuOpen(false);
                   }}
-                  className={`text-base transition-colors ${
+                  className={`flex-1 px-4 py-2.5 rounded-lg text-base font-semibold transition-all duration-300 ${
                     activeTab === "rooms" 
-                      ? "text-foreground font-semibold" 
-                      : "text-muted-foreground"
+                      ? "bg-background text-foreground translate-y-0" 
+                      : "text-muted-foreground translate-y-0.5"
                   }`}
+                  style={{
+                    boxShadow: activeTab === "rooms" 
+                      ? "var(--shadow-raised)" 
+                      : "var(--shadow-inset)"
+                  }}
                 >
                   Rooms
                 </button>
@@ -156,11 +173,16 @@ const Navbar = ({ activeTab, onTabChange }: NavbarProps) => {
                     onTabChange("roommates");
                     setMobileMenuOpen(false);
                   }}
-                  className={`text-base transition-colors ${
+                  className={`flex-1 px-4 py-2.5 rounded-lg text-base font-semibold transition-all duration-300 ${
                     activeTab === "roommates" 
-                      ? "text-foreground font-semibold" 
-                      : "text-muted-foreground"
+                      ? "bg-background text-foreground translate-y-0" 
+                      : "text-muted-foreground translate-y-0.5"
                   }`}
+                  style={{
+                    boxShadow: activeTab === "roommates" 
+                      ? "var(--shadow-raised)" 
+                      : "var(--shadow-inset)"
+                  }}
                 >
                   Roommates
                 </button>
