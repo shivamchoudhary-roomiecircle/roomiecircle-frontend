@@ -177,6 +177,34 @@ class ApiClient {
     });
     return response.data;
   }
+
+  // Search endpoints
+  async searchPlaces(input: string, sessionToken?: string) {
+    const params = new URLSearchParams({ input });
+    if (sessionToken) params.append("sessionToken", sessionToken);
+    
+    const response = await this.request<{
+      success: boolean;
+      data: Array<{
+        placeId: string;
+        description: string;
+        mainText: string;
+        secondaryText: string;
+      }>;
+    }>(`/api/v1/search/places?${params.toString()}`);
+    return response.data;
+  }
+
+  async search(filters: any) {
+    const response = await this.request<{
+      success: boolean;
+      data: any;
+    }>("/api/v1/search", {
+      method: "POST",
+      body: JSON.stringify(filters),
+    });
+    return response.data;
+  }
 }
 
 export const apiClient = new ApiClient();
