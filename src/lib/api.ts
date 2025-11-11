@@ -185,14 +185,16 @@ class ApiClient {
     
     const response = await this.request<{
       success: boolean;
-      data: Array<{
-        placeId: string;
-        description: string;
-        mainText: string;
-        secondaryText: string;
-      }>;
+      data: {
+        suggestions: Array<{
+          placeId: string;
+          description: string;
+          mainText: string;
+          secondaryText: string;
+        }>;
+      };
     }>(`/api/v1/search/places?${params.toString()}`);
-    return response.data;
+    return response.data.suggestions;
   }
 
   async search(filters: any) {
