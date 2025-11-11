@@ -75,7 +75,7 @@ const Navbar = ({ activeTab, onTabChange }: NavbarProps) => {
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-6">
-            <Button variant="outline" onClick={() => handleProtectedAction('/post-room')}>
+            <Button variant="outline" onClick={() => handleProtectedAction('/create-listing')}>
               List Your Room
             </Button>
             <Button
