@@ -205,6 +205,39 @@ class ApiClient {
     });
     return response.data;
   }
+
+  // Configuration endpoint
+  async getConfiguration() {
+    const response = await this.request<{
+      success: boolean;
+      data: any;
+    }>("/api/v1/configuration");
+    return response.data;
+  }
+
+  // Listing endpoints
+  async createListing() {
+    const response = await this.request<{
+      success: boolean;
+      data: any;
+      message: string;
+    }>("/api/v1/listings", {
+      method: "POST",
+    });
+    return response.data;
+  }
+
+  async updateListing(listingId: string, data: any) {
+    const response = await this.request<{
+      success: boolean;
+      data: any;
+      message: string;
+    }>(`/api/v1/listings/${listingId}`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    });
+    return response.data;
+  }
 }
 
 export const apiClient = new ApiClient();

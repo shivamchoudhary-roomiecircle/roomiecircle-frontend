@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Home as HomeIcon, Menu, User, Sun, Moon } from "lucide-react";
+import { Home, Menu, User, Sun, Moon } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -34,7 +34,7 @@ const Navbar = ({ activeTab, onTabChange }: NavbarProps) => {
             onClick={() => navigate('/')}
           >
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center group-hover:scale-110 transition-transform">
-              <HomeIcon className="h-5 w-5 text-white" />
+              <Home className="h-5 w-5 text-white" />
             </div>
             <span className="hidden md:inline text-xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
               RoomieCircle
@@ -140,39 +140,40 @@ const Navbar = ({ activeTab, onTabChange }: NavbarProps) => {
               </Button>
             )}
             {isAuthenticated && (
-              <Button 
-                variant="ghost" 
-                className="w-full justify-start"
-                onClick={() => {
-                  navigate('/dashboard');
-                  setMobileMenuOpen(false);
-                }}
-              >
-                <User className="h-4 w-4 mr-2" />
-                {user?.name}
-              </Button>
-            )}
-            <Button 
-              variant="outline" 
-              className="w-full"
-              onClick={() => {
-                handleProtectedAction('/post-room');
-                setMobileMenuOpen(false);
-              }}
-            >
-              List Your Room
-            </Button>
-            {isAuthenticated && (
-              <Button 
-                variant="outline" 
-                className="w-full"
-                onClick={() => {
-                  logout();
-                  setMobileMenuOpen(false);
-                }}
-              >
-                Logout
-              </Button>
+              <>
+                <Button 
+                  variant="ghost" 
+                  className="w-full justify-start"
+                  onClick={() => {
+                    navigate('/dashboard');
+                    setMobileMenuOpen(false);
+                  }}
+                >
+                  <User className="h-4 w-4 mr-2" />
+                  {user?.name}
+                </Button>
+                <Button 
+                  variant="default" 
+                  className="w-full"
+                  onClick={() => {
+                    navigate('/create-listing');
+                    setMobileMenuOpen(false);
+                  }}
+                >
+                  <Home className="h-4 w-4 mr-2" />
+                  List Your Room
+                </Button>
+                <Button 
+                  variant="outline" 
+                  className="w-full"
+                  onClick={() => {
+                    logout();
+                    setMobileMenuOpen(false);
+                  }}
+                >
+                  Logout
+                </Button>
+              </>
             )}
           </div>
         )}
