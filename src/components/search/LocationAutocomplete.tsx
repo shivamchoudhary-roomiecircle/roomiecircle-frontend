@@ -22,6 +22,7 @@ export const LocationAutocomplete = ({
   const [showDropdown, setShowDropdown] = useState(false);
   const [sessionToken] = useState(() => Math.random().toString(36).substring(7));
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const lastSelectedRef = useRef<string>("");
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -36,6 +37,11 @@ export const LocationAutocomplete = ({
 
   useEffect(() => {
     const searchPlaces = async () => {
+      // Skip search if this value was just selected from dropdown
+      if (value === lastSelectedRef.current) {
+        return;
+      }
+
       if (value.length < 2) {
         setSuggestions([]);
         setShowDropdown(false);
@@ -60,6 +66,7 @@ export const LocationAutocomplete = ({
   }, [value, sessionToken]);
 
   const handleSelectPlace = (place: any) => {
+    lastSelectedRef.current = place.description;
     onChange(place.description, place.placeId);
     setShowDropdown(false);
     setSuggestions([]);
