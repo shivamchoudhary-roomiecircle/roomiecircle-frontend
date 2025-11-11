@@ -93,7 +93,7 @@ const CreateListing = () => {
       
       toast({
         title: "Success",
-        description: "Listing draft created. Let's add details!",
+        description: "Listing created, let's fill details",
       });
     } catch (error: any) {
       setInitError(error.message || "Failed to initialize listing");
