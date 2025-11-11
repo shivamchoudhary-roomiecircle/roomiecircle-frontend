@@ -1,10 +1,10 @@
 import { Button } from "@/components/ui/button";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { Home, Menu, User, Sun, Moon } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "next-themes";
-
 interface NavbarProps {
   activeTab?: "rooms" | "roommates";
   onTabChange?: (tab: "rooms" | "roommates") => void;
@@ -74,7 +74,7 @@ const Navbar = ({ activeTab, onTabChange }: NavbarProps) => {
           )}
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center gap-6">
+          <div className="hidden md:flex items-center gap-3">
             <Button variant="outline" onClick={() => handleProtectedAction('/create-listing')}>
               List Your Room
             </Button>
@@ -88,14 +88,26 @@ const Navbar = ({ activeTab, onTabChange }: NavbarProps) => {
               <span className="sr-only">Toggle theme</span>
             </Button>
             {isAuthenticated ? (
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
                 <Button variant="ghost" onClick={() => navigate('/dashboard')}>
                   <User className="h-4 w-4 mr-2" />
                   {user?.name}
                 </Button>
-                <Button variant="outline" onClick={logout}>
-                  Logout
-                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="icon" aria-label="Open menu">
+                      <Menu className="h-5 w-5" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56">
+                    <DropdownMenuItem onClick={() => navigate('/dashboard?tab=profile')}>Profile</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate('/dashboard?tab=listings')}>View Listings</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate('/dashboard?tab=status')}>Listing Status</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleProtectedAction('/create-listing')}>List Your Room</DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={logout}>Logout</DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             ) : (
               <Button variant="default" onClick={() => navigate('/auth/login')}>

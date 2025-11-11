@@ -20,6 +20,7 @@ const CreateListing = () => {
   const [listingId, setListingId] = useState<string>("");
   const [config, setConfig] = useState<any>(null);
   const [currentSection, setCurrentSection] = useState(0);
+  const [initError, setInitError] = useState<string | null>(null);
 
   // Form states
   const [basicInfo, setBasicInfo] = useState({
@@ -78,6 +79,7 @@ const CreateListing = () => {
   }, []);
 
   const initializeListing = async () => {
+    setInitError(null);
     try {
       setLoading(true);
       
@@ -94,12 +96,17 @@ const CreateListing = () => {
         description: "Listing draft created. Let's add details!",
       });
     } catch (error: any) {
+      setInitError(error.message || "Failed to initialize listing");
       toast({
-        title: "Error",
-        description: error.message || "Failed to initialize listing",
+        title: "Could not start listing",
+        description: "You can retry from here. We'll stay on this page.",
         variant: "destructive",
       });
-      navigate('/dashboard');
+      // Try to load configuration even if draft creation failed
+      try {
+        const configData = await apiClient.getConfiguration();
+        setConfig(configData);
+      } catch {}
     } finally {
       setLoading(false);
     }
@@ -937,6 +944,12 @@ const CreateListing = () => {
           <p className="text-muted-foreground">
             Section {currentSection + 1} of {sections.length}: {currentSectionData.title}
           </p>
+          {initError && (
+            <div className="mt-4 flex items-center justify-between rounded-md border border-destructive/30 bg-destructive/10 p-3 text-destructive">
+              <span className="text-sm">{initError}</span>
+              <Button size="sm" variant="outline" onClick={initializeListing}>Retry</Button>
+            </div>
+          )}
           
           {/* Progress bar */}
           <div className="mt-4 h-2 bg-muted rounded-full overflow-hidden">
