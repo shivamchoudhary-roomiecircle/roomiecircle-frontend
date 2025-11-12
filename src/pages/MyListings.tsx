@@ -226,10 +226,7 @@ const MyListings = () => {
           <div className="text-center py-12">
             <FileX className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
             <h3 className="text-xl font-semibold mb-2">NO LISTINGS</h3>
-            <p className="text-muted-foreground mb-6">
-              Create a new listing using the link above
-            </p>
-            <Button onClick={() => navigate("/create-listing")}>
+            <Button onClick={() => navigate("/create-listing")} className="mt-6">
               <Plus className="h-4 w-4 mr-2" />
               Create Your First Listing
             </Button>
