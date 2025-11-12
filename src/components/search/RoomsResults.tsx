@@ -5,7 +5,7 @@ import { useConfig } from "@/contexts/ConfigContext";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, DollarSign, Clock, ArrowUpDown, Map as MapIcon, Grid3x3, Plus, Minus, ArrowLeft, List } from "lucide-react";
+import { MapPin, DollarSign, Clock, ArrowUpDown, Map as MapIcon, Grid3x3, Plus, Minus, ArrowLeft, List, Search } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
@@ -371,74 +371,86 @@ export const RoomsResults = () => {
 
           {/* Results Grid */}
           <div className="container mx-auto px-4 pb-12">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {loading ? (
-                Array.from({ length: 8 }).map((_, i) => (
-                  <div key={i} className="bg-card rounded-lg border border-border overflow-hidden">
-                    <Skeleton className="aspect-[4/3]" />
-                    <div className="p-4 space-y-3">
-                      <div className="flex items-center gap-2">
-                        <Skeleton className="w-10 h-10 rounded-full" />
-                        <div className="space-y-1 flex-1">
-                          <Skeleton className="h-4 w-24" />
-                          <Skeleton className="h-3 w-32" />
-                        </div>
-                      </div>
-                      <Skeleton className="h-6 w-32" />
-                      <Skeleton className="h-4 w-full" />
-                      <Skeleton className="h-4 w-3/4" />
-                    </div>
-                  </div>
-                ))
-              ) : (
-                listings.map((listing) => (
-                  <div key={listing.id} className="bg-card rounded-lg border border-border overflow-hidden hover:shadow-lg transition-shadow">
-                    <div className="aspect-[4/3] bg-muted relative">
-                      {listing.images?.[0] && (
-                        <img 
-                          src={listing.images[0]} 
-                          alt={listing.description || "Room"} 
-                          className="w-full h-full object-cover"
-                        />
-                      )}
-                    </div>
-                    <div className="p-4">
-                      <div className="flex items-start justify-between mb-2">
+            {!loading && listings.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 px-4">
+                <div className="w-32 h-32 mb-6 flex items-center justify-center">
+                  <Search className="w-20 h-20 text-muted-foreground/40" strokeWidth={1} />
+                </div>
+                <h2 className="text-2xl font-semibold text-muted-foreground mb-4">No results</h2>
+                <p className="text-center text-muted-foreground max-w-md">
+                  Try expanding the search area, or connect with other renters that are also looking in your area
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {loading ? (
+                  Array.from({ length: 8 }).map((_, i) => (
+                    <div key={i} className="bg-card rounded-lg border border-border overflow-hidden">
+                      <Skeleton className="aspect-[4/3]" />
+                      <div className="p-4 space-y-3">
                         <div className="flex items-center gap-2">
-                          <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
-                            <span className="text-xs font-semibold">
-                              {listing.existingRoommates?.[0]?.name?.charAt(0) || "?"}
-                            </span>
-                          </div>
-                          <div>
-                            <p className="font-semibold text-sm">
-                              {listing.existingRoommates?.[0]?.name || "Host"}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              {listing.existingRoommates?.length || 0} ROOMMATE{listing.existingRoommates?.length !== 1 ? "S" : ""}
-                            </p>
+                          <Skeleton className="w-10 h-10 rounded-full" />
+                          <div className="space-y-1 flex-1">
+                            <Skeleton className="h-4 w-24" />
+                            <Skeleton className="h-3 w-32" />
                           </div>
                         </div>
+                        <Skeleton className="h-6 w-32" />
+                        <Skeleton className="h-4 w-full" />
+                        <Skeleton className="h-4 w-3/4" />
                       </div>
-                      <p className="text-2xl font-bold mb-1">
-                        ${listing.monthlyRent} 
-                        <span className="text-sm font-normal text-muted-foreground">/mo</span>
-                      </p>
-                      <p className="text-sm text-muted-foreground mb-2">
-                        {listing.listingType || "Room"} · {listing.bedroomCount || 0} Bedrooms · {listing.propertyType?.[0] || "Property"}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        {listing.availableDate ? new Date(listing.availableDate).toLocaleDateString() : "Available"}
-                      </p>
-                      <p className="text-sm text-muted-foreground flex items-center gap-1 mt-2">
-                        <MapPin className="h-3 w-3" />
-                        {listing.addressText || "Location"}
-                      </p>
                     </div>
-                  </div>
-                ))
-              )}
-            </div>
+                  ))
+                ) : (
+                  listings.map((listing) => (
+                    <div key={listing.id} className="bg-card rounded-lg border border-border overflow-hidden hover:shadow-lg transition-shadow">
+                      <div className="aspect-[4/3] bg-muted relative">
+                        {listing.images?.[0] && (
+                          <img 
+                            src={listing.images[0]} 
+                            alt={listing.description || "Room"} 
+                            className="w-full h-full object-cover"
+                          />
+                        )}
+                      </div>
+                      <div className="p-4">
+                        <div className="flex items-start justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
+                              <span className="text-xs font-semibold">
+                                {listing.existingRoommates?.[0]?.name?.charAt(0) || "?"}
+                              </span>
+                            </div>
+                            <div>
+                              <p className="font-semibold text-sm">
+                                {listing.existingRoommates?.[0]?.name || "Host"}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                {listing.existingRoommates?.length || 0} ROOMMATE{listing.existingRoommates?.length !== 1 ? "S" : ""}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                        <p className="text-2xl font-bold mb-1">
+                          ${listing.monthlyRent} 
+                          <span className="text-sm font-normal text-muted-foreground">/mo</span>
+                        </p>
+                        <p className="text-sm text-muted-foreground mb-2">
+                          {listing.listingType || "Room"} · {listing.bedroomCount || 0} Bedrooms · {listing.propertyType?.[0] || "Property"}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          {listing.availableDate ? new Date(listing.availableDate).toLocaleDateString() : "Available"}
+                        </p>
+                        <p className="text-sm text-muted-foreground flex items-center gap-1 mt-2">
+                          <MapPin className="h-3 w-3" />
+                          {listing.addressText || "Location"}
+                        </p>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
           </div>
         </div>
       ) : (

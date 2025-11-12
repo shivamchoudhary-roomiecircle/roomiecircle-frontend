@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { ArrowUpDown, Plus, Minus, Grid3x3, Heart } from "lucide-react";
+import { ArrowUpDown, Plus, Minus, Grid3x3, Heart, Search } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
@@ -310,7 +310,17 @@ export const RoommatesResults = () => {
 
       {/* Results Grid */}
       <div className="container mx-auto px-4 pb-12">
-        {viewMode === "list" ? (
+        {!loading && roommates.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 px-4">
+            <div className="w-32 h-32 mb-6 flex items-center justify-center">
+              <Search className="w-20 h-20 text-muted-foreground/40" strokeWidth={1} />
+            </div>
+            <h2 className="text-2xl font-semibold text-muted-foreground mb-4">No results</h2>
+            <p className="text-center text-muted-foreground max-w-md">
+              Try expanding the search area, or connect with other renters that are also looking in your area
+            </p>
+          </div>
+        ) : viewMode === "list" ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
             {loading ? (
               Array.from({ length: 10 }).map((_, i) => (
