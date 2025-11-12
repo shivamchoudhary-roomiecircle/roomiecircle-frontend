@@ -282,6 +282,46 @@ class ApiClient {
     });
     return response.data;
   }
+
+  async getMyListings() {
+    const response = await this.request<{
+      success: boolean;
+      data: {
+        active: any[];
+        inactive: any[];
+      };
+    }>("/api/v1/listings/my");
+    return response.data;
+  }
+
+  async getListing(listingId: string) {
+    const response = await this.request<{
+      success: boolean;
+      data: any;
+    }>(`/api/v1/listings/${listingId}`);
+    return response.data;
+  }
+
+  async updateListingStatus(listingId: string, status: string) {
+    const response = await this.request<{
+      success: boolean;
+      data: any;
+    }>(`/api/v1/listings/${listingId}/status`, {
+      method: "PATCH",
+      body: JSON.stringify({ status }),
+    });
+    return response.data;
+  }
+
+  async deleteListing(listingId: string) {
+    const response = await this.request<{
+      success: boolean;
+      data: any;
+    }>(`/api/v1/listings/${listingId}`, {
+      method: "DELETE",
+    });
+    return response.data;
+  }
 }
 
 export const apiClient = new ApiClient();
