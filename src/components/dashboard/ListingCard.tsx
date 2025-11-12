@@ -49,27 +49,48 @@ const ListingCard = ({ listing, onEdit, onDelete, onStatusChange }: ListingCardP
   const formatMissingSections = () => {
     const messages: string[] = [];
     
-    if (listing.missingSections) {
+    if (listing.missingSections && typeof listing.missingSections === 'object') {
       Object.entries(listing.missingSections).forEach(([section, fields]) => {
         if (Array.isArray(fields) && fields.length > 0) {
           fields.forEach(field => {
             if (field === "images") {
               const imageCount = listing.images?.length || 0;
-              messages.push(`Missing images (${imageCount} of 3)`);
+              messages.push(`Missing images (minimum 3)`);
             } else if (field === "address" || field === "addressText") {
               messages.push("Missing address");
             } else if (field === "placeId") {
               messages.push("Missing display location");
             } else if (field === "availableDate") {
               messages.push("Stale available date");
+            } else if (field === "listingType") {
+              messages.push("Missing listing type");
+            } else if (field === "currentFlatmates" || field === "existingRoommates") {
+              messages.push("Missing current flatmates");
+            } else if (field === "roommatePreferences") {
+              messages.push("Missing roommate preferences");
+            } else if (field === "neighborhoodReview") {
+              messages.push("Missing neighborhood review");
+            } else if (field === "neighborhoodRatings") {
+              messages.push("Missing neighborhood ratings");
+            } else if (field === "amenitiesInHome" || field === "inHomeAmenities") {
+              messages.push("Missing in-home amenities");
+            } else if (field === "amenitiesOnProperty" || field === "onPropertyAmenities") {
+              messages.push("Missing on-property amenities");
+            } else if (field === "amenitiesSafety" || field === "safetyAmenities") {
+              messages.push("Missing safety amenities");
             } else {
               // Format field name nicely
-              const formatted = field.replace(/([A-Z])/g, " $1").toLowerCase();
+              const formatted = field.replace(/([A-Z])/g, " $1").toLowerCase().trim();
               messages.push(`Missing ${formatted}`);
             }
           });
         }
       });
+    }
+    
+    // If incomplete but no messages, add a generic message
+    if (messages.length === 0 && isIncomplete) {
+      messages.push("Listing is incomplete");
     }
     
     return messages;
@@ -81,8 +102,7 @@ const ListingCard = ({ listing, onEdit, onDelete, onStatusChange }: ListingCardP
     <>
       <Card className="overflow-hidden hover:shadow-lg transition-shadow">
         <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground">Listing Creator</span>
+          <div className="flex items-center justify-end">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon">
