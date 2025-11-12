@@ -11,6 +11,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import Index from "./pages/Index";
 import PostRoom from "./pages/PostRoom";
 import CreateListing from "./pages/CreateListing";
+import MyListings from "./pages/MyListings";
 import Signup from "./pages/auth/Signup";
 import Login from "./pages/auth/Login";
 import Dashboard from "./pages/Dashboard";
@@ -37,6 +38,7 @@ const App = () => (
                   <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
                   <Route path="/post-room" element={<ProtectedRoute><PostRoom /></ProtectedRoute>} />
                   <Route path="/create-listing" element={<ProtectedRoute><CreateListing /></ProtectedRoute>} />
+                  <Route path="/my-listings" element={<ProtectedRoute><MyListings /></ProtectedRoute>} />
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="*" element={<NotFound />} />
                 </Routes>
