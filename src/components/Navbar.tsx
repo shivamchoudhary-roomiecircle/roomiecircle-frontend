@@ -135,84 +135,93 @@ const Navbar = ({ activeTab, onTabChange }: NavbarProps) => {
           </div>
         </div>
 
-        {/* Mobile & Tablet Floating Menu */}
+        {/* Mobile & Tablet Menu */}
         {mobileMenuOpen && (
-          <div className="lg:hidden fixed top-20 right-4 w-64 bg-background border border-border rounded-lg shadow-xl z-50 py-2 animate-scale-in">
-            {!isAuthenticated && (
-              <Button 
-                variant="ghost" 
-                className="w-full justify-start px-4"
-                onClick={() => {
-                  navigate('/auth/login');
-                  setMobileMenuOpen(false);
-                }}
-              >
-                <LogIn className="h-4 w-4 mr-3" />
-                Sign In
-              </Button>
-            )}
-            {isAuthenticated && (
-              <>
+          <>
+            {/* Backdrop Overlay */}
+            <div 
+              className="lg:hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-40 animate-fade-in"
+              onClick={() => setMobileMenuOpen(false)}
+            />
+            
+            {/* Floating Menu */}
+            <div className="lg:hidden fixed top-20 right-4 w-64 bg-popover border border-border rounded-xl shadow-2xl z-50 py-2 animate-scale-in">
+              {!isAuthenticated && (
                 <Button 
                   variant="ghost" 
-                  className="w-full justify-start px-4"
+                  className="w-full justify-start px-4 hover:bg-accent"
                   onClick={() => {
-                    navigate('/dashboard');
+                    navigate('/auth/login');
                     setMobileMenuOpen(false);
                   }}
                 >
-                  <LayoutDashboard className="h-4 w-4 mr-3" />
-                  Dashboard
+                  <LogIn className="h-4 w-4 mr-3" />
+                  Sign In
                 </Button>
-                <Button 
-                  variant="ghost" 
-                  className="w-full justify-start px-4"
-                  onClick={() => {
-                    navigate('/dashboard?tab=profile');
-                    setMobileMenuOpen(false);
-                  }}
-                >
-                  <UserCircle className="h-4 w-4 mr-3" />
-                  Profile
-                </Button>
-                <Button 
-                  variant="ghost" 
-                  className="w-full justify-start px-4"
-                  onClick={() => {
-                    navigate('/dashboard?tab=listings');
-                    setMobileMenuOpen(false);
-                  }}
-                >
-                  <List className="h-4 w-4 mr-3" />
-                  View Listings
-                </Button>
-                <div className="my-1 border-t border-border" />
-                <Button 
-                  variant="ghost" 
-                  className="w-full justify-start px-4"
-                  onClick={() => {
-                    navigate('/create-listing');
-                    setMobileMenuOpen(false);
-                  }}
-                >
-                  <Home className="h-4 w-4 mr-3" />
-                  List Your Room
-                </Button>
-                <div className="my-1 border-t border-border" />
-                <Button 
-                  variant="ghost" 
-                  className="w-full justify-start px-4 text-destructive hover:text-destructive"
-                  onClick={() => {
-                    logout();
-                    setMobileMenuOpen(false);
-                  }}
-                >
-                  <LogOut className="h-4 w-4 mr-3" />
-                  Logout
-                </Button>
-              </>
-            )}
-          </div>
+              )}
+              {isAuthenticated && (
+                <>
+                  <Button 
+                    variant="ghost" 
+                    className="w-full justify-start px-4 hover:bg-accent"
+                    onClick={() => {
+                      navigate('/dashboard');
+                      setMobileMenuOpen(false);
+                    }}
+                  >
+                    <LayoutDashboard className="h-4 w-4 mr-3" />
+                    Dashboard
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    className="w-full justify-start px-4 hover:bg-accent"
+                    onClick={() => {
+                      navigate('/dashboard?tab=profile');
+                      setMobileMenuOpen(false);
+                    }}
+                  >
+                    <UserCircle className="h-4 w-4 mr-3" />
+                    Profile
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    className="w-full justify-start px-4 hover:bg-accent"
+                    onClick={() => {
+                      navigate('/dashboard?tab=listings');
+                      setMobileMenuOpen(false);
+                    }}
+                  >
+                    <List className="h-4 w-4 mr-3" />
+                    View Listings
+                  </Button>
+                  <div className="my-1 border-t border-border" />
+                  <Button 
+                    variant="ghost" 
+                    className="w-full justify-start px-4 hover:bg-accent"
+                    onClick={() => {
+                      navigate('/create-listing');
+                      setMobileMenuOpen(false);
+                    }}
+                  >
+                    <Home className="h-4 w-4 mr-3" />
+                    List Your Room
+                  </Button>
+                  <div className="my-1 border-t border-border" />
+                  <Button 
+                    variant="ghost" 
+                    className="w-full justify-start px-4 text-destructive hover:text-destructive hover:bg-destructive/10"
+                    onClick={() => {
+                      logout();
+                      setMobileMenuOpen(false);
+                    }}
+                  >
+                    <LogOut className="h-4 w-4 mr-3" />
+                    Logout
+                  </Button>
+                </>
+              )}
+            </div>
+          </>
         )}
       </div>
     </nav>
