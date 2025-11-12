@@ -137,7 +137,7 @@ const Navbar = ({ activeTab, onTabChange }: NavbarProps) => {
 
         {/* Mobile & Tablet Floating Menu */}
         {mobileMenuOpen && (
-          <div className="lg:hidden fixed top-20 left-4 w-64 bg-background border border-border rounded-lg shadow-xl z-50 py-2 animate-scale-in">
+          <div className="lg:hidden fixed top-20 right-4 w-64 bg-background border border-border rounded-lg shadow-xl z-50 py-2 animate-scale-in">
             {!isAuthenticated && (
               <Button 
                 variant="ghost" 
