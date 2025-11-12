@@ -14,7 +14,6 @@ import CreateListing from "./pages/CreateListing";
 import MyListings from "./pages/MyListings";
 import Signup from "./pages/auth/Signup";
 import Login from "./pages/auth/Login";
-import Dashboard from "./pages/Dashboard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -35,7 +34,6 @@ const App = () => (
                   <Route path="/" element={<Index />} />
                   <Route path="/auth/signup" element={<Signup />} />
                   <Route path="/auth/login" element={<Login />} />
-                  <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
                   <Route path="/post-room" element={<ProtectedRoute><PostRoom /></ProtectedRoute>} />
                   <Route path="/create-listing" element={<ProtectedRoute><CreateListing /></ProtectedRoute>} />
                   <Route path="/my-listings" element={<ProtectedRoute><MyListings /></ProtectedRoute>} />
