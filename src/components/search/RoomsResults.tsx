@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { LocationAutocomplete } from "./LocationAutocomplete";
 import { Button } from "@/components/ui/button";
 import { useConfig } from "@/contexts/ConfigContext";
@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { GoogleMap } from "./GoogleMap";
 import { apiClient } from "@/lib/api";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export const RoomsResults = () => {
   const { config } = useConfig();
@@ -20,6 +21,8 @@ export const RoomsResults = () => {
   const [placeId, setPlaceId] = useState("");
   const [mapCenter, setMapCenter] = useState<{ lat: number; lng: number } | undefined>();
   const [listings, setListings] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [totalElements, setTotalElements] = useState(0);
   const [viewMode, setViewMode] = useState<"list" | "map">("list");
   const [priceType, setPriceType] = useState("monthly");
   const [minPrice, setMinPrice] = useState("");
@@ -77,6 +80,23 @@ export const RoomsResults = () => {
       setRadius(1);
     }
   };
+
+  useEffect(() => {
+    const fetchRecentRooms = async () => {
+      try {
+        setLoading(true);
+        const data = await apiClient.searchRecentRooms(0, 20);
+        setListings(data.content || []);
+        setTotalElements(data.totalElements || 0);
+      } catch (error) {
+        console.error("Error fetching recent rooms:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchRecentRooms();
+  }, []);
 
   return (
     <>
@@ -341,7 +361,7 @@ export const RoomsResults = () => {
           <div className="container mx-auto px-4 py-4">
             <div className="flex items-center justify-between">
               <p className="text-sm text-muted-foreground">
-                5,227 rooms
+                {loading ? "Loading..." : `${totalElements} rooms`}
               </p>
               <Button variant="ghost" size="sm">
                 Clear filters
@@ -352,30 +372,72 @@ export const RoomsResults = () => {
           {/* Results Grid */}
           <div className="container mx-auto px-4 pb-12">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {/* Placeholder cards - will be populated with actual data */}
-              {Array.from({ length: 8 }).map((_, i) => (
-                <div key={i} className="bg-card rounded-lg border border-border overflow-hidden hover:shadow-lg transition-shadow">
-                  <div className="aspect-[4/3] bg-muted" />
-                  <div className="p-4">
-                    <div className="flex items-start justify-between mb-2">
+              {loading ? (
+                Array.from({ length: 8 }).map((_, i) => (
+                  <div key={i} className="bg-card rounded-lg border border-border overflow-hidden">
+                    <Skeleton className="aspect-[4/3]" />
+                    <div className="p-4 space-y-3">
                       <div className="flex items-center gap-2">
-                        <div className="w-10 h-10 rounded-full bg-muted" />
-                        <div>
-                          <p className="font-semibold">Name</p>
-                          <p className="text-xs text-muted-foreground">TODAY · 1 ROOMMATE</p>
+                        <Skeleton className="w-10 h-10 rounded-full" />
+                        <div className="space-y-1 flex-1">
+                          <Skeleton className="h-4 w-24" />
+                          <Skeleton className="h-3 w-32" />
                         </div>
                       </div>
+                      <Skeleton className="h-6 w-32" />
+                      <Skeleton className="h-4 w-full" />
+                      <Skeleton className="h-4 w-3/4" />
                     </div>
-                    <p className="text-2xl font-bold mb-1">$1,900 <span className="text-sm font-normal text-muted-foreground">/mo</span></p>
-                    <p className="text-sm text-muted-foreground mb-2">Private Room · 3 Bedrooms · Townhouse</p>
-                    <p className="text-sm text-muted-foreground">Nov 10, 2025 - Flexible</p>
-                    <p className="text-sm text-muted-foreground flex items-center gap-1 mt-2">
-                      <MapPin className="h-3 w-3" />
-                      Location
-                    </p>
                   </div>
-                </div>
-              ))}
+                ))
+              ) : (
+                listings.map((listing) => (
+                  <div key={listing.id} className="bg-card rounded-lg border border-border overflow-hidden hover:shadow-lg transition-shadow">
+                    <div className="aspect-[4/3] bg-muted relative">
+                      {listing.images?.[0] && (
+                        <img 
+                          src={listing.images[0]} 
+                          alt={listing.description || "Room"} 
+                          className="w-full h-full object-cover"
+                        />
+                      )}
+                    </div>
+                    <div className="p-4">
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
+                            <span className="text-xs font-semibold">
+                              {listing.existingRoommates?.[0]?.name?.charAt(0) || "?"}
+                            </span>
+                          </div>
+                          <div>
+                            <p className="font-semibold text-sm">
+                              {listing.existingRoommates?.[0]?.name || "Host"}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {listing.existingRoommates?.length || 0} ROOMMATE{listing.existingRoommates?.length !== 1 ? "S" : ""}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                      <p className="text-2xl font-bold mb-1">
+                        ${listing.monthlyRent} 
+                        <span className="text-sm font-normal text-muted-foreground">/mo</span>
+                      </p>
+                      <p className="text-sm text-muted-foreground mb-2">
+                        {listing.listingType || "Room"} · {listing.bedroomCount || 0} Bedrooms · {listing.propertyType?.[0] || "Property"}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        {listing.availableDate ? new Date(listing.availableDate).toLocaleDateString() : "Available"}
+                      </p>
+                      <p className="text-sm text-muted-foreground flex items-center gap-1 mt-2">
+                        <MapPin className="h-3 w-3" />
+                        {listing.addressText || "Location"}
+                      </p>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         </div>

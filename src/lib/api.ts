@@ -250,6 +250,46 @@ class ApiClient {
     return response.data;
   }
 
+  async searchRecentRooms(page: number = 0, size: number = 20) {
+    const params = new URLSearchParams({
+      page: page.toString(),
+      size: size.toString(),
+    });
+    const response = await this.request<{
+      success: boolean;
+      data: {
+        content: any[];
+        page: number;
+        size: number;
+        totalElements: number;
+        totalPages: number;
+        last: boolean;
+        first: boolean;
+      };
+    }>(`/api/v1/search/rooms/recent?${params.toString()}`);
+    return response.data;
+  }
+
+  async searchRecentRoommates(page: number = 0, size: number = 20) {
+    const params = new URLSearchParams({
+      page: page.toString(),
+      size: size.toString(),
+    });
+    const response = await this.request<{
+      success: boolean;
+      data: {
+        content: any[];
+        page: number;
+        size: number;
+        totalElements: number;
+        totalPages: number;
+        last: boolean;
+        first: boolean;
+      };
+    }>(`/api/v1/search/roommates/recent?${params.toString()}`);
+    return response.data;
+  }
+
   // Configuration endpoint
   async getConfiguration() {
     const response = await this.request<{

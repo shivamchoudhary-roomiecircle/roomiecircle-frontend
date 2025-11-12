@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { LocationAutocomplete } from "./LocationAutocomplete";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,12 +13,17 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Lock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { apiClient } from "@/lib/api";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export const RoommatesResults = () => {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
   const [location, setLocation] = useState("");
   const [placeId, setPlaceId] = useState("");
+  const [roommates, setRoommates] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [totalElements, setTotalElements] = useState(0);
   const [viewMode, setViewMode] = useState<"list" | "swipe">("list");
   const [minBudget, setMinBudget] = useState("");
   const [maxBudget, setMaxBudget] = useState("");
@@ -50,6 +55,23 @@ export const RoommatesResults = () => {
       setRadius(1);
     }
   };
+
+  useEffect(() => {
+    const fetchRecentRoommates = async () => {
+      try {
+        setLoading(true);
+        const data = await apiClient.searchRecentRoommates(0, 20);
+        setRoommates(data.content || []);
+        setTotalElements(data.totalElements || 0);
+      } catch (error) {
+        console.error("Error fetching recent roommates:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchRecentRoommates();
+  }, []);
 
   return (
     <div className="min-h-screen bg-background">
@@ -278,7 +300,7 @@ export const RoommatesResults = () => {
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
           <p className="text-sm text-muted-foreground">
-            9,200 renters/roommates
+            {loading ? "Loading..." : `${totalElements} renters/roommates`}
           </p>
           <Button variant="ghost" size="sm">
             Clear filters
@@ -290,38 +312,66 @@ export const RoommatesResults = () => {
       <div className="container mx-auto px-4 pb-12">
         {viewMode === "list" ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
-            {/* Placeholder cards - will be populated with actual data */}
-            {Array.from({ length: 10 }).map((_, i) => (
-              <div key={i} className="bg-card rounded-lg border border-border overflow-hidden hover:shadow-lg transition-shadow">
-                <div className="aspect-square bg-muted relative">
-                  <div className="absolute top-2 right-2 w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
-                    <span className="text-xs">⚡</span>
+            {loading ? (
+              Array.from({ length: 10 }).map((_, i) => (
+                <div key={i} className="bg-card rounded-lg border border-border overflow-hidden">
+                  <Skeleton className="aspect-square" />
+                  <div className="p-4 space-y-2">
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-3 w-16" />
+                    <Skeleton className="h-20 w-full" />
                   </div>
                 </div>
-                <div className="p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <div>
-                      <p className="font-semibold flex items-center gap-2">
-                        Name
-                        <span className="text-xs text-muted-foreground">· {20 + i}</span>
-                      </p>
-                      <p className="text-xs text-muted-foreground">TODAY</p>
+              ))
+            ) : (
+              roommates.map((roommate) => (
+                <div key={roommate.userId} className="bg-card rounded-lg border border-border overflow-hidden hover:shadow-lg transition-shadow">
+                  <div className="aspect-square bg-muted relative">
+                    <div className="absolute top-2 right-2 w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
+                      <span className="text-xs">⚡</span>
                     </div>
                   </div>
-                  {!isAuthenticated && (
-                    <div className="bg-muted/50 rounded-md p-3 flex items-center justify-center gap-2 text-sm text-muted-foreground">
-                      <Lock className="h-4 w-4" />
-                      <button
-                        onClick={() => navigate("/auth/login")}
-                        className="underline hover:text-foreground transition-colors"
-                      >
-                        Log in to view renter preferences
-                      </button>
+                  <div className="p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <div>
+                        <p className="font-semibold flex items-center gap-2">
+                          {roommate.firstName || "User"}
+                          <span className="text-xs text-muted-foreground">· {roommate.age || "??"}</span>
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {roommate.updatedAt ? new Date(roommate.updatedAt).toLocaleDateString() : ""}
+                        </p>
+                      </div>
                     </div>
-                  )}
+                    {!isAuthenticated ? (
+                      <div className="bg-muted/50 rounded-md p-3 flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                        <Lock className="h-4 w-4" />
+                        <button
+                          onClick={() => navigate("/auth/login")}
+                          className="underline hover:text-foreground transition-colors"
+                        >
+                          Log in to view renter preferences
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        <p className="text-sm">{roommate.bio || "No bio available"}</p>
+                        {roommate.profession && (
+                          <Badge variant="secondary" className="text-xs">
+                            {roommate.profession}
+                          </Badge>
+                        )}
+                        {roommate.desiredLocationText && (
+                          <p className="text-xs text-muted-foreground">
+                            Looking in: {roommate.desiredLocationText}
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         ) : (
           <div className="max-w-md mx-auto">
