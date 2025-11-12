@@ -14,6 +14,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { GoogleMap } from "./GoogleMap";
 import { apiClient } from "@/lib/api";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
 export const RoomsResults = () => {
   const { config } = useConfig();
@@ -416,17 +417,24 @@ export const RoomsResults = () => {
                       <div className="p-4">
                         <div className="flex items-start justify-between mb-2">
                           <div className="flex items-center gap-2">
-                            <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
-                              <span className="text-xs font-semibold">
-                                {listing.existingRoommates?.[0]?.name?.charAt(0) || "?"}
-                              </span>
-                            </div>
+                            <Avatar className="w-10 h-10">
+                              {listing.lister?.profilePicture && (
+                                <AvatarImage src={listing.lister.profilePicture} alt={listing.lister.name || "Host"} />
+                              )}
+                              <AvatarFallback className="bg-muted text-foreground">
+                                {listing.lister?.name?.charAt(0)?.toUpperCase() || "?"}
+                              </AvatarFallback>
+                            </Avatar>
                             <div>
                               <p className="font-semibold text-sm">
-                                {listing.existingRoommates?.[0]?.name || "Host"}
+                                {listing.lister?.name || "Host"}
                               </p>
                               <p className="text-xs text-muted-foreground">
-                                {listing.existingRoommates?.length || 0} ROOMMATE{listing.existingRoommates?.length !== 1 ? "S" : ""}
+                                {listing.listingType === "FULL_HOUSE" 
+                                  ? "Full House" 
+                                  : listing.existingRoommates?.length 
+                                    ? `${listing.existingRoommates.length} ROOMMATE${listing.existingRoommates.length !== 1 ? "S" : ""}`
+                                    : listing.layoutType || "Private listing"}
                               </p>
                             </div>
                           </div>
