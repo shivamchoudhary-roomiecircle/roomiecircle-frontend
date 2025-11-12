@@ -91,17 +91,25 @@ const CreateListing = () => {
       const editListingId = searchParams.get('id');
       
       if (editListingId) {
-        // Edit mode - fetch existing listing
+        // Edit mode
         setIsEditMode(true);
-        const data = await apiClient.getMyListings();
-        const allListings = [...(data.active || []), ...(data.inactive || [])];
-        const existingListing = allListings.find((l: any) => l.id === editListingId);
+        setListingId(editListingId);
+        
+        // Check if listing data is passed via state (from My Listings page)
+        const listingFromState = location.state?.listing;
+        let existingListing;
+        
+        if (listingFromState && listingFromState.id === editListingId) {
+          // Use listing data from navigation state (no API call needed)
+          existingListing = listingFromState;
+        } else {
+          // Fetch single listing from API
+          existingListing = await apiClient.getListing(editListingId);
+        }
         
         if (!existingListing) {
           throw new Error("Listing not found");
         }
-        
-        setListingId(editListingId);
         
         // Pre-populate all fields
         setBasicInfo({
