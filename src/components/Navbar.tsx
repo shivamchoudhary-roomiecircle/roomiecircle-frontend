@@ -36,7 +36,7 @@ const Navbar = ({ activeTab, onTabChange }: NavbarProps) => {
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center group-hover:scale-110 transition-transform">
               <Home className="h-5 w-5 text-white" />
             </div>
-            <span className="hidden md:inline text-xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+            <span className="hidden lg:inline text-xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
               RoomieCircle
             </span>
           </div>
@@ -74,7 +74,7 @@ const Navbar = ({ activeTab, onTabChange }: NavbarProps) => {
           )}
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center gap-3">
+          <div className="hidden lg:flex items-center gap-3">
             <Button variant="outline" onClick={() => handleProtectedAction('/create-listing')}>
               List Your Room
             </Button>
@@ -88,27 +88,26 @@ const Navbar = ({ activeTab, onTabChange }: NavbarProps) => {
               <span className="sr-only">Toggle theme</span>
             </Button>
             {isAuthenticated ? (
-              <div className="flex items-center gap-2">
-                <Button variant="ghost" onClick={() => navigate('/dashboard')}>
-                  <User className="h-4 w-4 mr-2" />
-                  {user?.name}
-                </Button>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="icon" aria-label="Open menu">
-                      <Menu className="h-5 w-5" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-56">
-                    <DropdownMenuItem onClick={() => navigate('/dashboard?tab=profile')}>Profile</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => navigate('/dashboard?tab=listings')}>View Listings</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => navigate('/dashboard?tab=status')}>Listing Status</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleProtectedAction('/create-listing')}>List Your Room</DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={logout}>Logout</DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="icon" aria-label="Open menu">
+                    <Menu className="h-5 w-5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuItem onClick={() => navigate('/dashboard')}>
+                    <User className="h-4 w-4 mr-2" />
+                    {user?.name}
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => navigate('/dashboard?tab=profile')}>Profile</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate('/dashboard?tab=listings')}>View Listings</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate('/dashboard?tab=status')}>Listing Status</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleProtectedAction('/create-listing')}>List Your Room</DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={logout}>Logout</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             ) : (
               <Button variant="default" onClick={() => navigate('/auth/login')}>
                 Sign In
@@ -116,8 +115,8 @@ const Navbar = ({ activeTab, onTabChange }: NavbarProps) => {
             )}
           </div>
 
-          {/* Mobile Menu Button and Theme Toggle */}
-          <div className="md:hidden flex items-center gap-2">
+          {/* Mobile & Tablet Menu Button and Theme Toggle */}
+          <div className="lg:hidden flex items-center gap-2">
             <Button
               variant="ghost"
               size="icon"
@@ -136,9 +135,15 @@ const Navbar = ({ activeTab, onTabChange }: NavbarProps) => {
           </div>
         </div>
 
-        {/* Mobile Menu */}
+        {/* Mobile & Tablet Menu */}
         {mobileMenuOpen && (
-          <div className="md:hidden py-4 space-y-3 border-t border-border">
+          <div className="lg:hidden py-4 space-y-3 border-t border-border">
+            {isAuthenticated && (
+              <div className="px-4 py-2 flex items-center gap-2 border-b border-border mb-2">
+                <User className="h-5 w-5 text-muted-foreground" />
+                <span className="font-medium">{user?.name}</span>
+              </div>
+            )}
             {!isAuthenticated && (
               <Button 
                 variant="default" 
@@ -161,12 +166,31 @@ const Navbar = ({ activeTab, onTabChange }: NavbarProps) => {
                     setMobileMenuOpen(false);
                   }}
                 >
-                  <User className="h-4 w-4 mr-2" />
-                  {user?.name}
+                  Dashboard
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  className="w-full justify-start"
+                  onClick={() => {
+                    navigate('/dashboard?tab=profile');
+                    setMobileMenuOpen(false);
+                  }}
+                >
+                  Profile
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  className="w-full justify-start"
+                  onClick={() => {
+                    navigate('/dashboard?tab=listings');
+                    setMobileMenuOpen(false);
+                  }}
+                >
+                  View Listings
                 </Button>
                 <Button 
                   variant="default" 
-                  className="w-full"
+                  className="w-full justify-start"
                   onClick={() => {
                     navigate('/create-listing');
                     setMobileMenuOpen(false);
@@ -177,7 +201,7 @@ const Navbar = ({ activeTab, onTabChange }: NavbarProps) => {
                 </Button>
                 <Button 
                   variant="outline" 
-                  className="w-full"
+                  className="w-full justify-start"
                   onClick={() => {
                     logout();
                     setMobileMenuOpen(false);

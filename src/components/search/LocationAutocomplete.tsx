@@ -51,8 +51,6 @@ export const LocationAutocomplete = ({
       setIsLoading(true);
       try {
         const results = await apiClient.searchPlaces(value, sessionToken);
-        console.log("Search results:", results);
-        console.log("Results type:", typeof results, "Is array:", Array.isArray(results));
         setSuggestions(results);
         setShowDropdown(true);
       } catch (error) {
