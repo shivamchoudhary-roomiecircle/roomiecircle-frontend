@@ -138,14 +138,14 @@ const Navbar = ({ activeTab, onTabChange }: NavbarProps) => {
         {/* Mobile & Tablet Menu */}
         {mobileMenuOpen && (
           <>
-            {/* Backdrop Overlay */}
+            {/* Light Backdrop Overlay */}
             <div 
-              className="lg:hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-40 animate-fade-in"
+              className="lg:hidden fixed inset-0 z-40"
               onClick={() => setMobileMenuOpen(false)}
             />
             
             {/* Floating Menu */}
-            <div className="lg:hidden fixed top-20 right-4 w-64 bg-popover border border-border rounded-xl shadow-2xl z-50 py-2 animate-scale-in">
+            <div className="lg:hidden fixed top-20 right-4 w-64 bg-card border-2 border-border rounded-xl shadow-2xl z-50 py-2 animate-scale-in">
               {!isAuthenticated && (
                 <Button 
                   variant="ghost" 
