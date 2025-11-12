@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,11 +17,13 @@ import { useConfig } from "@/contexts/ConfigContext";
 
 const CreateListing = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { config, loading: configLoading, error: configError } = useConfig();
   const [loading, setLoading] = useState(false);
   const [listingId, setListingId] = useState<string>("");
   const [currentSection, setCurrentSection] = useState(0);
   const [initError, setInitError] = useState<string | null>(null);
+  const [isEditMode, setIsEditMode] = useState(false);
 
   // Form states
   const [basicInfo, setBasicInfo] = useState({
@@ -84,14 +86,96 @@ const CreateListing = () => {
     try {
       setLoading(true);
       
-      // Create draft listing
-      const listing = await apiClient.createListing();
-      setListingId(listing.id);
+      // Check if editing existing listing
+      const searchParams = new URLSearchParams(location.search);
+      const editListingId = searchParams.get('id');
       
-      toast({
-        title: "Success",
-        description: "Listing created, let's fill details",
-      });
+      if (editListingId) {
+        // Edit mode - fetch existing listing
+        setIsEditMode(true);
+        const data = await apiClient.getMyListings();
+        const allListings = [...(data.active || []), ...(data.inactive || [])];
+        const existingListing = allListings.find((l: any) => l.id === editListingId);
+        
+        if (!existingListing) {
+          throw new Error("Listing not found");
+        }
+        
+        setListingId(editListingId);
+        
+        // Pre-populate all fields
+        setBasicInfo({
+          description: existingListing.description || "",
+          latitude: existingListing.latitude,
+          longitude: existingListing.longitude,
+          addressText: existingListing.addressText || "",
+          placeId: existingListing.placeId || "",
+          monthlyRent: existingListing.monthlyRent?.toString() || "",
+          maintenance: existingListing.maintenance?.toString() || "",
+          maintenanceIncluded: existingListing.maintenanceIncluded ?? true,
+          deposit: existingListing.deposit?.toString() || "",
+          availableDate: existingListing.availableDate || "",
+          listingType: existingListing.listingType || "",
+        });
+        
+        setDetails({
+          propertyType: existingListing.propertyType || [],
+          layoutType: existingListing.layoutType || "",
+          hasBalcony: existingListing.hasBalcony || false,
+          hasPrivateWashroom: existingListing.hasPrivateWashroom || false,
+          hasFurniture: existingListing.hasFurniture || false,
+          bedroomCount: existingListing.bedroomCount?.toString() || "",
+          washroomCount: existingListing.washroomCount?.toString() || "",
+          balconyCount: existingListing.balconyCount?.toString() || "",
+        });
+        
+        // Parse amenities from object to arrays
+        const amenitiesObj = existingListing.amenities || {};
+        setAmenities({
+          inHome: amenitiesObj.AMENITY_IN_HOME || [],
+          onProperty: amenitiesObj.AMENITY_ON_PROPERTY || [],
+          safety: amenitiesObj.AMENITY_SAFETY || [],
+        });
+        
+        if (existingListing.roommatePreferences) {
+          setRoommatePreferences({
+            minAge: existingListing.roommatePreferences.minAge?.toString() || "",
+            maxAge: existingListing.roommatePreferences.maxAge?.toString() || "",
+            gender: existingListing.roommatePreferences.gender || "",
+            profession: existingListing.roommatePreferences.profession || "",
+            renteeType: existingListing.roommatePreferences.renteeType || "",
+            lifestyle: existingListing.roommatePreferences.lifestyle || [],
+          });
+        }
+        
+        setCurrentRoommates(existingListing.existingRoommates || []);
+        setImages(existingListing.images || []);
+        
+        if (existingListing.neighborhoodRatings) {
+          setNeighborhood({
+            review: existingListing.neighborhoodReview || "",
+            ratings: {
+              food: existingListing.neighborhoodRatings.food || 0,
+              public_transport: existingListing.neighborhoodRatings.public_transport || 0,
+              walkable_safe: existingListing.neighborhoodRatings.walkable_safe || 0,
+            },
+          });
+        }
+        
+        toast({
+          title: "Listing loaded",
+          description: "You can now edit your listing",
+        });
+      } else {
+        // Create mode - create new draft listing
+        const listing = await apiClient.createListing();
+        setListingId(listing.id);
+        
+        toast({
+          title: "Success",
+          description: "Listing created, let's fill details",
+        });
+      }
     } catch (error: any) {
       setInitError(error.message || "Failed to initialize listing");
       toast({

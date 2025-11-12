@@ -102,8 +102,7 @@ const Navbar = ({ activeTab, onTabChange }: NavbarProps) => {
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={() => navigate('/dashboard?tab=profile')}>Profile</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => navigate('/dashboard?tab=listings')}>View Listings</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => navigate('/dashboard?tab=status')}>Listing Status</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate('/my-listings')}>My Listings</DropdownMenuItem>
                   <DropdownMenuItem onClick={() => handleProtectedAction('/create-listing')}>List Your Room</DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={logout}>Logout</DropdownMenuItem>
@@ -190,12 +189,12 @@ const Navbar = ({ activeTab, onTabChange }: NavbarProps) => {
                         variant="ghost" 
                         className="w-full justify-start px-4 hover:bg-primary/10 transition-colors"
                         onClick={() => {
-                          navigate('/dashboard?tab=listings');
+                          navigate('/my-listings');
                           setMobileMenuOpen(false);
                         }}
                       >
                         <List className="h-4 w-4 mr-3" />
-                        View Listings
+                        My Listings
                       </Button>
                       <div className="my-2 border-t border-primary/10" />
                       <Button 
