@@ -13,12 +13,13 @@ import { toast } from "@/hooks/use-toast";
 import { apiClient } from "@/lib/api";
 import { Loader2, Upload, X, Star } from "lucide-react";
 import { LocationAutocomplete } from "@/components/search/LocationAutocomplete";
+import { useConfig } from "@/contexts/ConfigContext";
 
 const CreateListing = () => {
   const navigate = useNavigate();
+  const { config, loading: configLoading, error: configError } = useConfig();
   const [loading, setLoading] = useState(false);
   const [listingId, setListingId] = useState<string>("");
-  const [config, setConfig] = useState<any>(null);
   const [currentSection, setCurrentSection] = useState(0);
   const [initError, setInitError] = useState<string | null>(null);
 
@@ -87,10 +88,6 @@ const CreateListing = () => {
       const listing = await apiClient.createListing();
       setListingId(listing.id);
       
-      // Load configuration
-      const configData = await apiClient.getConfiguration();
-      setConfig(configData);
-      
       toast({
         title: "Success",
         description: "Listing created, let's fill details",
@@ -102,11 +99,6 @@ const CreateListing = () => {
         description: "You can retry from here. We'll stay on this page.",
         variant: "destructive",
       });
-      // Try to load configuration even if draft creation failed
-      try {
-        const configData = await apiClient.getConfiguration();
-        setConfig(configData);
-      } catch {}
     } finally {
       setLoading(false);
     }
@@ -284,10 +276,19 @@ const CreateListing = () => {
     setCurrentRoommates(currentRoommates.filter((_, i) => i !== index));
   };
 
-  if (loading && !config) {
+  if (configLoading || (loading && !listingId)) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (configError) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen gap-4">
+        <p className="text-destructive">Failed to load configuration</p>
+        <Button onClick={() => window.location.reload()}>Retry</Button>
       </div>
     );
   }
