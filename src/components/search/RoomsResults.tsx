@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { LocationAutocomplete } from "./LocationAutocomplete";
 import { Button } from "@/components/ui/button";
+import { useConfig } from "@/contexts/ConfigContext";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
@@ -14,6 +15,7 @@ import { GoogleMap } from "./GoogleMap";
 import { apiClient } from "@/lib/api";
 
 export const RoomsResults = () => {
+  const { config } = useConfig();
   const [location, setLocation] = useState("");
   const [placeId, setPlaceId] = useState("");
   const [mapCenter, setMapCenter] = useState<{ lat: number; lng: number } | undefined>();
@@ -146,10 +148,11 @@ export const RoomsResults = () => {
                     <SelectValue placeholder="Urgency" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="immediate">Immediate</SelectItem>
-                    <SelectItem value="1week">Within 1 week</SelectItem>
-                    <SelectItem value="1month">Within 1 month</SelectItem>
-                    <SelectItem value="flexible">Flexible</SelectItem>
+                    {config?.LISTING_URGENCY?.map((item) => (
+                      <SelectItem key={item.key} value={item.key}>
+                        {item.label}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
 
