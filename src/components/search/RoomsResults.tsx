@@ -17,6 +17,7 @@ export const RoomsResults = () => {
   const [location, setLocation] = useState("");
   const [placeId, setPlaceId] = useState("");
   const [mapCenter, setMapCenter] = useState<{ lat: number; lng: number } | undefined>();
+  const [listings, setListings] = useState<any[]>([]);
   const [viewMode, setViewMode] = useState<"list" | "map">("list");
   const [priceType, setPriceType] = useState("monthly");
   const [minPrice, setMinPrice] = useState("");
@@ -37,17 +38,27 @@ export const RoomsResults = () => {
     setLocation(value);
     if (id) {
       setPlaceId(id);
-      // Fetch place details to get coordinates
+      // Fetch place details and listings
       try {
-        const placeDetails = await apiClient.getPlaceDetails(id);
-        if (placeDetails.geometry?.location) {
+        const data = await apiClient.searchPlaceListings(id, {
+          radiusKm: radius || 5,
+          minRent: minPrice ? parseInt(minPrice) : undefined,
+          maxRent: maxPrice ? parseInt(maxPrice) : undefined,
+          availableAfter: urgency || undefined,
+          layoutType: roomType ? [roomType] : undefined,
+          amenities: amenities,
+        });
+        
+        if (data.place) {
           setMapCenter({
-            lat: placeDetails.geometry.location.lat,
-            lng: placeDetails.geometry.location.lng,
+            lat: data.place.latitude,
+            lng: data.place.longitude,
           });
         }
+        
+        setListings(data.listings || []);
       } catch (error) {
-        console.error("Error fetching place details:", error);
+        console.error("Error fetching place listings:", error);
       }
     }
   };
@@ -591,7 +602,7 @@ export const RoomsResults = () => {
 
           {/* Full Screen Map */}
           <div className="h-full w-full">
-            <GoogleMap center={mapCenter} />
+            <GoogleMap center={mapCenter} listings={listings} />
           </div>
         </div>
       )}

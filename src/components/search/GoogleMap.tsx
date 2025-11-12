@@ -2,13 +2,27 @@ import { useEffect, useRef } from "react";
 
 const GOOGLE_MAPS_API_KEY = "AIzaSyDf5tpCzEbN1_RHkAh0rUrbQFM9UQE-O6k";
 
-interface GoogleMapProps {
-  center?: { lat: number; lng: number };
+interface Listing {
+  id: string;
+  latitude: number;
+  longitude: number;
+  monthlyRent: number;
+  addressText: string;
+  description?: string;
+  listingType?: string;
+  propertyType?: string[];
+  images?: string[];
 }
 
-export const GoogleMap = ({ center }: GoogleMapProps) => {
+interface GoogleMapProps {
+  center?: { lat: number; lng: number };
+  listings?: Listing[];
+}
+
+export const GoogleMap = ({ center, listings = [] }: GoogleMapProps) => {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
+  const markersRef = useRef<any[]>([]);
 
   useEffect(() => {
     let initialized = false;
@@ -40,7 +54,6 @@ export const GoogleMap = ({ center }: GoogleMapProps) => {
       });
 
       initialized = true;
-      addSampleMarkers();
       // Stop observing once initialized
       resizeObserver?.disconnect();
     };
@@ -68,26 +81,22 @@ export const GoogleMap = ({ center }: GoogleMapProps) => {
       script.addEventListener('load', loadListener, { once: true } as any);
     };
 
-    const addSampleMarkers = () => {
+    const addListingMarkers = (listingsData: Listing[]) => {
       if (!mapInstanceRef.current) return;
-
+      
       const google = (window as any).google;
+      
+      // Clear existing markers
+      markersRef.current.forEach(marker => marker.setMap(null));
+      markersRef.current = [];
 
-      const sampleLocations = [
-        { lat: 37.7749, lng: -122.4194, price: "$1,900", title: "Room 1" },
-        { lat: 37.7849, lng: -122.4094, price: "$2,100", title: "Room 2" },
-        { lat: 37.7649, lng: -122.4294, price: "$1,750", title: "Room 3" },
-        { lat: 37.7549, lng: -122.4394, price: "$2,300", title: "Room 4" },
-        { lat: 37.7949, lng: -122.3994, price: "$1,850", title: "Room 5" },
-      ];
-
-      sampleLocations.forEach((location) => {
+      listingsData.forEach((listing) => {
         const marker = new google.maps.Marker({
-          position: { lat: location.lat, lng: location.lng },
+          position: { lat: listing.latitude, lng: listing.longitude },
           map: mapInstanceRef.current!,
-          title: location.title,
+          title: listing.addressText,
           label: {
-            text: location.price,
+            text: `₹${listing.monthlyRent.toLocaleString()}`,
             color: "white",
             fontSize: "12px",
             fontWeight: "bold",
@@ -104,16 +113,41 @@ export const GoogleMap = ({ center }: GoogleMapProps) => {
 
         const infoWindow = new google.maps.InfoWindow({
           content: `
-            <div style="padding: 8px;">
-              <h3 style="margin: 0 0 8px 0; font-weight: 600;">${location.title}</h3>
-              <p style="margin: 0; font-size: 14px; color: #666;">${location.price}/mo</p>
+            <div style="padding: 12px; max-width: 280px; font-family: system-ui, -apple-system, sans-serif;">
+              ${listing.images?.[0] ? `<img src="${listing.images[0]}" style="width: 100%; height: 150px; object-fit: cover; border-radius: 8px; margin-bottom: 12px;" alt="Listing" />` : ''}
+              <h3 style="margin: 0 0 8px 0; font-weight: 600; font-size: 16px; color: #1a1a1a;">${listing.addressText}</h3>
+              <p style="margin: 0 0 8px 0; font-size: 18px; font-weight: 700; color: #FF6B35;">₹${listing.monthlyRent.toLocaleString()}<span style="font-size: 14px; font-weight: 400; color: #666;">/mo</span></p>
+              ${listing.description ? `<p style="margin: 0 0 8px 0; font-size: 14px; color: #666; line-height: 1.4;">${listing.description.substring(0, 100)}${listing.description.length > 100 ? '...' : ''}</p>` : ''}
+              <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px;">
+                ${listing.listingType ? `<span style="background: #f0f0f0; padding: 4px 8px; border-radius: 4px; font-size: 12px; color: #666;">${listing.listingType}</span>` : ''}
+                ${listing.propertyType?.[0] ? `<span style="background: #f0f0f0; padding: 4px 8px; border-radius: 4px; font-size: 12px; color: #666;">${listing.propertyType[0]}</span>` : ''}
+              </div>
             </div>
           `,
         });
 
+        // Add smooth hover effect with animation
+        let hoverTimeout: any;
+        marker.addListener("mouseover", () => {
+          clearTimeout(hoverTimeout);
+          hoverTimeout = setTimeout(() => {
+            infoWindow.open(mapInstanceRef.current!, marker);
+          }, 200);
+        });
+
+        marker.addListener("mouseout", () => {
+          clearTimeout(hoverTimeout);
+          hoverTimeout = setTimeout(() => {
+            infoWindow.close();
+          }, 300);
+        });
+
         marker.addListener("click", () => {
+          clearTimeout(hoverTimeout);
           infoWindow.open(mapInstanceRef.current!, marker);
         });
+
+        markersRef.current.push(marker);
       });
     };
 
@@ -133,9 +167,90 @@ export const GoogleMap = ({ center }: GoogleMapProps) => {
       // No need to remove script, but detach listener if any
       const script = document.querySelector('script[data-google-maps]') as HTMLScriptElement | null;
       if (script && loadListener) script.removeEventListener('load', loadListener as any);
+      // Clear markers
+      markersRef.current.forEach(marker => marker.setMap(null));
+      markersRef.current = [];
       mapInstanceRef.current = null;
     };
   }, []);
+
+  // Update markers when listings change
+  useEffect(() => {
+    if (mapInstanceRef.current && listings.length > 0) {
+      const google = (window as any).google;
+      if (google?.maps) {
+        const addListingMarkers = (listingsData: Listing[]) => {
+          const google = (window as any).google;
+          
+          // Clear existing markers
+          markersRef.current.forEach(marker => marker.setMap(null));
+          markersRef.current = [];
+
+          listingsData.forEach((listing) => {
+            const marker = new google.maps.Marker({
+              position: { lat: listing.latitude, lng: listing.longitude },
+              map: mapInstanceRef.current!,
+              title: listing.addressText,
+              label: {
+                text: `₹${listing.monthlyRent.toLocaleString()}`,
+                color: "white",
+                fontSize: "12px",
+                fontWeight: "bold",
+              },
+              icon: {
+                path: google.maps.SymbolPath.CIRCLE,
+                fillColor: "#FF6B35",
+                fillOpacity: 1,
+                strokeColor: "#ffffff",
+                strokeWeight: 2,
+                scale: 20,
+              },
+            });
+
+            const infoWindow = new google.maps.InfoWindow({
+              content: `
+                <div style="padding: 12px; max-width: 280px; font-family: system-ui, -apple-system, sans-serif;">
+                  ${listing.images?.[0] ? `<img src="${listing.images[0]}" style="width: 100%; height: 150px; object-fit: cover; border-radius: 8px; margin-bottom: 12px;" alt="Listing" />` : ''}
+                  <h3 style="margin: 0 0 8px 0; font-weight: 600; font-size: 16px; color: #1a1a1a;">${listing.addressText}</h3>
+                  <p style="margin: 0 0 8px 0; font-size: 18px; font-weight: 700; color: #FF6B35;">₹${listing.monthlyRent.toLocaleString()}<span style="font-size: 14px; font-weight: 400; color: #666;">/mo</span></p>
+                  ${listing.description ? `<p style="margin: 0 0 8px 0; font-size: 14px; color: #666; line-height: 1.4;">${listing.description.substring(0, 100)}${listing.description.length > 100 ? '...' : ''}</p>` : ''}
+                  <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px;">
+                    ${listing.listingType ? `<span style="background: #f0f0f0; padding: 4px 8px; border-radius: 4px; font-size: 12px; color: #666;">${listing.listingType}</span>` : ''}
+                    ${listing.propertyType?.[0] ? `<span style="background: #f0f0f0; padding: 4px 8px; border-radius: 4px; font-size: 12px; color: #666;">${listing.propertyType[0]}</span>` : ''}
+                  </div>
+                </div>
+              `,
+            });
+
+            // Add smooth hover effect with animation
+            let hoverTimeout: any;
+            marker.addListener("mouseover", () => {
+              clearTimeout(hoverTimeout);
+              hoverTimeout = setTimeout(() => {
+                infoWindow.open(mapInstanceRef.current!, marker);
+              }, 200);
+            });
+
+            marker.addListener("mouseout", () => {
+              clearTimeout(hoverTimeout);
+              hoverTimeout = setTimeout(() => {
+                infoWindow.close();
+              }, 300);
+            });
+
+            marker.addListener("click", () => {
+              clearTimeout(hoverTimeout);
+              infoWindow.open(mapInstanceRef.current!, marker);
+            });
+
+            markersRef.current.push(marker);
+          });
+        };
+        
+        addListingMarkers(listings);
+      }
+    }
+  }, [listings]);
 
   // Update map center when center prop changes
   useEffect(() => {

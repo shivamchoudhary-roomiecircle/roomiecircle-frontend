@@ -197,21 +197,45 @@ class ApiClient {
     return response.data.suggestions;
   }
 
-  async getPlaceDetails(placeId: string, sessionToken?: string) {
-    const params = new URLSearchParams({ placeId });
-    if (sessionToken) params.append("sessionToken", sessionToken);
-    
+  async searchPlaceListings(placeId: string, filters: {
+    radiusKm?: number;
+    minRent?: number;
+    maxRent?: number;
+    availableAfter?: string;
+    propertyType?: string[];
+    layoutType?: string[];
+    amenities?: string[];
+    amenitiesMatch?: string;
+    page?: number;
+    size?: number;
+  }) {
     const response = await this.request<{
       success: boolean;
       data: {
-        geometry: {
-          location: {
-            lat: number;
-            lng: number;
-          };
+        place: {
+          placeId: string;
+          name: string;
+          address: string;
+          latitude: number;
+          longitude: number;
         };
+        listings: any[];
       };
-    }>(`/api/v1/search/places/details?${params.toString()}`);
+    }>(`/api/v1/search/places/${placeId}/listings`, {
+      method: "POST",
+      body: JSON.stringify({
+        radiusKm: filters.radiusKm || 5,
+        minRent: filters.minRent || 0,
+        maxRent: filters.maxRent || 0,
+        availableAfter: filters.availableAfter,
+        propertyType: filters.propertyType || [],
+        layoutType: filters.layoutType || [],
+        amenities: filters.amenities || [],
+        amenitiesMatch: filters.amenitiesMatch || "ANY",
+        page: filters.page || 0,
+        size: filters.size || 50,
+      }),
+    });
     return response.data;
   }
 
