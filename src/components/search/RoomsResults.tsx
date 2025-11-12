@@ -5,7 +5,7 @@ import { useConfig } from "@/contexts/ConfigContext";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, DollarSign, Clock, ArrowUpDown, Map as MapIcon, Grid3x3, Plus, Minus, ArrowLeft, List, Search } from "lucide-react";
+import { MapPin, IndianRupee, Clock, ArrowUpDown, Map as MapIcon, Grid3x3, Plus, Minus, ArrowLeft, List, Search } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
@@ -117,11 +117,11 @@ export const RoomsResults = () => {
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button variant="outline" className="h-12">
-                      <DollarSign className="h-4 w-4 mr-2" />
+                      <IndianRupee className="h-4 w-4 mr-2" />
                       {priceType === "monthly" ? "Monthly" : "Target"}
                       {(minPrice || maxPrice) && (
                         <span className="ml-2">
-                          {minPrice && `$${minPrice}`}{minPrice && maxPrice && "-"}{maxPrice && `$${maxPrice}`}
+                          {minPrice && `₹${parseInt(minPrice).toLocaleString('en-IN')}`}{minPrice && maxPrice && "-"}{maxPrice && `₹${parseInt(maxPrice).toLocaleString('en-IN')}`}
                         </span>
                       )}
                     </Button>
@@ -432,7 +432,7 @@ export const RoomsResults = () => {
                           </div>
                         </div>
                         <p className="text-2xl font-bold mb-1">
-                          ${listing.monthlyRent} 
+                          ₹{listing.monthlyRent?.toLocaleString('en-IN') || 0} 
                           <span className="text-sm font-normal text-muted-foreground">/mo</span>
                         </p>
                         <p className="text-sm text-muted-foreground mb-2">
@@ -479,11 +479,11 @@ export const RoomsResults = () => {
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button variant="outline" className="h-12">
-                      <DollarSign className="h-4 w-4 mr-2" />
+                      <IndianRupee className="h-4 w-4 mr-2" />
                       {priceType === "monthly" ? "Monthly" : "Target"}
                       {(minPrice || maxPrice) && (
                         <span className="ml-2">
-                          {minPrice && `$${minPrice}`}{minPrice && maxPrice && "-"}{maxPrice && `$${maxPrice}`}
+                          {minPrice && `₹${parseInt(minPrice).toLocaleString('en-IN')}`}{minPrice && maxPrice && "-"}{maxPrice && `₹${parseInt(maxPrice).toLocaleString('en-IN')}`}
                         </span>
                       )}
                     </Button>

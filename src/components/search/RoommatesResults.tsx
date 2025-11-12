@@ -93,7 +93,7 @@ export const RoommatesResults = () => {
                   Budget
                   {(minBudget || maxBudget) && (
                     <span className="ml-2">
-                      {minBudget && `$${minBudget}`}{minBudget && maxBudget && "-"}{maxBudget && `$${maxBudget}`}
+                      {minBudget && `₹${parseInt(minBudget).toLocaleString('en-IN')}`}{minBudget && maxBudget && "-"}{maxBudget && `₹${parseInt(maxBudget).toLocaleString('en-IN')}`}
                     </span>
                   )}
                 </Button>

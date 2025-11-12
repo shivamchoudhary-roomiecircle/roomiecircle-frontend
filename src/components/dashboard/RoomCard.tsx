@@ -1,4 +1,4 @@
-import { MapPin, DollarSign, Users, Home } from 'lucide-react';
+import { MapPin, IndianRupee, Users, Home } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 interface RoomCardProps {
@@ -33,8 +33,8 @@ export const RoomCard = ({ room }: RoomCardProps) => {
           <h2 className="text-2xl font-bold mb-2">{room.title}</h2>
           <div className="flex items-center gap-4 text-sm">
             <div className="flex items-center gap-1">
-              <DollarSign className="h-4 w-4" />
-              <span className="font-semibold">{room.rent}/mo</span>
+              <IndianRupee className="h-4 w-4" />
+              <span className="font-semibold">₹{room.rent.toLocaleString('en-IN')}/mo</span>
             </div>
             <div className="flex items-center gap-1">
               <MapPin className="h-4 w-4" />
@@ -51,8 +51,8 @@ export const RoomCard = ({ room }: RoomCardProps) => {
           <h2 className="text-3xl font-bold mb-2">{room.title}</h2>
           <div className="flex items-center gap-4 text-muted-foreground">
             <div className="flex items-center gap-1">
-              <DollarSign className="h-5 w-5" />
-              <span className="text-xl font-semibold text-primary">${room.rent}/mo</span>
+              <IndianRupee className="h-5 w-5" />
+              <span className="text-xl font-semibold text-primary">₹{room.rent.toLocaleString('en-IN')}/mo</span>
             </div>
             <div className="flex items-center gap-1">
               <MapPin className="h-5 w-5" />
