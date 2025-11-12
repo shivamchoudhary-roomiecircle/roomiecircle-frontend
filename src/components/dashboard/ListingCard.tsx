@@ -142,7 +142,7 @@ const ListingCard = ({ listing, onEdit, onDelete, onStatusChange }: ListingCardP
 
           {/* Listing Info */}
           <div className="space-y-2">
-            <div className="text-2xl font-bold">₹{listing.monthlyRent.toLocaleString()}/mo</div>
+            <div className="text-2xl font-bold">₹{listing.monthlyRent?.toLocaleString() || 0}/mo</div>
             <div className="text-sm text-muted-foreground capitalize">
               {listing.listingType?.replace(/_/g, " ")}
             </div>

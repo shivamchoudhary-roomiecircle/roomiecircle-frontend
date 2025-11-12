@@ -32,7 +32,7 @@ const Login = () => {
         title: 'Success',
         description: 'Logged in successfully!',
       });
-      navigate('/dashboard');
+      navigate('/');
     } catch (error: any) {
       toast({
         title: 'Error',
@@ -78,7 +78,7 @@ const Login = () => {
         title: 'Success',
         description: 'Logged in successfully!',
       });
-      navigate('/dashboard');
+      navigate('/');
     } catch (error: any) {
       toast({
         title: 'Error',
@@ -99,7 +99,7 @@ const Login = () => {
         title: 'Success',
         description: 'Logged in with Google successfully!',
       });
-      navigate('/dashboard');
+      navigate('/');
     } catch (error: any) {
       toast({
         title: 'Error',

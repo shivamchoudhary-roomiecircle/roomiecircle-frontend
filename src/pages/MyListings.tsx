@@ -186,21 +186,12 @@ const MyListings = () => {
           </div>
         </div>
 
-        {/* Promotional Banner */}
-        <div className="bg-gradient-to-r from-primary/10 to-secondary/10 rounded-lg p-6 mb-8 flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex-1">
-            <h2 className="text-xl font-semibold mb-2">Get up to 7X more views</h2>
-            <p className="text-muted-foreground">
-              {currentListings.length} listing{currentListings.length !== 1 ? "s" : ""} available
-            </p>
-          </div>
-          <div className="flex gap-3">
-            <Button variant="outline">View plans</Button>
-            <Button onClick={() => navigate("/create-listing")}>
-              <Plus className="h-4 w-4 mr-2" />
-              New listing
-            </Button>
-          </div>
+        {/* New Listing Button */}
+        <div className="mb-8 flex justify-end">
+          <Button onClick={() => navigate("/create-listing")}>
+            <Plus className="h-4 w-4 mr-2" />
+            New listing
+          </Button>
         </div>
 
         {/* Loading State */}
