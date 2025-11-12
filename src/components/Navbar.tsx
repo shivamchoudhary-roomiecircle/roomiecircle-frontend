@@ -138,9 +138,9 @@ const Navbar = ({ activeTab, onTabChange }: NavbarProps) => {
         {/* Mobile & Tablet Menu */}
         {mobileMenuOpen && (
           <>
-            {/* Light Backdrop Overlay */}
+            {/* Light Full-Page Backdrop */}
             <div 
-              className="lg:hidden fixed inset-0 z-40"
+              className="lg:hidden fixed inset-0 bg-black/20 z-40"
               onClick={() => setMobileMenuOpen(false)}
             />
             
