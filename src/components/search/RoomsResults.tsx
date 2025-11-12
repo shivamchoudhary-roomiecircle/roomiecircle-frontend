@@ -11,10 +11,12 @@ import { Separator } from "@/components/ui/separator";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { GoogleMap } from "./GoogleMap";
+import { apiClient } from "@/lib/api";
 
 export const RoomsResults = () => {
   const [location, setLocation] = useState("");
   const [placeId, setPlaceId] = useState("");
+  const [mapCenter, setMapCenter] = useState<{ lat: number; lng: number } | undefined>();
   const [viewMode, setViewMode] = useState<"list" | "map">("list");
   const [priceType, setPriceType] = useState("monthly");
   const [minPrice, setMinPrice] = useState("");
@@ -31,9 +33,23 @@ export const RoomsResults = () => {
   const [duration, setDuration] = useState("");
   const [roomType, setRoomType] = useState("");
 
-  const handleLocationChange = (value: string, id?: string) => {
+  const handleLocationChange = async (value: string, id?: string) => {
     setLocation(value);
-    if (id) setPlaceId(id);
+    if (id) {
+      setPlaceId(id);
+      // Fetch place details to get coordinates
+      try {
+        const placeDetails = await apiClient.getPlaceDetails(id);
+        if (placeDetails.geometry?.location) {
+          setMapCenter({
+            lat: placeDetails.geometry.location.lat,
+            lng: placeDetails.geometry.location.lng,
+          });
+        }
+      } catch (error) {
+        console.error("Error fetching place details:", error);
+      }
+    }
   };
 
   const adjustRadius = (delta: number) => {
@@ -575,7 +591,7 @@ export const RoomsResults = () => {
 
           {/* Full Screen Map */}
           <div className="h-full w-full">
-            <GoogleMap />
+            <GoogleMap center={mapCenter} />
           </div>
         </div>
       )}

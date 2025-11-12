@@ -197,6 +197,24 @@ class ApiClient {
     return response.data.suggestions;
   }
 
+  async getPlaceDetails(placeId: string, sessionToken?: string) {
+    const params = new URLSearchParams({ placeId });
+    if (sessionToken) params.append("sessionToken", sessionToken);
+    
+    const response = await this.request<{
+      success: boolean;
+      data: {
+        geometry: {
+          location: {
+            lat: number;
+            lng: number;
+          };
+        };
+      };
+    }>(`/api/v1/search/places/details?${params.toString()}`);
+    return response.data;
+  }
+
   async search(filters: any) {
     const response = await this.request<{
       success: boolean;

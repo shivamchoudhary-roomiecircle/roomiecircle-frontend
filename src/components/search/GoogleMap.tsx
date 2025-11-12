@@ -2,7 +2,11 @@ import { useEffect, useRef } from "react";
 
 const GOOGLE_MAPS_API_KEY = "AIzaSyDf5tpCzEbN1_RHkAh0rUrbQFM9UQE-O6k";
 
-export const GoogleMap = () => {
+interface GoogleMapProps {
+  center?: { lat: number; lng: number };
+}
+
+export const GoogleMap = ({ center }: GoogleMapProps) => {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
 
@@ -18,7 +22,7 @@ export const GoogleMap = () => {
       // Wait until the element is in the DOM and has size
       if (!el.isConnected || el.offsetWidth === 0 || el.offsetHeight === 0) return;
 
-      const defaultCenter = { lat: 37.7749, lng: -122.4194 };
+      const defaultCenter = center || { lat: 37.7749, lng: -122.4194 };
 
       mapInstanceRef.current = new google.maps.Map(el, {
         center: defaultCenter,
@@ -132,6 +136,14 @@ export const GoogleMap = () => {
       mapInstanceRef.current = null;
     };
   }, []);
+
+  // Update map center when center prop changes
+  useEffect(() => {
+    if (mapInstanceRef.current && center) {
+      mapInstanceRef.current.setCenter(center);
+      mapInstanceRef.current.setZoom(14);
+    }
+  }, [center]);
 
   return (
     <div className="w-full h-full">
