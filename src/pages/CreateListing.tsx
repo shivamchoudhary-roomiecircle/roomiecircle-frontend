@@ -637,21 +637,11 @@ const CreateListing = () => {
 
         <div>
           <Label>Profession</Label>
-          <Select 
-            value={roommatePreferences.profession} 
-            onValueChange={(value) => setRoommatePreferences({ ...roommatePreferences, profession: value })}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select profession" />
-            </SelectTrigger>
-            <SelectContent>
-              {config?.PROFESSION?.map((prof: any) => (
-                <SelectItem key={prof.key} value={prof.key}>
-                  {prof.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <Input
+            value={roommatePreferences.profession}
+            onChange={(e) => setRoommatePreferences({ ...roommatePreferences, profession: e.target.value })}
+            placeholder="Enter profession (e.g., Software Engineer, Student)"
+          />
         </div>
 
         <div>
