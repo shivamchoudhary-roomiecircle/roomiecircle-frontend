@@ -1015,7 +1015,7 @@ const CreateListing = () => {
       
       <div className="container mx-auto px-4 py-8 max-w-3xl">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Create Your Listing</h1>
+          <h1 className="text-3xl font-bold mb-2">{isEditMode ? "Edit Your Listing" : "Create Your Listing"}</h1>
           <p className="text-muted-foreground">
             Section {currentSection + 1} of {sections.length}: {currentSectionData.title}
           </p>
