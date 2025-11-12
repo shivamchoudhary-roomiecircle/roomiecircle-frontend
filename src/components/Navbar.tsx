@@ -137,82 +137,91 @@ const Navbar = ({ activeTab, onTabChange }: NavbarProps) => {
 
         {/* Mobile & Tablet Menu */}
         {mobileMenuOpen && (
-          <div className="lg:hidden fixed top-20 right-4 w-64 bg-background/95 backdrop-blur-xl border border-primary/20 rounded-2xl shadow-2xl z-50 py-3 animate-scale-in">
-            {!isAuthenticated && (
-              <Button 
-                variant="ghost" 
-                className="w-full justify-start px-4 hover:bg-primary/10 transition-colors"
-                onClick={() => {
-                  navigate('/auth/login');
-                  setMobileMenuOpen(false);
-                }}
-              >
-                <LogIn className="h-4 w-4 mr-3" />
-                Sign In
-              </Button>
-            )}
-            {isAuthenticated && (
-              <>
+          <>
+            {/* Click-catcher overlay to close on outside tap */}
+            <div
+              className="lg:hidden fixed inset-0 z-40 bg-transparent"
+              onClick={() => setMobileMenuOpen(false)}
+            />
+
+            {/* Floating Menu */}
+            <div className="lg:hidden fixed top-20 right-4 w-64 bg-background/95 backdrop-blur-xl border border-primary/20 rounded-2xl shadow-2xl z-50 py-3 animate-scale-in">
+              {!isAuthenticated && (
                 <Button 
                   variant="ghost" 
                   className="w-full justify-start px-4 hover:bg-primary/10 transition-colors"
                   onClick={() => {
-                    navigate('/dashboard');
+                    navigate('/auth/login');
                     setMobileMenuOpen(false);
                   }}
                 >
-                  <LayoutDashboard className="h-4 w-4 mr-3" />
-                  Dashboard
+                  <LogIn className="h-4 w-4 mr-3" />
+                  Sign In
                 </Button>
-                <Button 
-                  variant="ghost" 
-                  className="w-full justify-start px-4 hover:bg-primary/10 transition-colors"
-                  onClick={() => {
-                    navigate('/dashboard?tab=profile');
-                    setMobileMenuOpen(false);
-                  }}
-                >
-                  <UserCircle className="h-4 w-4 mr-3" />
-                  Profile
-                </Button>
-                <Button 
-                  variant="ghost" 
-                  className="w-full justify-start px-4 hover:bg-primary/10 transition-colors"
-                  onClick={() => {
-                    navigate('/dashboard?tab=listings');
-                    setMobileMenuOpen(false);
-                  }}
-                >
-                  <List className="h-4 w-4 mr-3" />
-                  View Listings
-                </Button>
-                <div className="my-2 border-t border-primary/10" />
-                <Button 
-                  variant="ghost" 
-                  className="w-full justify-start px-4 hover:bg-primary/10 transition-colors"
-                  onClick={() => {
-                    navigate('/create-listing');
-                    setMobileMenuOpen(false);
-                  }}
-                >
-                  <Home className="h-4 w-4 mr-3" />
-                  List Your Room
-                </Button>
-                <div className="my-2 border-t border-primary/10" />
-                <Button 
-                  variant="ghost" 
-                  className="w-full justify-start px-4 text-destructive hover:text-destructive hover:bg-destructive/10 transition-colors"
-                  onClick={() => {
-                    logout();
-                    setMobileMenuOpen(false);
-                  }}
-                >
-                  <LogOut className="h-4 w-4 mr-3" />
-                  Logout
-                </Button>
-              </>
-            )}
-          </div>
+              )}
+              {isAuthenticated && (
+                <>
+                  <Button 
+                    variant="ghost" 
+                    className="w-full justify-start px-4 hover:bg-primary/10 transition-colors"
+                    onClick={() => {
+                      navigate('/dashboard');
+                      setMobileMenuOpen(false);
+                    }}
+                  >
+                    <LayoutDashboard className="h-4 w-4 mr-3" />
+                    Dashboard
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    className="w-full justify-start px-4 hover:bg-primary/10 transition-colors"
+                    onClick={() => {
+                      navigate('/dashboard?tab=profile');
+                      setMobileMenuOpen(false);
+                    }}
+                  >
+                    <UserCircle className="h-4 w-4 mr-3" />
+                    Profile
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    className="w-full justify-start px-4 hover:bg-primary/10 transition-colors"
+                    onClick={() => {
+                      navigate('/dashboard?tab=listings');
+                      setMobileMenuOpen(false);
+                    }}
+                  >
+                    <List className="h-4 w-4 mr-3" />
+                    View Listings
+                  </Button>
+                  <div className="my-2 border-t border-primary/10" />
+                  <Button 
+                    variant="ghost" 
+                    className="w-full justify-start px-4 hover:bg-primary/10 transition-colors"
+                    onClick={() => {
+                      navigate('/create-listing');
+                      setMobileMenuOpen(false);
+                    }}
+                  >
+                    <Home className="h-4 w-4 mr-3" />
+                    List Your Room
+                  </Button>
+                  <div className="my-2 border-t border-primary/10" />
+                  <Button 
+                    variant="ghost" 
+                    className="w-full justify-start px-4 text-destructive hover:text-destructive hover:bg-destructive/10 transition-colors"
+                    onClick={() => {
+                      logout();
+                      setMobileMenuOpen(false);
+                    }}
+                  >
+                    <LogOut className="h-4 w-4 mr-3" />
+                    Logout
+                  </Button>
+                </>
+              )}
+            </div>
+          </>
         )}
       </div>
     </nav>
