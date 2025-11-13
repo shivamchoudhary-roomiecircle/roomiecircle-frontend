@@ -404,7 +404,14 @@ export const RoomsResults = () => {
                   ))
                 ) : (
                   listings.map((listing) => (
-                    <div key={listing.id} className="bg-card rounded-lg border border-border overflow-hidden hover:shadow-lg transition-shadow">
+                    <div 
+                      key={listing.id} 
+                      className="bg-card rounded-lg border border-border overflow-hidden hover:shadow-lg hover:border-primary/50 transition-all cursor-pointer"
+                      onClick={() => {
+                        // TODO: Navigate to detailed listing page
+                        console.log('Open listing details:', listing.id);
+                      }}
+                    >
                       <div className="aspect-[4/3] bg-muted relative">
                         {listing.images?.[0] && (
                           <img 
@@ -414,45 +421,79 @@ export const RoomsResults = () => {
                           />
                         )}
                       </div>
-                      <div className="p-4">
-                        <div className="flex items-start justify-between mb-2">
-                          <div className="flex items-center gap-2">
-                            <Avatar className="w-10 h-10">
-                              {listing.lister?.profilePicture && (
-                                <AvatarImage src={listing.lister.profilePicture} alt={listing.lister.name || "Host"} />
-                              )}
-                              <AvatarFallback className="bg-primary/10 text-primary font-semibold">
-                                {listing.lister?.name?.charAt(0)?.toUpperCase() || "L"}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div>
-                              <p className="font-semibold text-sm">
-                                {listing.lister?.name || "Host"}
+                      <div className="p-3 space-y-2">
+                        {/* Row 1: Profile, Rent, Deposit */}
+                        <div className="flex items-center justify-between gap-2">
+                          <Avatar className="w-9 h-9 flex-shrink-0">
+                            {listing.lister?.profilePicture && (
+                              <AvatarImage src={listing.lister.profilePicture} alt={listing.lister.name || "Host"} />
+                            )}
+                            <AvatarFallback className="bg-primary/10 text-primary font-semibold text-sm">
+                              {listing.lister?.name?.charAt(0)?.toUpperCase() || "L"}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex items-center gap-3 ml-auto">
+                            <div className="text-right">
+                              <p className="text-lg font-bold leading-tight">
+                                ₹{listing.monthlyRent?.toLocaleString('en-IN') || 0}
                               </p>
-                              <p className="text-xs text-muted-foreground">
-                                {listing.listingType === "FULL_HOUSE" 
-                                  ? "Full House" 
-                                  : listing.existingRoommates?.length 
-                                    ? `${listing.existingRoommates.length} ROOMMATE${listing.existingRoommates.length !== 1 ? "S" : ""}`
-                                    : listing.layoutType || "Private listing"}
-                              </p>
+                              <p className="text-xs text-muted-foreground">rent/mo</p>
                             </div>
+                            {listing.deposit && listing.deposit > 0 && (
+                              <div className="text-right">
+                                <p className="text-sm font-semibold leading-tight">
+                                  ₹{listing.deposit.toLocaleString('en-IN')}
+                                </p>
+                                <p className="text-xs text-muted-foreground">deposit</p>
+                              </div>
+                            )}
                           </div>
                         </div>
-                        <p className="text-2xl font-bold mb-1">
-                          ₹{listing.monthlyRent?.toLocaleString('en-IN') || 0} 
-                          <span className="text-sm font-normal text-muted-foreground">/mo</span>
-                        </p>
-                        <p className="text-sm text-muted-foreground mb-2">
-                          {listing.listingType || "Room"} · {listing.bedroomCount || 0} Bedrooms · {listing.propertyType?.[0] || "Property"}
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          {listing.availableDate ? new Date(listing.availableDate).toLocaleDateString() : "Available"}
-                        </p>
-                        <p className="text-sm text-muted-foreground flex items-center gap-1 mt-2">
-                          <MapPin className="h-3 w-3" />
-                          {listing.addressText || "Location"}
-                        </p>
+
+                        {/* Row 2: Listing Type Details */}
+                        <div className="flex items-center gap-2 text-sm">
+                          <span className="font-medium">
+                            {listing.listingType === "FULL_HOUSE" 
+                              ? "Full House" 
+                              : listing.listingType === "PRIVATE_ROOM"
+                                ? "Private Room"
+                                : "Shared Room"}
+                          </span>
+                          <span className="text-muted-foreground">·</span>
+                          <span className="text-muted-foreground">
+                            {listing.layoutType || "Studio"}
+                          </span>
+                          {listing.propertyType?.[0] && (
+                            <>
+                              <span className="text-muted-foreground">·</span>
+                              <span className="text-muted-foreground capitalize">
+                                {listing.propertyType[0].replace(/_/g, ' ')}
+                              </span>
+                            </>
+                          )}
+                        </div>
+
+                        {/* Row 3: Available From */}
+                        <div className="text-sm">
+                          <span className="text-muted-foreground">Available from </span>
+                          <span className="font-medium">
+                            {listing.availableDate 
+                              ? new Date(listing.availableDate).toLocaleDateString('en-IN', { 
+                                  day: 'numeric', 
+                                  month: 'short', 
+                                  year: 'numeric' 
+                                }) 
+                              : "Immediately"}
+                          </span>
+                        </div>
+
+                        {/* Row 4: Address (truncated) */}
+                        <div className="flex items-start gap-1 text-sm text-muted-foreground">
+                          <MapPin className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                          <p className="line-clamp-1 flex-1">
+                            {listing.addressText || "Location not specified"}
+                          </p>
+                        </div>
                       </div>
                     </div>
                   ))
