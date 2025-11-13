@@ -421,8 +421,8 @@ export const RoomsResults = () => {
                               {listing.lister?.profilePicture && (
                                 <AvatarImage src={listing.lister.profilePicture} alt={listing.lister.name || "Host"} />
                               )}
-                              <AvatarFallback className="bg-muted text-foreground">
-                                {listing.lister?.name?.charAt(0)?.toUpperCase() || "?"}
+                              <AvatarFallback className="bg-primary/10 text-primary font-semibold">
+                                {listing.lister?.name?.charAt(0)?.toUpperCase() || "L"}
                               </AvatarFallback>
                             </Avatar>
                             <div>
