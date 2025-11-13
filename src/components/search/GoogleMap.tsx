@@ -17,9 +17,10 @@ interface Listing {
 interface GoogleMapProps {
   center?: { lat: number; lng: number };
   listings?: Listing[];
+  onBoundsChange?: (bounds: { minLat: number; maxLat: number; minLng: number; maxLng: number }) => void;
 }
 
-export const GoogleMap = ({ center, listings = [] }: GoogleMapProps) => {
+export const GoogleMap = ({ center, listings = [], onBoundsChange }: GoogleMapProps) => {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
   const markersRef = useRef<any[]>([]);
@@ -53,7 +54,41 @@ export const GoogleMap = ({ center, listings = [] }: GoogleMapProps) => {
         streetViewControl: false,
       });
 
+      // Add idle listener for bounds changes
+      if (onBoundsChange) {
+        mapInstanceRef.current.addListener('idle', () => {
+          const bounds = mapInstanceRef.current.getBounds();
+          if (bounds) {
+            const ne = bounds.getNorthEast();
+            const sw = bounds.getSouthWest();
+            onBoundsChange({
+              minLat: sw.lat(),
+              maxLat: ne.lat(),
+              minLng: sw.lng(),
+              maxLng: ne.lng(),
+            });
+          }
+        });
+      }
+
       initialized = true;
+      
+      // Trigger initial bounds callback after map is ready
+      if (onBoundsChange) {
+        google.maps.event.addListenerOnce(mapInstanceRef.current, 'idle', () => {
+          const bounds = mapInstanceRef.current.getBounds();
+          if (bounds) {
+            const ne = bounds.getNorthEast();
+            const sw = bounds.getSouthWest();
+            onBoundsChange({
+              minLat: sw.lat(),
+              maxLat: ne.lat(),
+              minLng: sw.lng(),
+              maxLng: ne.lng(),
+            });
+          }
+        });
+      }
       // Stop observing once initialized
       resizeObserver?.disconnect();
     };

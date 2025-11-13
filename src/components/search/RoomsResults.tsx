@@ -15,6 +15,7 @@ import { GoogleMap } from "./GoogleMap";
 import { apiClient } from "@/lib/api";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { useDebounce } from "@/hooks/useDebounce";
 
 export const RoomsResults = () => {
   const { config } = useConfig();
@@ -39,6 +40,9 @@ export const RoomsResults = () => {
   const [amenities, setAmenities] = useState<string[]>([]);
   const [duration, setDuration] = useState("");
   const [roomType, setRoomType] = useState("");
+  const [mapBounds, setMapBounds] = useState<{ minLat: number; maxLat: number; minLng: number; maxLng: number } | null>(null);
+  
+  const debouncedBounds = useDebounce(mapBounds, 300);
 
   const handleLocationChange = async (value: string, id?: string) => {
     setLocation(value);
@@ -82,22 +86,51 @@ export const RoomsResults = () => {
     }
   };
 
+  // Fetch listings when map bounds change (map mode only)
   useEffect(() => {
-    const fetchRecentRooms = async () => {
-      try {
-        setLoading(true);
-        const data = await apiClient.searchRecentRooms(0, 20);
-        setListings(data.content || []);
-        setTotalElements(data.totalElements || 0);
-      } catch (error) {
-        console.error("Error fetching recent rooms:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
+    if (viewMode === "map" && debouncedBounds) {
+      const fetchMapListings = async () => {
+        try {
+          setLoading(true);
+          const filters = {
+            minRent: minPrice ? parseInt(minPrice) : undefined,
+            maxRent: maxPrice ? parseInt(maxPrice) : undefined,
+            layoutType: roomType ? [roomType] : undefined,
+            amenities: amenities.length > 0 ? amenities : undefined,
+          };
+          const data = await apiClient.searchListingsByMap(debouncedBounds, filters);
+          setListings(data.content || []);
+          setTotalElements(data.totalElements || 0);
+        } catch (error) {
+          console.error("Error fetching map listings:", error);
+        } finally {
+          setLoading(false);
+        }
+      };
 
-    fetchRecentRooms();
-  }, []);
+      fetchMapListings();
+    }
+  }, [debouncedBounds, viewMode, minPrice, maxPrice, roomType, amenities]);
+
+  // Fetch recent rooms on initial load (list mode)
+  useEffect(() => {
+    if (viewMode === "list") {
+      const fetchRecentRooms = async () => {
+        try {
+          setLoading(true);
+          const data = await apiClient.searchRecentRooms(0, 20);
+          setListings(data.content || []);
+          setTotalElements(data.totalElements || 0);
+        } catch (error) {
+          console.error("Error fetching recent rooms:", error);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      fetchRecentRooms();
+    }
+  }, [viewMode]);
 
   return (
     <>
@@ -745,7 +778,11 @@ export const RoomsResults = () => {
 
           {/* Full Screen Map */}
           <div className="h-full w-full">
-            <GoogleMap center={mapCenter} listings={listings} />
+            <GoogleMap 
+              center={mapCenter} 
+              listings={listings}
+              onBoundsChange={setMapBounds}
+            />
           </div>
         </div>
       )}

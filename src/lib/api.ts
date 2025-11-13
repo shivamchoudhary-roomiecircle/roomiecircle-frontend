@@ -290,6 +290,60 @@ class ApiClient {
     return response.data;
   }
 
+  async searchListingsByMap(bounds: {
+    minLat: number;
+    maxLat: number;
+    minLng: number;
+    maxLng: number;
+  }, filters: {
+    minRent?: number;
+    maxRent?: number;
+    availableAfter?: string;
+    propertyType?: string[];
+    layoutType?: string[];
+    amenities?: string[];
+    amenitiesMatch?: string;
+    page?: number;
+    size?: number;
+  } = {}) {
+    const params = new URLSearchParams({
+      minLat: bounds.minLat.toString(),
+      maxLat: bounds.maxLat.toString(),
+      minLng: bounds.minLng.toString(),
+      maxLng: bounds.maxLng.toString(),
+      page: (filters.page || 0).toString(),
+      size: (filters.size || 50).toString(),
+    });
+
+    if (filters.minRent) params.append('minRent', filters.minRent.toString());
+    if (filters.maxRent) params.append('maxRent', filters.maxRent.toString());
+    if (filters.availableAfter) params.append('availableAfter', filters.availableAfter);
+    if (filters.propertyType?.length) {
+      filters.propertyType.forEach(type => params.append('propertyType', type));
+    }
+    if (filters.layoutType?.length) {
+      filters.layoutType.forEach(type => params.append('layoutType', type));
+    }
+    if (filters.amenities?.length) {
+      filters.amenities.forEach(amenity => params.append('amenities', amenity));
+    }
+    if (filters.amenitiesMatch) params.append('amenitiesMatch', filters.amenitiesMatch);
+
+    const response = await this.request<{
+      success: boolean;
+      data: {
+        content: any[];
+        page: number;
+        size: number;
+        totalElements: number;
+        totalPages: number;
+        last: boolean;
+        first: boolean;
+      };
+    }>(`/api/v1/search/rooms/map?${params.toString()}`);
+    return response.data;
+  }
+
   // Configuration endpoint
   async getConfiguration() {
     const response = await this.request<{
