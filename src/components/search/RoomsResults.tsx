@@ -29,7 +29,6 @@ export const RoomsResults = () => {
   const [priceType, setPriceType] = useState("monthly");
   const [minPrice, setMinPrice] = useState("");
   const [maxPrice, setMaxPrice] = useState("");
-  const [urgency, setUrgency] = useState("");
   const [sortBy, setSortBy] = useState("");
   const [radius, setRadius] = useState(10);
 
@@ -54,7 +53,6 @@ export const RoomsResults = () => {
           radiusKm: radius || 5,
           minRent: minPrice ? parseInt(minPrice) : undefined,
           maxRent: maxPrice ? parseInt(maxPrice) : undefined,
-          availableAfter: urgency || undefined,
           layoutType: roomType ? [roomType] : undefined,
           amenities: amenities,
         });
@@ -195,20 +193,6 @@ export const RoomsResults = () => {
                     </div>
                   </PopoverContent>
                 </Popover>
-
-                <Select value={urgency} onValueChange={setUrgency}>
-                  <SelectTrigger className="w-[140px] h-12">
-                    <Clock className="h-4 w-4 mr-2" />
-                    <SelectValue placeholder="Urgency" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {config?.LISTING_URGENCY?.map((item) => (
-                      <SelectItem key={item.key} value={item.key}>
-                        {item.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
 
                 <Select value={sortBy} onValueChange={setSortBy}>
                   <SelectTrigger className="w-[120px] h-12">
@@ -622,19 +606,6 @@ export const RoomsResults = () => {
                     </div>
                   </PopoverContent>
                 </Popover>
-
-                <Select value={urgency} onValueChange={setUrgency}>
-                  <SelectTrigger className="w-[140px] h-12">
-                    <Clock className="h-4 w-4 mr-2" />
-                    <SelectValue placeholder="Urgency" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="immediate">Immediate</SelectItem>
-                    <SelectItem value="1week">Within 1 week</SelectItem>
-                    <SelectItem value="1month">Within 1 month</SelectItem>
-                    <SelectItem value="flexible">Flexible</SelectItem>
-                  </SelectContent>
-                </Select>
 
                 <Button
                   variant="outline"
