@@ -353,25 +353,25 @@ class ApiClient {
     return response.data;
   }
 
-  // Listing endpoints
-  async createListing() {
+  // Room Listing endpoints
+  async createRoomListing() {
     const response = await this.request<{
       success: boolean;
       data: any;
       message: string;
-    }>("/api/v1/listings", {
+    }>("/api/v1/listings/rooms", {
       method: "POST",
     });
     return response.data;
   }
 
-  async updateListing(listingId: string, data: any) {
+  async updateRoomListing(listingId: string, data: any) {
     const response = await this.request<{
       success: boolean;
       data: any;
       message: string;
-    }>(`/api/v1/listings/${listingId}`, {
-      method: "PUT",
+    }>(`/api/v1/listings/rooms/${listingId}`, {
+      method: "PATCH",
       body: JSON.stringify(data),
     });
     return response.data;
@@ -388,11 +388,11 @@ class ApiClient {
     return response.data;
   }
 
-  async getListing(listingId: string) {
+  async getRoomListing(listingId: string) {
     const response = await this.request<{
       success: boolean;
       data: any;
-    }>(`/api/v1/listings/${listingId}`);
+    }>(`/api/v1/listings/rooms/${listingId}`);
     return response.data;
   }
 
@@ -400,18 +400,18 @@ class ApiClient {
     const response = await this.request<{
       success: boolean;
       data: any;
-    }>(`/api/v1/listings/${listingId}/status`, {
+    }>(`/api/v1/listings/rooms/${listingId}/status`, {
       method: "PATCH",
       body: JSON.stringify({ status }),
     });
     return response.data;
   }
 
-  async deleteListing(listingId: string) {
+  async deleteRoomListing(listingId: string) {
     const response = await this.request<{
       success: boolean;
       data: any;
-    }>(`/api/v1/listings/${listingId}`, {
+    }>(`/api/v1/listings/rooms/${listingId}`, {
       method: "DELETE",
     });
     return response.data;

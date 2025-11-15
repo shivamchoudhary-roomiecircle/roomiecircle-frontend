@@ -2,24 +2,24 @@ import { createContext, useContext, useState, useEffect, ReactNode } from "react
 import { apiClient } from "@/lib/api";
 
 interface ConfigValue {
-  key: string;
+  value: string;
   label: string;
   icon?: string;
 }
 
 interface ConfigData {
-  LIFESTYLE_TAG: ConfigValue[];
-  PROFESSION: ConfigValue[];
-  PROFILE_SEARCH_STATUS: ConfigValue[];
-  PROPERTY_TYPE: ConfigValue[];
-  LAYOUT_TYPE: ConfigValue[];
-  LISTING_TYPE: ConfigValue[];
-  LISTING_DURATION: ConfigValue[];
-  LISTING_URGENCY: ConfigValue[];
-  RENTEE_TYPE: ConfigValue[];
-  AMENITY_IN_HOME: ConfigValue[];
-  AMENITY_ON_PROPERTY: ConfigValue[];
-  AMENITY_SAFETY: ConfigValue[];
+  roomTypes: ConfigValue[];
+  propertyTypes: ConfigValue[];
+  bhkTypes: ConfigValue[];
+  amenities: {
+    in_home: ConfigValue[];
+    on_property: ConfigValue[];
+    safety: ConfigValue[];
+  };
+  professions: ConfigValue[];
+  renteeTypes: ConfigValue[];
+  lifestyleTags: ConfigValue[];
+  genderOptions: ConfigValue[];
 }
 
 interface ConfigContextType {

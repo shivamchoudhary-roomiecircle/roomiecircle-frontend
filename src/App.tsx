@@ -10,7 +10,7 @@ import { ThemeProvider } from "./components/ThemeProvider";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Index from "./pages/Index";
 import PostRoom from "./pages/PostRoom";
-import CreateListing from "./pages/CreateListing";
+import CreateRoomListing from "./pages/CreateRoomListing";
 import MyListings from "./pages/MyListings";
 import Signup from "./pages/auth/Signup";
 import Login from "./pages/auth/Login";
@@ -35,7 +35,7 @@ const App = () => (
                   <Route path="/auth/signup" element={<Signup />} />
                   <Route path="/auth/login" element={<Login />} />
                   <Route path="/post-room" element={<ProtectedRoute><PostRoom /></ProtectedRoute>} />
-                  <Route path="/create-listing" element={<ProtectedRoute><CreateListing /></ProtectedRoute>} />
+                  <Route path="/create-listing" element={<ProtectedRoute><CreateRoomListing /></ProtectedRoute>} />
                   <Route path="/my-listings" element={<ProtectedRoute><MyListings /></ProtectedRoute>} />
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="*" element={<NotFound />} />

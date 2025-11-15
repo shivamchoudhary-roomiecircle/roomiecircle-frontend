@@ -93,7 +93,7 @@ const MyListings = () => {
 
   const handleDelete = async (listingId: string) => {
     try {
-      await apiClient.deleteListing(listingId);
+      await apiClient.deleteRoomListing(listingId);
       
       // Remove from UI
       setActiveListings(prev => prev.filter(l => l.id !== listingId));
