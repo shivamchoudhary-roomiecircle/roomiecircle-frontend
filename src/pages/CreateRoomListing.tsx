@@ -55,7 +55,6 @@ export default function CreateRoomListing() {
     maxAge: "",
     gender: "",
     profession: "",
-    renteeType: "",
     lifestyle: [] as string[],
     roommates: [] as RoommateData[],
     neighborhoodReview: "",
@@ -126,7 +125,6 @@ export default function CreateRoomListing() {
         if (formData.maxAge) payload.maxAge = parseInt(formData.maxAge);
         if (formData.gender) payload.gender = formData.gender;
         if (formData.profession) payload.profession = formData.profession;
-        if (formData.renteeType) payload.renteeType = formData.renteeType;
         if (formData.lifestyle.length > 0) payload.lifestyle = formData.lifestyle;
         if (formData.roommates.length > 0) payload.roommates = formData.roommates;
         if (formData.neighborhoodReview) payload.neighborhoodReview = formData.neighborhoodReview;
@@ -538,20 +536,6 @@ export default function CreateRoomListing() {
                   <SelectContent>
                     {config?.genderOptions?.map(option => (
                       <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label htmlFor="renteeType">Rentee Type</Label>
-                <Select value={formData.renteeType} onValueChange={(v) => handleFieldChange("renteeType", v)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {config?.renteeTypes?.map(type => (
-                      <SelectItem key={type.value} value={type.value}>{type.label}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
