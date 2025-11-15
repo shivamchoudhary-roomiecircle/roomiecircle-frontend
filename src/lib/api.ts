@@ -1,4 +1,4 @@
-const API_BASE_URL = "https://staging-api.roomiecircle.com";
+const API_BASE_URL = "http://localhost:8080";
 
 class ApiClient {
   private getAuthHeader(): HeadersInit {
@@ -6,15 +6,31 @@ class ApiClient {
     return token ? { Authorization: `Bearer ${token}` } : {};
   }
 
-  private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+  private async request<T>(endpoint: string, options: RequestInit & { skipAuth?: boolean } = {}): Promise<T> {
+    const { skipAuth, ...fetchOptions } = options;
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-      ...options,
+      ...fetchOptions,
       headers: {
         "Content-Type": "application/json",
-        ...this.getAuthHeader(),
-        ...options.headers,
+        ...(skipAuth ? {} : this.getAuthHeader()),
+        ...fetchOptions.headers,
       },
     });
+
+    // Parse response to check for TOKEN_EXPIRED error
+    const responseData = await response.json().catch(() => null);
+
+    // Check for TOKEN_EXPIRED error in response
+    if (responseData && responseData.success === false && responseData.error === "TOKEN_EXPIRED") {
+      // Clear auth tokens
+      localStorage.removeItem("accessToken");
+      localStorage.removeItem("refreshToken");
+      // Store message for login page to display
+      sessionStorage.setItem("tokenExpiredMessage", responseData.message || "Your session has expired. Please login again to continue.");
+      // Redirect to login
+      window.location.href = "/auth/login";
+      throw new Error(responseData.message || "Token expired");
+    }
 
     if (response.status === 401) {
       // Try to refresh token
@@ -32,11 +48,11 @@ class ApiClient {
     }
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: "Request failed" }));
+      const error = responseData || { message: "Request failed" };
       throw new Error(error.message || "Request failed");
     }
 
-    return response.json();
+    return responseData;
   }
 
   async refreshToken(): Promise<boolean> {
@@ -72,6 +88,7 @@ class ApiClient {
     }>("/api/v1/auth/signup/initiate-verification", {
       method: "POST",
       body: JSON.stringify({ email, password, name }),
+      skipAuth: true,
     });
     return response.data;
   }
@@ -88,6 +105,7 @@ class ApiClient {
     }>("/api/v1/auth/signup/verify", {
       method: "POST",
       body: JSON.stringify({ tempId, code }),
+      skipAuth: true,
     });
     return response.data;
   }
@@ -99,6 +117,7 @@ class ApiClient {
     }>("/api/v1/auth/signup/resend-verification", {
       method: "POST",
       body: JSON.stringify({ tempId }),
+      skipAuth: true,
     });
     return response.data;
   }
@@ -115,6 +134,7 @@ class ApiClient {
     }>("/api/v1/auth/login", {
       method: "POST",
       body: JSON.stringify({ email, password }),
+      skipAuth: true,
     });
     return response.data;
   }
@@ -126,6 +146,7 @@ class ApiClient {
     }>("/api/v1/auth/login/otp/initiate", {
       method: "POST",
       body: JSON.stringify({ email }),
+      skipAuth: true,
     });
     return response.data;
   }
@@ -142,6 +163,7 @@ class ApiClient {
     }>("/api/v1/auth/login/otp/verify", {
       method: "POST",
       body: JSON.stringify({ tempId, code }),
+      skipAuth: true,
     });
     return response.data;
   }
@@ -158,6 +180,7 @@ class ApiClient {
     }>("/api/v1/auth/google/signup", {
       method: "POST",
       body: JSON.stringify({ idToken }),
+      skipAuth: true,
     });
     return response.data;
   }
@@ -174,6 +197,7 @@ class ApiClient {
     }>("/api/v1/auth/google/login", {
       method: "POST",
       body: JSON.stringify({ idToken }),
+      skipAuth: true,
     });
     return response.data;
   }
@@ -193,7 +217,7 @@ class ApiClient {
           secondaryText: string;
         }>;
       };
-    }>(`/api/v1/search/places?${params.toString()}`);
+    }>(`/api/v1/places/autocomplete?${params.toString()}`);
     return response.data.suggestions;
   }
 
@@ -349,7 +373,9 @@ class ApiClient {
     const response = await this.request<{
       success: boolean;
       data: any;
-    }>("/api/v1/configuration");
+    }>("/api/v1/configuration", {
+      skipAuth: true,
+    });
     return response.data;
   }
 
@@ -371,7 +397,7 @@ class ApiClient {
       data: any;
       message: string;
     }>(`/api/v1/listings/rooms/${listingId}`, {
-      method: "PATCH",
+      method: "PUT",
       body: JSON.stringify(data),
     });
     return response.data;
@@ -384,7 +410,7 @@ class ApiClient {
         active: any[];
         inactive: any[];
       };
-    }>("/api/v1/listings/my");
+    }>("/api/v1/listings/rooms/my");
     return response.data;
   }
 

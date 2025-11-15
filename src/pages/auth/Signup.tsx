@@ -55,7 +55,7 @@ const Signup = () => {
         title: 'Success',
         description: 'Account created successfully!',
       });
-      navigate('/dashboard');
+      navigate('/');
     } catch (error: any) {
       toast({
         title: 'Error',
@@ -95,7 +95,7 @@ const Signup = () => {
         title: 'Success',
         description: 'Signed up with Google successfully!',
       });
-      navigate('/dashboard');
+      navigate('/');
     } catch (error: any) {
       toast({
         title: 'Error',

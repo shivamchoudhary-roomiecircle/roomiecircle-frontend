@@ -12,7 +12,6 @@ import Index from "./pages/Index";
 import PostRoom from "./pages/PostRoom";
 import CreateRoomListing from "./pages/CreateRoomListing";
 import MyListings from "./pages/MyListings";
-import Dashboard from "./pages/Dashboard";
 import Signup from "./pages/auth/Signup";
 import Login from "./pages/auth/Login";
 import NotFound from "./pages/NotFound";
@@ -35,7 +34,6 @@ const App = () => (
                   <Route path="/" element={<Index />} />
                   <Route path="/auth/signup" element={<Signup />} />
                   <Route path="/auth/login" element={<Login />} />
-                  <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
                   <Route path="/post-room" element={<ProtectedRoute><PostRoom /></ProtectedRoute>} />
                   <Route path="/create-listing" element={<ProtectedRoute><CreateRoomListing /></ProtectedRoute>} />
                   <Route path="/my-listings" element={<ProtectedRoute><MyListings /></ProtectedRoute>} />

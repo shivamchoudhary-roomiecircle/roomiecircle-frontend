@@ -49,18 +49,56 @@ export const ConfigProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     const fetchConfig = async () => {
+      // Only fetch if config is null
+      if (config !== null) {
+        return;
+      }
+
+      setLoading(true);
       try {
         const data = await apiClient.getConfiguration();
-        setConfig(data);
+        // Map API response to ConfigData structure
+        const mappedConfig: ConfigData = {
+          roomTypes: data.roomTypes || [],
+          propertyTypes: data.propertyTypes || [],
+          bhkTypes: data.bhkTypes || [],
+          amenities: {
+            in_home: data.amenities?.in_home || [],
+            on_property: data.amenities?.on_property || [],
+            safety: data.amenities?.safety || [],
+          },
+          professions: data.professions || [],
+          renteeTypes: data.renteeTypes || [],
+          lifestyleTags: data.lifestyleTags || [],
+          genderOptions: data.genderOptions || [],
+        };
+        setConfig(mappedConfig);
+        setError(null);
       } catch (err) {
+        console.error("Failed to load configuration:", err);
         setError(err instanceof Error ? err.message : "Failed to load configuration");
+        // Set empty config so page can still render
+        setConfig({
+          roomTypes: [],
+          propertyTypes: [],
+          bhkTypes: [],
+          amenities: {
+            in_home: [],
+            on_property: [],
+            safety: [],
+          },
+          professions: [],
+          renteeTypes: [],
+          lifestyleTags: [],
+          genderOptions: [],
+        });
       } finally {
         setLoading(false);
       }
     };
 
     fetchConfig();
-  }, []);
+  }, []); // Only run on mount
 
   return (
     <ConfigContext.Provider value={{ config, loading, error }}>

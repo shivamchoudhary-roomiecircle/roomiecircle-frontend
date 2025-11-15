@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,6 +20,20 @@ const Login = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const { login } = useAuth();
+
+  // Check for token expiration message on mount
+  useEffect(() => {
+    const tokenExpiredMessage = sessionStorage.getItem("tokenExpiredMessage");
+    if (tokenExpiredMessage) {
+      toast({
+        title: "Session Expired",
+        description: tokenExpiredMessage,
+        variant: "destructive",
+      });
+      // Clear the message from sessionStorage
+      sessionStorage.removeItem("tokenExpiredMessage");
+    }
+  }, [toast]);
 
   const handlePasswordLogin = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -73,16 +73,25 @@ export default function CreateRoomListing() {
     const initializeListing = async () => {
       try {
         const draft = await apiClient.createRoomListing();
-        setListingId(draft.id);
-        toast({
-          title: "Draft Created",
-          description: "Your listing draft has been created. Changes will auto-save.",
-        });
-      } catch (error) {
+        if (draft && draft.id) {
+          setListingId(draft.id);
+          toast({
+            title: "Draft Created",
+            description: "Your listing draft has been created. Changes will auto-save.",
+          });
+        } else {
+          console.error("Invalid draft response:", draft);
+          toast({
+            title: "Error",
+            description: "Invalid response from server. Please refresh the page.",
+            variant: "destructive",
+          });
+        }
+      } catch (error: any) {
         console.error("Failed to create draft:", error);
         toast({
           title: "Error",
-          description: "Failed to create listing draft. Please try again.",
+          description: error?.message || "Failed to create listing draft. Please try again.",
           variant: "destructive",
         });
       } finally {
@@ -221,10 +230,21 @@ export default function CreateRoomListing() {
     }
   };
 
-  if (initializing || configLoading) {
+  if (initializing) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
+
+  if (configLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+          <p className="text-muted-foreground">Loading configuration...</p>
+        </div>
       </div>
     );
   }
@@ -270,43 +290,49 @@ export default function CreateRoomListing() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="roomType">Room Type</Label>
-                <Select value={formData.roomType} onValueChange={(v) => handleFieldChange("roomType", v)}>
+                <Select value={formData.roomType} onValueChange={(v) => handleFieldChange("roomType", v)} disabled={!config?.roomTypes || config.roomTypes.length === 0}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select room type" />
+                    <SelectValue placeholder={config?.roomTypes && config.roomTypes.length > 0 ? "Select room type" : "Loading..."} />
                   </SelectTrigger>
-                  <SelectContent>
-                    {config?.roomTypes.map(type => (
-                      <SelectItem key={type.value} value={type.value}>{type.label}</SelectItem>
-                    ))}
-                  </SelectContent>
+                  {config?.roomTypes && config.roomTypes.length > 0 && (
+                    <SelectContent>
+                      {config.roomTypes.map(type => (
+                        <SelectItem key={type.value} value={type.value}>{type.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  )}
                 </Select>
               </div>
 
               <div>
                 <Label htmlFor="propertyType">Property Type</Label>
-                <Select value={formData.propertyType} onValueChange={(v) => handleFieldChange("propertyType", v)}>
+                <Select value={formData.propertyType} onValueChange={(v) => handleFieldChange("propertyType", v)} disabled={!config?.propertyTypes || config.propertyTypes.length === 0}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select property type" />
+                    <SelectValue placeholder={config?.propertyTypes && config.propertyTypes.length > 0 ? "Select property type" : "Loading..."} />
                   </SelectTrigger>
-                  <SelectContent>
-                    {config?.propertyTypes.map(type => (
-                      <SelectItem key={type.value} value={type.value}>{type.label}</SelectItem>
-                    ))}
-                  </SelectContent>
+                  {config?.propertyTypes && config.propertyTypes.length > 0 && (
+                    <SelectContent>
+                      {config.propertyTypes.map(type => (
+                        <SelectItem key={type.value} value={type.value}>{type.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  )}
                 </Select>
               </div>
 
               <div>
                 <Label htmlFor="bhkType">BHK Type</Label>
-                <Select value={formData.bhkType} onValueChange={(v) => handleFieldChange("bhkType", v)}>
+                <Select value={formData.bhkType} onValueChange={(v) => handleFieldChange("bhkType", v)} disabled={!config?.bhkTypes || config.bhkTypes.length === 0}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select BHK type" />
+                    <SelectValue placeholder={config?.bhkTypes && config.bhkTypes.length > 0 ? "Select BHK type" : "Loading..."} />
                   </SelectTrigger>
-                  <SelectContent>
-                    {config?.bhkTypes.map(type => (
-                      <SelectItem key={type.value} value={type.value}>{type.label}</SelectItem>
-                    ))}
-                  </SelectContent>
+                  {config?.bhkTypes && config.bhkTypes.length > 0 && (
+                    <SelectContent>
+                      {config.bhkTypes.map(type => (
+                        <SelectItem key={type.value} value={type.value}>{type.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  )}
                 </Select>
               </div>
 
@@ -529,13 +555,29 @@ export default function CreateRoomListing() {
 
               <div>
                 <Label htmlFor="gender">Preferred Gender</Label>
-                <Select value={formData.gender} onValueChange={(v) => handleFieldChange("gender", v)}>
+                <Select value={formData.gender} onValueChange={(v) => handleFieldChange("gender", v)} disabled={!config?.genderOptions || config.genderOptions.length === 0}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select gender" />
+                    <SelectValue placeholder={config?.genderOptions && config.genderOptions.length > 0 ? "Select gender" : "No options available"} />
+                  </SelectTrigger>
+                  {config?.genderOptions && config.genderOptions.length > 0 && (
+                    <SelectContent>
+                      {config.genderOptions.map(option => (
+                        <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  )}
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="renteeType">Rentee Type</Label>
+                <Select value={formData.renteeType} onValueChange={(v) => handleFieldChange("renteeType", v)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select type" />
                   </SelectTrigger>
                   <SelectContent>
-                    {config?.genderOptions?.map(option => (
-                      <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                    {config?.renteeTypes?.map(type => (
+                      <SelectItem key={type.value} value={type.value}>{type.label}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -543,15 +585,17 @@ export default function CreateRoomListing() {
 
               <div>
                 <Label htmlFor="profession">Preferred Profession</Label>
-                <Select value={formData.profession} onValueChange={(v) => handleFieldChange("profession", v)}>
+                <Select value={formData.profession} onValueChange={(v) => handleFieldChange("profession", v)} disabled={!config?.professions || config.professions.length === 0}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select profession" />
+                    <SelectValue placeholder={config?.professions && config.professions.length > 0 ? "Select profession" : "No options available"} />
                   </SelectTrigger>
-                  <SelectContent>
-                    {config?.professions?.map(prof => (
-                      <SelectItem key={prof.value} value={prof.value}>{prof.label}</SelectItem>
-                    ))}
-                  </SelectContent>
+                  {config?.professions && config.professions.length > 0 && (
+                    <SelectContent>
+                      {config.professions.map(prof => (
+                        <SelectItem key={prof.value} value={prof.value}>{prof.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  )}
                 </Select>
               </div>
             </div>
@@ -559,16 +603,20 @@ export default function CreateRoomListing() {
             <div>
               <Label>Lifestyle Preferences</Label>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-2">
-                {config?.lifestyleTags?.map(lifestyle => (
-                  <div key={lifestyle.value} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={`lifestyle-${lifestyle.value}`}
-                      checked={formData.lifestyle.includes(lifestyle.value)}
-                      onCheckedChange={() => handleLifestyleToggle(lifestyle.value)}
-                    />
-                    <Label htmlFor={`lifestyle-${lifestyle.value}`}>{lifestyle.label}</Label>
-                  </div>
-                ))}
+                {config?.lifestyleTags && config.lifestyleTags.length > 0 ? (
+                  config.lifestyleTags.map(lifestyle => (
+                    <div key={lifestyle.value} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`lifestyle-${lifestyle.value}`}
+                        checked={formData.lifestyle.includes(lifestyle.value)}
+                        onCheckedChange={() => handleLifestyleToggle(lifestyle.value)}
+                      />
+                      <Label htmlFor={`lifestyle-${lifestyle.value}`}>{lifestyle.label}</Label>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-sm text-muted-foreground">No lifestyle preferences available</p>
+                )}
               </div>
             </div>
           </CardContent>
@@ -659,36 +707,81 @@ export default function CreateRoomListing() {
               />
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-4">
               <div>
-                <Label>Safety: {formData.neighborhoodRatings.safety}/5</Label>
-                <Input
-                  type="range"
-                  min="0"
-                  max="5"
-                  value={formData.neighborhoodRatings.safety}
-                  onChange={(e) => handleNestedFieldChange("neighborhoodRatings", "safety", parseInt(e.target.value))}
-                />
+                <Label className="mb-2 block">Safety</Label>
+                <div className="flex items-center gap-1">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      type="button"
+                      onClick={() => handleNestedFieldChange("neighborhoodRatings", "safety", star)}
+                      className="focus:outline-none focus:ring-2 focus:ring-primary rounded"
+                      aria-label={`Rate ${star} out of 5 stars for safety`}
+                    >
+                      <Star
+                        className={`h-6 w-6 transition-colors ${
+                          star <= formData.neighborhoodRatings.safety
+                            ? "fill-yellow-400 text-yellow-400"
+                            : "fill-none text-muted-foreground"
+                        }`}
+                      />
+                    </button>
+                  ))}
+                  <span className="ml-2 text-sm text-muted-foreground">
+                    {formData.neighborhoodRatings.safety > 0 ? `${formData.neighborhoodRatings.safety}/5` : "Not rated"}
+                  </span>
+                </div>
               </div>
               <div>
-                <Label>Connectivity: {formData.neighborhoodRatings.connectivity}/5</Label>
-                <Input
-                  type="range"
-                  min="0"
-                  max="5"
-                  value={formData.neighborhoodRatings.connectivity}
-                  onChange={(e) => handleNestedFieldChange("neighborhoodRatings", "connectivity", parseInt(e.target.value))}
-                />
+                <Label className="mb-2 block">Connectivity</Label>
+                <div className="flex items-center gap-1">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      type="button"
+                      onClick={() => handleNestedFieldChange("neighborhoodRatings", "connectivity", star)}
+                      className="focus:outline-none focus:ring-2 focus:ring-primary rounded"
+                      aria-label={`Rate ${star} out of 5 stars for connectivity`}
+                    >
+                      <Star
+                        className={`h-6 w-6 transition-colors ${
+                          star <= formData.neighborhoodRatings.connectivity
+                            ? "fill-yellow-400 text-yellow-400"
+                            : "fill-none text-muted-foreground"
+                        }`}
+                      />
+                    </button>
+                  ))}
+                  <span className="ml-2 text-sm text-muted-foreground">
+                    {formData.neighborhoodRatings.connectivity > 0 ? `${formData.neighborhoodRatings.connectivity}/5` : "Not rated"}
+                  </span>
+                </div>
               </div>
               <div>
-                <Label>Amenities: {formData.neighborhoodRatings.amenities}/5</Label>
-                <Input
-                  type="range"
-                  min="0"
-                  max="5"
-                  value={formData.neighborhoodRatings.amenities}
-                  onChange={(e) => handleNestedFieldChange("neighborhoodRatings", "amenities", parseInt(e.target.value))}
-                />
+                <Label className="mb-2 block">Amenities</Label>
+                <div className="flex items-center gap-1">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      type="button"
+                      onClick={() => handleNestedFieldChange("neighborhoodRatings", "amenities", star)}
+                      className="focus:outline-none focus:ring-2 focus:ring-primary rounded"
+                      aria-label={`Rate ${star} out of 5 stars for amenities`}
+                    >
+                      <Star
+                        className={`h-6 w-6 transition-colors ${
+                          star <= formData.neighborhoodRatings.amenities
+                            ? "fill-yellow-400 text-yellow-400"
+                            : "fill-none text-muted-foreground"
+                        }`}
+                      />
+                    </button>
+                  ))}
+                  <span className="ml-2 text-sm text-muted-foreground">
+                    {formData.neighborhoodRatings.amenities > 0 ? `${formData.neighborhoodRatings.amenities}/5` : "Not rated"}
+                  </span>
+                </div>
               </div>
             </div>
           </CardContent>
@@ -711,7 +804,7 @@ export default function CreateRoomListing() {
         </Card>
 
         <div className="flex justify-end gap-4">
-          <Button variant="outline" onClick={() => navigate("/dashboard")}>
+          <Button variant="outline" onClick={() => navigate("/")}>
             Cancel
           </Button>
           <Button onClick={handlePublish} size="lg">

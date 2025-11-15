@@ -96,12 +96,12 @@ const Navbar = ({ activeTab, onTabChange }: NavbarProps) => {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">
-                  <DropdownMenuItem onClick={() => navigate('/dashboard')}>
+                  <DropdownMenuItem onClick={() => navigate('/')}>
                     <User className="h-4 w-4 mr-2" />
                     {user?.name}
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => navigate('/dashboard?tab=profile')}>Profile</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate('/?tab=profile')}>Profile</DropdownMenuItem>
                   <DropdownMenuItem onClick={() => navigate('/my-listings')}>My Listings</DropdownMenuItem>
                   <DropdownMenuItem onClick={() => handleProtectedAction('/create-listing')}>List Your Room</DropdownMenuItem>
                   <DropdownMenuSeparator />
@@ -167,7 +167,7 @@ const Navbar = ({ activeTab, onTabChange }: NavbarProps) => {
                         variant="ghost" 
                         className="w-full justify-start px-4 hover:bg-primary/10 transition-colors"
                         onClick={() => {
-                          navigate('/dashboard');
+                          navigate('/');
                           setMobileMenuOpen(false);
                         }}
                       >
@@ -178,7 +178,7 @@ const Navbar = ({ activeTab, onTabChange }: NavbarProps) => {
                         variant="ghost" 
                         className="w-full justify-start px-4 hover:bg-primary/10 transition-colors"
                         onClick={() => {
-                          navigate('/dashboard?tab=profile');
+                          navigate('/?tab=profile');
                           setMobileMenuOpen(false);
                         }}
                       >
