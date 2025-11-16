@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Home, DollarSign, MapPin, Bed, Users, Image as ImageIcon, Star } from "lucide-react";
+import { Loader2, Home, DollarSign, MapPin, Bed, Users, Image as ImageIcon, Star, X } from "lucide-react";
 import { LocationAutocomplete } from "@/components/search/LocationAutocomplete";
 import { IconRenderer } from "@/lib/iconMapper";
 
@@ -32,6 +32,7 @@ export default function CreateRoomListing() {
   
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [uploadingImages, setUploadingImages] = useState(false);
   
   const [formData, setFormData] = useState({
     description: "",
@@ -159,6 +160,67 @@ export default function CreateRoomListing() {
     fetchListingData();
   }, [listingId, navigate]);
 
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0 || !listingId) return;
+
+    setUploadingImages(true);
+    try {
+      const uploadPromises = Array.from(files).map(async (file) => {
+        // Validate file type
+        const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+        if (!validTypes.includes(file.type)) {
+          throw new Error(`Invalid file type: ${file.type}. Please upload JPEG, PNG, or WebP images.`);
+        }
+
+        // Get upload URL from API
+        const { uploadUrl, photoUrl } = await apiClient.getPhotoUploadUrl(
+          listingId,
+          file.type,
+          file.name
+        );
+
+        // Upload file to the provided URL
+        const uploadResponse = await fetch(uploadUrl, {
+          method: 'PUT',
+          body: file,
+          headers: {
+            'Content-Type': file.type,
+          },
+        });
+
+        if (!uploadResponse.ok) {
+          throw new Error(`Failed to upload ${file.name}`);
+        }
+
+        return photoUrl;
+      });
+
+      const uploadedUrls = await Promise.all(uploadPromises);
+      
+      // Add uploaded photo URLs to form data
+      setFormData(prev => ({
+        ...prev,
+        images: [...prev.images, ...uploadedUrls]
+      }));
+
+      toast({
+        title: "Success",
+        description: `${uploadedUrls.length} photo(s) uploaded successfully`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error?.message || "Failed to upload photos. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setUploadingImages(false);
+      // Reset input
+      e.target.value = '';
+    }
+  };
+
   const handleFieldChange = (field: string, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
@@ -263,21 +325,33 @@ export default function CreateRoomListing() {
       }
       if (formData.neighborhoodImages.length > 0) payload.neighborhoodImages = formData.neighborhoodImages;
 
+      let savedListingId = listingId;
+      
       if (listingId) {
         // Update existing listing using PATCH
-        await apiClient.updateRoomListing(listingId, payload);
+        const response = await apiClient.updateRoomListing(listingId, payload);
+        savedListingId = listingId;
         toast({
           title: "Success",
           description: "Your listing has been updated!",
         });
       } else {
         // Create new listing using POST
-        await apiClient.createRoomListing(payload);
+        const response = await apiClient.createRoomListing(payload);
+        // Extract listing ID from response if available
+        savedListingId = response?.id || response?.data?.id || null;
         toast({
           title: "Success",
           description: "Your listing has been saved!",
         });
       }
+      
+      // If we have photos to upload and we just created a listing, upload them now
+      if (formData.images.length > 0 && savedListingId && !listingId) {
+        // Photos are already in formData.images, they'll be saved with the listing
+        // But if user uploaded new photos that need to be uploaded to storage, handle that
+      }
+      
       navigate("/my-listings");
     } catch (error: any) {
       toast({
@@ -915,12 +989,75 @@ export default function CreateRoomListing() {
               <ImageIcon className="h-5 w-5" />
               Photos
             </CardTitle>
-            <CardDescription>Add photos of your room (Coming soon: Upload functionality)</CardDescription>
+            <CardDescription>Add photos of your room</CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-muted-foreground">
-              Photo upload functionality will be added in the next iteration.
-            </p>
+            <div className="space-y-4">
+              {/* Image Preview Grid */}
+              {formData.images.length > 0 && (
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  {formData.images.map((imageUrl, index) => (
+                    <div key={index} className="relative group">
+                      <img
+                        src={imageUrl}
+                        alt={`Room photo ${index + 1}`}
+                        className="w-full h-48 object-cover rounded-lg"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFormData(prev => ({
+                            ...prev,
+                            images: prev.images.filter((_, i) => i !== index)
+                          }));
+                        }}
+                        className="absolute top-2 right-2 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                        aria-label="Remove photo"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Upload Button */}
+              <div>
+                <input
+                  type="file"
+                  id="photo-upload"
+                  accept="image/jpeg,image/jpg,image/png,image/webp"
+                  capture="environment"
+                  multiple
+                  className="hidden"
+                  onChange={handlePhotoUpload}
+                  disabled={uploadingImages || !listingId}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => document.getElementById("photo-upload")?.click()}
+                  disabled={uploadingImages || !listingId}
+                >
+                  {uploadingImages ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Uploading...
+                    </>
+                  ) : (
+                    <>
+                      <ImageIcon className="mr-2 h-4 w-4" />
+                      {formData.images.length > 0 ? "Add More Photos" : "Upload Photos"}
+                    </>
+                  )}
+                </Button>
+                {!listingId && (
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Please save the listing first to upload photos
+                  </p>
+                )}
+              </div>
+            </div>
           </CardContent>
         </Card>
 

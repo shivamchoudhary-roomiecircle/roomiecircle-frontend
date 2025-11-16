@@ -1,4 +1,4 @@
-const API_BASE_URL = "http://localhost:8080";
+const API_BASE_URL = "https://staging-api.roomiecircle.com";
 
 class ApiClient {
   private getAuthHeader(): HeadersInit {
@@ -452,6 +452,23 @@ class ApiClient {
       success: boolean;
       data: any;
     }>(`/api/v1/listings/rooms/${listingId}`);
+    return response.data;
+  }
+
+  async getPhotoUploadUrl(listingId: string, contentType: string, fileName?: string) {
+    const response = await this.request<{
+      success: boolean;
+      data: {
+        uploadUrl: string;
+        photoUrl: string;
+      };
+    }>(`/api/v1/listings/rooms/${listingId}/photos/upload-url`, {
+      method: "POST",
+      body: JSON.stringify({
+        contentType,
+        ...(fileName && { fileName }),
+      }),
+    });
     return response.data;
   }
 
