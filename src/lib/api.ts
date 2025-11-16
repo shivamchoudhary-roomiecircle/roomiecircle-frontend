@@ -33,7 +33,13 @@ class ApiClient {
     }
 
     if (response.status === 401) {
-      // Try to refresh token
+      // For login/auth endpoints (skipAuth: true), extract error message from response
+      if (skipAuth && responseData) {
+        const errorMessage = responseData.message || "Authentication failed";
+        throw new Error(errorMessage);
+      }
+      
+      // For other endpoints, try to refresh token
       const refreshed = await this.refreshToken();
       if (refreshed) {
         // Retry the request
@@ -42,8 +48,9 @@ class ApiClient {
         // Clear auth and redirect to login
         localStorage.removeItem("accessToken");
         localStorage.removeItem("refreshToken");
+        const errorMessage = responseData?.message || "Authentication failed";
         window.location.href = "/auth/login";
-        throw new Error("Authentication failed");
+        throw new Error(errorMessage);
       }
     }
 
@@ -217,7 +224,9 @@ class ApiClient {
           secondaryText: string;
         }>;
       };
-    }>(`/api/v1/places/autocomplete?${params.toString()}`);
+    }>(`/api/v1/places/autocomplete?${params.toString()}`, {
+      skipAuth: true,
+    });
     return response.data.suggestions;
   }
 
@@ -259,6 +268,7 @@ class ApiClient {
         page: filters.page || 0,
         size: filters.size || 50,
       }),
+      skipAuth: true,
     });
     return response.data;
   }
@@ -270,6 +280,7 @@ class ApiClient {
     }>("/api/v1/search", {
       method: "POST",
       body: JSON.stringify(filters),
+      skipAuth: true,
     });
     return response.data;
   }
@@ -290,7 +301,9 @@ class ApiClient {
         last: boolean;
         first: boolean;
       };
-    }>(`/api/v1/search/rooms/recent?${params.toString()}`);
+    }>(`/api/v1/search/rooms/recent?${params.toString()}`, {
+      skipAuth: true,
+    });
     return response.data;
   }
 
@@ -310,7 +323,9 @@ class ApiClient {
         last: boolean;
         first: boolean;
       };
-    }>(`/api/v1/search/roommates/recent?${params.toString()}`);
+    }>(`/api/v1/search/roommates/recent?${params.toString()}`, {
+      skipAuth: true,
+    });
     return response.data;
   }
 
@@ -364,7 +379,9 @@ class ApiClient {
         last: boolean;
         first: boolean;
       };
-    }>(`/api/v1/search/rooms/map?${params.toString()}`);
+    }>(`/api/v1/search/rooms/map?${params.toString()}`, {
+      skipAuth: true,
+    });
     return response.data;
   }
 

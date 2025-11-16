@@ -17,6 +17,7 @@ const Login = () => {
   const [tempId, setTempId] = useState('');
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
+  const [highlightSignup, setHighlightSignup] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
   const { login } = useAuth();
@@ -38,6 +39,7 @@ const Login = () => {
   const handlePasswordLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setHighlightSignup(false);
 
     try {
       const response = await apiClient.login(email, password);
@@ -48,11 +50,27 @@ const Login = () => {
       });
       navigate('/');
     } catch (error: any) {
+      const errorMessage = error.message || 'Failed to login';
+      const shouldHighlight = errorMessage.toLowerCase().includes('sign up') || 
+                              errorMessage.toLowerCase().includes('signup') ||
+                              errorMessage.toLowerCase().includes('register');
+      
+      // Show toast for 2 seconds
       toast({
         title: 'Error',
-        description: error.message || 'Failed to login',
+        description: errorMessage,
         variant: 'destructive',
+        duration: 2000, // 2 seconds
       });
+      
+      // Show highlight after 2 seconds (when toast dismisses) for 3 seconds
+      if (shouldHighlight) {
+        setTimeout(() => {
+          setHighlightSignup(true);
+          // Auto-remove highlight after 3 seconds
+          setTimeout(() => setHighlightSignup(false), 3000);
+        }, 2000);
+      }
     } finally {
       setLoading(false);
     }
@@ -61,6 +79,7 @@ const Login = () => {
   const handleInitiateOtpLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setHighlightSignup(false);
 
     try {
       const response = await apiClient.initiateOtpLogin(email);
@@ -71,11 +90,27 @@ const Login = () => {
         description: 'Please check your email for the verification code.',
       });
     } catch (error: any) {
+      const errorMessage = error.message || 'Failed to send OTP';
+      const shouldHighlight = errorMessage.toLowerCase().includes('sign up') || 
+                              errorMessage.toLowerCase().includes('signup') ||
+                              errorMessage.toLowerCase().includes('register');
+      
+      // Show toast for 2 seconds
       toast({
         title: 'Error',
-        description: error.message || 'Failed to send OTP',
+        description: errorMessage,
         variant: 'destructive',
+        duration: 2000, // 2 seconds
       });
+      
+      // Show highlight after 2 seconds (when toast dismisses) for 3 seconds
+      if (shouldHighlight) {
+        setTimeout(() => {
+          setHighlightSignup(true);
+          // Auto-remove highlight after 3 seconds
+          setTimeout(() => setHighlightSignup(false), 3000);
+        }, 2000);
+      }
     } finally {
       setLoading(false);
     }
@@ -106,6 +141,7 @@ const Login = () => {
 
   const handleGoogleSuccess = async (credentialResponse: any) => {
     setLoading(true);
+    setHighlightSignup(false);
     try {
       const response = await apiClient.googleLogin(credentialResponse.credential);
       login(response.accessToken, response.refreshToken, response.user);
@@ -115,11 +151,27 @@ const Login = () => {
       });
       navigate('/');
     } catch (error: any) {
+      const errorMessage = error.message || 'Failed to login with Google';
+      const shouldHighlight = errorMessage.toLowerCase().includes('sign up') || 
+                              errorMessage.toLowerCase().includes('signup') ||
+                              errorMessage.toLowerCase().includes('register');
+      
+      // Show toast for 2 seconds
       toast({
         title: 'Error',
-        description: error.message || 'Failed to login with Google',
+        description: errorMessage,
         variant: 'destructive',
+        duration: 2000, // 2 seconds
       });
+      
+      // Show highlight after 2 seconds (when toast dismisses) for 3 seconds
+      if (shouldHighlight) {
+        setTimeout(() => {
+          setHighlightSignup(true);
+          // Auto-remove highlight after 3 seconds
+          setTimeout(() => setHighlightSignup(false), 3000);
+        }, 2000);
+      }
     } finally {
       setLoading(false);
     }
@@ -278,8 +330,15 @@ const Login = () => {
           <p className="text-center text-sm text-muted-foreground mt-6">
             Don't have an account?{' '}
             <button
-              onClick={() => navigate('/auth/signup')}
-              className="text-primary hover:underline font-medium"
+              onClick={() => {
+                setHighlightSignup(false);
+                navigate('/auth/signup');
+              }}
+              className={`text-primary hover:underline font-medium transition-all duration-300 ${
+                highlightSignup
+                  ? 'ring-2 ring-primary ring-offset-2 ring-offset-background rounded px-2 py-1'
+                  : ''
+              }`}
             >
               Sign up
             </button>
