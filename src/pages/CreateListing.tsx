@@ -85,12 +85,19 @@ export default function CreateListing() {
   };
 
   const handleMultiSelectToggle = (name: string, value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      [name]: prev[name as keyof typeof prev].includes(value)
-        ? (prev[name as keyof typeof prev] as string[]).filter(item => item !== value)
-        : [...(prev[name as keyof typeof prev] as string[]), value]
-    }));
+    setFormData(prev => {
+      const currentValue = prev[name as keyof typeof prev];
+      if (Array.isArray(currentValue) && typeof currentValue[0] === 'string') {
+        const stringArray = currentValue as string[];
+        return {
+          ...prev,
+          [name]: stringArray.includes(value)
+            ? stringArray.filter(item => item !== value)
+            : [...stringArray, value]
+        };
+      }
+      return prev;
+    });
   };
 
   const handleLocationSelect = (location: { placeId: string; description: string; lat: number; lng: number }) => {
@@ -231,8 +238,8 @@ export default function CreateListing() {
                     </SelectTrigger>
                     <SelectContent>
                       {config?.roomTypes?.map((type) => (
-                        <SelectItem key={type.key} value={type.key}>
-                          {type.value}
+                        <SelectItem key={type.value} value={type.value}>
+                          {type.label}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -247,8 +254,8 @@ export default function CreateListing() {
                     </SelectTrigger>
                     <SelectContent>
                       {config?.bhkTypes?.map((type) => (
-                        <SelectItem key={type.key} value={type.key}>
-                          {type.value}
+                        <SelectItem key={type.value} value={type.value}>
+                          {type.label}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -260,14 +267,14 @@ export default function CreateListing() {
                 <Label>Property Type</Label>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-2">
                   {config?.propertyTypes?.map((type) => (
-                    <div key={type.key} className="flex items-center space-x-2">
+                    <div key={type.value} className="flex items-center space-x-2">
                       <Checkbox
-                        id={`property-${type.key}`}
-                        checked={formData.propertyType.includes(type.key)}
-                        onCheckedChange={(checked) => handleMultiSelectToggle("propertyType", type.key)}
+                        id={`property-${type.value}`}
+                        checked={formData.propertyType.includes(type.value)}
+                        onCheckedChange={(checked) => handleMultiSelectToggle("propertyType", type.value)}
                       />
-                      <Label htmlFor={`property-${type.key}`} className="cursor-pointer">
-                        {type.value}
+                      <Label htmlFor={`property-${type.value}`} className="cursor-pointer">
+                        {type.label}
                       </Label>
                     </div>
                   ))}
@@ -398,10 +405,16 @@ export default function CreateListing() {
             </CardHeader>
             <CardContent>
               <Label>Address</Label>
-              <LocationAutocomplete onLocationSelect={handleLocationSelect} />
-              {formData.addressText && (
-                <p className="text-sm text-muted-foreground mt-2">{formData.addressText}</p>
-              )}
+              <LocationAutocomplete 
+                value={formData.addressText}
+                onChange={(value, placeId) => {
+                  setFormData(prev => ({
+                    ...prev,
+                    addressText: value,
+                    placeId: placeId || ""
+                  }));
+                }}
+              />
             </CardContent>
           </Card>
 
@@ -415,16 +428,16 @@ export default function CreateListing() {
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                {config?.amenities?.map((amenity) => (
-                  <div key={amenity.key} className="flex items-center space-x-2">
+                {config?.amenities && Object.values(config.amenities).flat().map((amenity) => (
+                  <div key={amenity.value} className="flex items-center space-x-2">
                     <Checkbox
-                      id={`amenity-${amenity.key}`}
-                      checked={formData.amenities.includes(amenity.key)}
-                      onCheckedChange={(checked) => handleMultiSelectToggle("amenities", amenity.key)}
+                      id={`amenity-${amenity.value}`}
+                      checked={formData.amenities.includes(amenity.value)}
+                      onCheckedChange={(checked) => handleMultiSelectToggle("amenities", amenity.value)}
                     />
-                    <Label htmlFor={`amenity-${amenity.key}`} className="cursor-pointer flex items-center gap-2">
-                      <IconRenderer iconKey={amenity.icon} size={16} />
-                      {amenity.value}
+                    <Label htmlFor={`amenity-${amenity.value}`} className="cursor-pointer flex items-center gap-2">
+                      <IconRenderer symbol={amenity.icon} className="h-4 w-4" />
+                      {amenity.label}
                     </Label>
                   </div>
                 ))}
@@ -493,15 +506,15 @@ export default function CreateListing() {
               <div>
                 <Label>Lifestyle Preferences</Label>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-2">
-                  {config?.lifestyles?.map((lifestyle) => (
-                    <div key={lifestyle.key} className="flex items-center space-x-2">
+                  {config?.lifestylePreferences?.map((lifestyle) => (
+                    <div key={lifestyle.value} className="flex items-center space-x-2">
                       <Checkbox
-                        id={`lifestyle-${lifestyle.key}`}
-                        checked={formData.lifestyle.includes(lifestyle.key)}
-                        onCheckedChange={(checked) => handleMultiSelectToggle("lifestyle", lifestyle.key)}
+                        id={`lifestyle-${lifestyle.value}`}
+                        checked={formData.lifestyle.includes(lifestyle.value)}
+                        onCheckedChange={(checked) => handleMultiSelectToggle("lifestyle", lifestyle.value)}
                       />
-                      <Label htmlFor={`lifestyle-${lifestyle.key}`} className="cursor-pointer">
-                        {lifestyle.value}
+                      <Label htmlFor={`lifestyle-${lifestyle.value}`} className="cursor-pointer">
+                        {lifestyle.label}
                       </Label>
                     </div>
                   ))}
