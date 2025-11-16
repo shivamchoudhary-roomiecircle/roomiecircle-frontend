@@ -5,6 +5,7 @@ interface ConfigValue {
   value: string;
   label: string;
   icon?: string;
+  symbol?: string;
 }
 
 interface ConfigData {

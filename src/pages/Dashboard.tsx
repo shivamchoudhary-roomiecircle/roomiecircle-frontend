@@ -42,10 +42,8 @@ const Dashboard = () => {
   const fetchListings = async () => {
     try {
       setIsLoading(true);
-      const response = await apiClient.getMyListings();
-      // Combine active and inactive listings
-      const allListings = [...(response.active || []), ...(response.inactive || [])];
-      setListings(allListings);
+      const listings = await apiClient.getMyListings();
+      setListings(listings);
     } catch (error) {
       console.error('Error fetching listings:', error);
       toast.error('Failed to load listings');
