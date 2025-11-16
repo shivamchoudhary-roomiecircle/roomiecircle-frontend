@@ -982,86 +982,8 @@ export default function CreateRoomListing() {
           </CardContent>
         </Card>
 
-        {/* Photos */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <ImageIcon className="h-5 w-5" />
-              Photos
-            </CardTitle>
-            <CardDescription>Add photos of your room</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {/* Image Preview Grid */}
-              {formData.images.length > 0 && (
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  {formData.images.map((imageUrl, index) => (
-                    <div key={index} className="relative group">
-                      <img
-                        src={imageUrl}
-                        alt={`Room photo ${index + 1}`}
-                        className="w-full h-48 object-cover rounded-lg"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setFormData(prev => ({
-                            ...prev,
-                            images: prev.images.filter((_, i) => i !== index)
-                          }));
-                        }}
-                        className="absolute top-2 right-2 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                        aria-label="Remove photo"
-                      >
-                        <X className="h-4 w-4" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
 
-              {/* Upload Button */}
-              <div>
-                <input
-                  type="file"
-                  id="photo-upload"
-                  accept="image/jpeg,image/jpg,image/png,image/webp"
-                  capture="environment"
-                  multiple
-                  className="hidden"
-                  onChange={handlePhotoUpload}
-                  disabled={uploadingImages || !listingId}
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => document.getElementById("photo-upload")?.click()}
-                  disabled={uploadingImages || !listingId}
-                >
-                  {uploadingImages ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Uploading...
-                    </>
-                  ) : (
-                    <>
-                      <ImageIcon className="mr-2 h-4 w-4" />
-                      {formData.images.length > 0 ? "Add More Photos" : "Upload Photos"}
-                    </>
-                  )}
-                </Button>
-                {!listingId && (
-                  <p className="text-sm text-muted-foreground mt-2">
-                    Please save the listing first to upload photos
-                  </p>
-                )}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <div className="flex justify-end gap-4">
+        <div className="flex justify-end gap-4 mb-6">
           <Button variant="outline" onClick={() => navigate("/")}>
             Cancel
           </Button>
@@ -1076,6 +998,216 @@ export default function CreateRoomListing() {
             )}
           </Button>
         </div>
+
+        {/* Property Photos - Only show after listing is saved */}
+        {listingId && (
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <ImageIcon className="h-5 w-5" />
+                Property Photos
+              </CardTitle>
+              <CardDescription>Upload 3-8 photos of your property (Minimum 3 required)</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {/* Image Preview Grid */}
+                {formData.images.length > 0 && (
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    {formData.images.map((imageUrl, index) => (
+                      <div key={index} className="relative group">
+                        <img
+                          src={imageUrl}
+                          alt={`Property photo ${index + 1}`}
+                          className="w-full h-48 object-cover rounded-lg"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setFormData(prev => ({
+                              ...prev,
+                              images: prev.images.filter((_, i) => i !== index)
+                            }));
+                          }}
+                          className="absolute top-2 right-2 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                          aria-label="Remove photo"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Upload Button */}
+                <div>
+                  <input
+                    type="file"
+                    id="property-photo-upload"
+                    accept="image/jpeg,image/jpg,image/png,image/webp"
+                    capture="environment"
+                    multiple
+                    className="hidden"
+                    onChange={handlePhotoUpload}
+                    disabled={uploadingImages || formData.images.length >= 8}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => document.getElementById("property-photo-upload")?.click()}
+                    disabled={uploadingImages || formData.images.length >= 8}
+                  >
+                    {uploadingImages ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Uploading...
+                      </>
+                    ) : (
+                      <>
+                        <ImageIcon className="mr-2 h-4 w-4" />
+                        {formData.images.length > 0 ? "Add More Photos" : "Upload Photos"}
+                      </>
+                    )}
+                  </Button>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    {formData.images.length}/8 photos uploaded {formData.images.length < 3 && `(${3 - formData.images.length} more required)`}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Neighborhood Photos - Only show after listing is saved */}
+        {listingId && (
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <MapPin className="h-5 w-5" />
+                Neighborhood Photos
+              </CardTitle>
+              <CardDescription>Upload 3-8 photos of the neighborhood (Minimum 3 required)</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {/* Image Preview Grid */}
+                {formData.neighborhoodImages.length > 0 && (
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    {formData.neighborhoodImages.map((imageUrl, index) => (
+                      <div key={index} className="relative group">
+                        <img
+                          src={imageUrl}
+                          alt={`Neighborhood photo ${index + 1}`}
+                          className="w-full h-48 object-cover rounded-lg"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setFormData(prev => ({
+                              ...prev,
+                              neighborhoodImages: prev.neighborhoodImages.filter((_, i) => i !== index)
+                            }));
+                          }}
+                          className="absolute top-2 right-2 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                          aria-label="Remove photo"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Upload Button */}
+                <div>
+                  <input
+                    type="file"
+                    id="neighborhood-photo-upload"
+                    accept="image/jpeg,image/jpg,image/png,image/webp"
+                    capture="environment"
+                    multiple
+                    className="hidden"
+                    onChange={async (e) => {
+                      const files = e.target.files;
+                      if (!files || files.length === 0 || !listingId) return;
+
+                      setUploadingImages(true);
+                      try {
+                        const uploadPromises = Array.from(files).map(async (file) => {
+                          const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+                          if (!validTypes.includes(file.type)) {
+                            throw new Error(`Invalid file type: ${file.type}`);
+                          }
+
+                          const { uploadUrl, photoUrl } = await apiClient.getPhotoUploadUrl(
+                            listingId,
+                            file.type,
+                            file.name
+                          );
+
+                          const uploadResponse = await fetch(uploadUrl, {
+                            method: 'PUT',
+                            body: file,
+                            headers: { 'Content-Type': file.type },
+                          });
+
+                          if (!uploadResponse.ok) {
+                            throw new Error(`Failed to upload ${file.name}`);
+                          }
+
+                          return photoUrl;
+                        });
+
+                        const uploadedUrls = await Promise.all(uploadPromises);
+                        
+                        setFormData(prev => ({
+                          ...prev,
+                          neighborhoodImages: [...prev.neighborhoodImages, ...uploadedUrls]
+                        }));
+
+                        toast({
+                          title: "Success",
+                          description: `${uploadedUrls.length} photo(s) uploaded successfully`,
+                        });
+                      } catch (error: any) {
+                        toast({
+                          title: "Error",
+                          description: error?.message || "Failed to upload photos",
+                          variant: "destructive",
+                        });
+                      } finally {
+                        setUploadingImages(false);
+                        e.target.value = '';
+                      }
+                    }}
+                    disabled={uploadingImages || formData.neighborhoodImages.length >= 8}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => document.getElementById("neighborhood-photo-upload")?.click()}
+                    disabled={uploadingImages || formData.neighborhoodImages.length >= 8}
+                  >
+                    {uploadingImages ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Uploading...
+                      </>
+                    ) : (
+                      <>
+                        <ImageIcon className="mr-2 h-4 w-4" />
+                        {formData.neighborhoodImages.length > 0 ? "Add More Photos" : "Upload Photos"}
+                      </>
+                    )}
+                  </Button>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    {formData.neighborhoodImages.length}/8 photos uploaded {formData.neighborhoodImages.length < 3 && `(${3 - formData.neighborhoodImages.length} more required)`}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       <Footer />
