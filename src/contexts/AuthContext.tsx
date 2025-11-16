@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { jwtDecode } from 'jwt-decode';
+import { apiClient } from '@/lib/api';
 
 interface User {
   id: number;
@@ -31,28 +32,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const refreshAccessToken = useCallback(async (): Promise<boolean> => {
-    const refreshToken = localStorage.getItem('refreshToken');
-    if (!refreshToken) return false;
-
-    try {
-      const response = await fetch('https://api-staging.roomiecircle.com/api/v1/auth/token/refresh', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ refreshToken }),
-      });
-
-      if (!response.ok) return false;
-
-      const data = await response.json();
-      const accessToken = data.accessToken || data.data?.accessToken;
-      if (accessToken) {
-        localStorage.setItem('accessToken', accessToken);
-        return true;
-      }
-      return false;
-    } catch {
-      return false;
-    }
+    return await apiClient.refreshToken();
   }, []);
 
   const login = useCallback((accessToken: string, refreshToken: string, userData: User) => {

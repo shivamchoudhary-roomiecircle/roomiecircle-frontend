@@ -84,15 +84,107 @@ const MyListings = () => {
   const [selectedTab, setSelectedTab] = useState<"active" | "inactive">("active");
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [inactiveLoaded, setInactiveLoaded] = useState(false);
 
-  const fetchListings = async () => {
+  const transformListing = (listing: any): Listing => {
+    return {
+      id: listing.id || "",
+      monthlyRent: listing.monthlyRent || 0,
+      address: listing.addressText || listing.address || "Address not provided",
+      hasBrokerage: listing.hasBrokerage || false,
+      photos: listing.images || listing.photos || [],
+      lister: listing.lister || {
+        id: listing.listerId || 0,
+        name: "Unknown",
+        profilePicture: null,
+        verified: false,
+        verificationLevel: null,
+        profileScore: null,
+      },
+      roomType: listing.roomType || "",
+      bhkType: listing.bhkType || "",
+      layoutType: listing.layoutType || null,
+      layoutTypeKey: listing.layoutTypeKey || null,
+      propertyTypes: Array.isArray(listing.propertyType) 
+        ? listing.propertyType 
+        : listing.propertyType 
+          ? [listing.propertyType] 
+          : listing.propertyTypes || listing.propertyTypeKeys || [],
+      propertyTypeKeys: listing.propertyTypeKeys || [],
+      // Include all other fields
+      listerId: listing.listerId,
+      description: listing.description,
+      latitude: listing.latitude,
+      longitude: listing.longitude,
+      placeId: listing.placeId,
+      maintenance: listing.maintenance,
+      maintenanceIncluded: listing.maintenanceIncluded,
+      deposit: listing.deposit,
+      availableDate: listing.availableDate,
+      listingType: listing.listingType,
+      propertyType: Array.isArray(listing.propertyType) 
+        ? listing.propertyType 
+        : listing.propertyType 
+          ? [listing.propertyType] 
+          : [],
+      hasBalcony: listing.hasBalcony,
+      hasPrivateWashroom: listing.hasPrivateWashroom,
+      hasFurniture: listing.hasFurniture,
+      washroomCount: listing.washroomCount,
+      balconyCount: listing.balconyCount,
+      bedroomCount: listing.bedroomCount,
+      amenities: listing.amenities || {},
+      images: listing.images || [],
+      neighborhoodReview: listing.neighborhoodReview,
+      neighborhoodRatings: listing.neighborhoodRatings || {},
+      neighborhoodImages: listing.neighborhoodImages || [],
+      roommatePreferences: listing.roommatePreferences,
+      existingRoommates: listing.existingRoommates || [],
+      status: listing.status,
+      completionScore: listing.completionScore,
+      missingSections: listing.missingSections,
+      publishedAt: listing.publishedAt,
+      deactivatedAt: listing.deactivatedAt,
+      createdAt: listing.createdAt,
+      updatedAt: listing.updatedAt,
+    };
+  };
+
+  const fetchListings = async (status: "ACTIVE" | "INACTIVE") => {
     try {
       setIsLoading(true);
       setError(null);
-      const data = await apiClient.getMyListings();
-      setActiveListings(data.active || []);
-      setInactiveListings(data.inactive || []);
+      const data = await apiClient.getMyListings(status);
+      console.log(`Fetched ${status} listings:`, data);
+      
+      const transformedListings = Array.isArray(data) 
+        ? data.map(transformListing)
+        : [];
+      
+      // Sort by updatedAt in descending order (most recently updated first)
+      const sortedListings = [...transformedListings].sort((a, b) => {
+        const dateA = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
+        const dateB = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
+        // If dates are equal or both are 0, maintain original order
+        if (dateA === dateB) return 0;
+        // Descending order: most recent first
+        return dateB - dateA;
+      });
+      
+      console.log(`Transformed ${status} listings (sorted by updatedAt):`, sortedListings.map(l => ({
+        id: l.id,
+        updatedAt: l.updatedAt,
+        date: l.updatedAt ? new Date(l.updatedAt).toISOString() : 'N/A'
+      })));
+      
+      if (status === "ACTIVE") {
+        setActiveListings(sortedListings);
+      } else {
+        setInactiveListings(sortedListings);
+        setInactiveLoaded(true);
+      }
     } catch (err: any) {
+      console.error(`Error fetching ${status} listings:`, err);
       setError(err.message || "Failed to load listings");
       toast({
         title: "Error",
@@ -105,16 +197,39 @@ const MyListings = () => {
   };
 
   useEffect(() => {
-    fetchListings();
+    // Fetch active listings on initial load
+    fetchListings("ACTIVE");
   }, []);
+
+  const handleTabChange = (tab: "active" | "inactive") => {
+    setSelectedTab(tab);
+    // Fetch inactive listings when switching to inactive tab (only once)
+    if (tab === "inactive" && !inactiveLoaded) {
+      fetchListings("INACTIVE");
+    }
+  };
 
   const handleDelete = async (listingId: string) => {
     try {
       await apiClient.deleteRoomListing(listingId);
       
-      // Remove from UI
-      setActiveListings(prev => prev.filter(l => l.id !== listingId));
-      setInactiveListings(prev => prev.filter(l => l.id !== listingId));
+      // Remove from UI and maintain sort order
+      setActiveListings(prev => {
+        const filtered = prev.filter(l => l.id !== listingId);
+        return [...filtered].sort((a, b) => {
+          const dateA = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
+          const dateB = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
+          return dateB - dateA;
+        });
+      });
+      setInactiveListings(prev => {
+        const filtered = prev.filter(l => l.id !== listingId);
+        return [...filtered].sort((a, b) => {
+          const dateA = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
+          const dateB = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
+          return dateB - dateA;
+        });
+      });
       
       toast({
         title: "Success",
@@ -133,20 +248,12 @@ const MyListings = () => {
     try {
       await apiClient.updateListingStatus(listingId, newStatus);
       
-      // Move between lists
-      if (newStatus === "ACTIVE") {
-        const listing = inactiveListings.find(l => l.id === listingId);
-        if (listing) {
-          setInactiveListings(prev => prev.filter(l => l.id !== listingId));
-          setActiveListings(prev => [...prev, { ...listing, status: "ACTIVE" }]);
-        }
-      } else {
-        const listing = activeListings.find(l => l.id === listingId);
-        if (listing) {
-          setActiveListings(prev => prev.filter(l => l.id !== listingId));
-          setInactiveListings(prev => [...prev, { ...listing, status: "INACTIVE" }]);
-        }
+      // Refetch both lists to ensure accurate data (they will be sorted automatically)
+      const promises = [fetchListings("ACTIVE")];
+      if (inactiveLoaded) {
+        promises.push(fetchListings("INACTIVE"));
       }
+      await Promise.all(promises);
       
       toast({
         title: "Success",
@@ -187,17 +294,17 @@ const MyListings = () => {
           {/* Tabs */}
           <div className="flex gap-4 mt-4 border-b border-border">
             <button
-              onClick={() => setSelectedTab("active")}
+              onClick={() => handleTabChange("active")}
               className={`pb-2 px-1 font-medium transition-colors ${
                 selectedTab === "active"
                   ? "text-foreground border-b-2 border-primary"
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              ACTIVE
+              ACTIVE {activeListings.length > 0 && `(${activeListings.length})`}
             </button>
             <button
-              onClick={() => setSelectedTab("inactive")}
+              onClick={() => handleTabChange("inactive")}
               className={`pb-2 px-1 font-medium transition-colors ${
                 selectedTab === "inactive"
                   ? "text-foreground border-b-2 border-primary"
@@ -234,7 +341,7 @@ const MyListings = () => {
         {error && !isLoading && (
           <div className="text-center py-12">
             <p className="text-destructive mb-4">{error}</p>
-            <Button onClick={fetchListings}>Retry</Button>
+            <Button onClick={() => fetchListings(selectedTab === "active" ? "ACTIVE" : "INACTIVE")}>Retry</Button>
           </div>
         )}
 

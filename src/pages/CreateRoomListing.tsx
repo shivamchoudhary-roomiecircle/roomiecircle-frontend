@@ -1,8 +1,7 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { apiClient } from "@/lib/api";
 import { useConfig } from "@/contexts/ConfigContext";
-import { useDebounce } from "@/hooks/useDebounce";
 import { toast } from "@/hooks/use-toast";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -15,6 +14,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2, Home, DollarSign, MapPin, Bed, Users, Image as ImageIcon, Star } from "lucide-react";
 import { LocationAutocomplete } from "@/components/search/LocationAutocomplete";
+import { IconRenderer } from "@/lib/iconMapper";
 
 interface RoommateData {
   name: string;
@@ -26,11 +26,12 @@ interface RoommateData {
 
 export default function CreateRoomListing() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const listingId = searchParams.get("id");
   const { config, loading: configLoading } = useConfig();
   
-  const [listingId, setListingId] = useState<string | null>(null);
-  const [initializing, setInitializing] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(false);
   
   const [formData, setFormData] = useState({
     description: "",
@@ -44,8 +45,9 @@ export default function CreateRoomListing() {
     latitude: 0,
     longitude: 0,
     roomType: "",
-    propertyType: "",
+    propertyType: [] as string[],
     bhkType: "",
+    floor: "",
     hasBalcony: false,
     hasPrivateWashroom: false,
     hasFurniture: false,
@@ -55,7 +57,6 @@ export default function CreateRoomListing() {
     maxAge: "",
     gender: "",
     profession: "",
-    renteeType: "",
     lifestyle: [] as string[],
     roommates: [] as RoommateData[],
     neighborhoodReview: "",
@@ -67,92 +68,96 @@ export default function CreateRoomListing() {
     neighborhoodImages: [] as string[],
   });
 
-  const debouncedFormData = useDebounce(formData, 800);
-
-  // Initialize - create draft on mount
+  // Fetch listing data when editing
   useEffect(() => {
-    const initializeListing = async () => {
+    const fetchListingData = async () => {
+      if (!listingId) return;
+      
       try {
-        const draft = await apiClient.createRoomListing();
-        if (draft && draft.id) {
-          setListingId(draft.id);
-          toast({
-            title: "Draft Created",
-            description: "Your listing draft has been created. Changes will auto-save.",
-          });
-        } else {
-          console.error("Invalid draft response:", draft);
-          toast({
-            title: "Error",
-            description: "Invalid response from server. Please refresh the page.",
-            variant: "destructive",
-          });
-        }
+        setLoading(true);
+        const response = await apiClient.getRoomListing(listingId);
+        // Handle response structure - could be response.data or response directly
+        const listing = response.data || response;
+        
+        // Transform and prefill form data
+        setFormData({
+          description: listing.description || "",
+          monthlyRent: listing.monthlyRent ? listing.monthlyRent.toString() : "",
+          maintenance: listing.maintenance ? listing.maintenance.toString() : "",
+          maintenanceIncluded: listing.maintenanceIncluded || false,
+          deposit: listing.deposit ? listing.deposit.toString() : "",
+          availableDate: listing.availableDate || "",
+          addressText: listing.addressText || listing.address || "",
+          placeId: listing.placeId || "",
+          latitude: listing.latitude || 0,
+          longitude: listing.longitude || 0,
+          roomType: listing.roomType || "",
+          propertyType: Array.isArray(listing.propertyType) 
+            ? listing.propertyType 
+            : listing.propertyType 
+              ? [listing.propertyType] 
+              : [],
+          bhkType: listing.bhkType || "",
+          floor: listing.floor ? listing.floor.toString() : "",
+          hasBalcony: listing.hasBalcony || false,
+          hasPrivateWashroom: listing.hasPrivateWashroom || false,
+          hasFurniture: listing.hasFurniture || false,
+          amenities: (() => {
+            // Handle different amenities formats
+            if (Array.isArray(listing.amenities)) {
+              return listing.amenities;
+            }
+            if (listing.amenities && typeof listing.amenities === 'object') {
+              // Extract amenity keys from nested structure like { in_home: [{ key: "air_conditioning" }], on_property: [...] }
+              const amenityKeys: string[] = [];
+              Object.values(listing.amenities).forEach((category: any) => {
+                if (Array.isArray(category)) {
+                  category.forEach((item: any) => {
+                    // Handle both { key: "air_conditioning" } and direct string formats
+                    if (typeof item === 'string') {
+                      amenityKeys.push(item);
+                    } else if (item && item.key) {
+                      amenityKeys.push(item.key);
+                    } else if (item && typeof item === 'object') {
+                      // If it's an object without 'key', try to use the value directly
+                      amenityKeys.push(item);
+                    }
+                  });
+                }
+              });
+              return amenityKeys;
+            }
+            return [];
+          })(),
+          images: listing.images || [],
+          minAge: listing.roommatePreferences?.minAge ? listing.roommatePreferences.minAge.toString() : "",
+          maxAge: listing.roommatePreferences?.maxAge ? listing.roommatePreferences.maxAge.toString() : "",
+          gender: listing.roommatePreferences?.gender || "",
+          profession: listing.roommatePreferences?.profession || "",
+          lifestyle: listing.roommatePreferences?.lifestyle || listing.lifestyle || [],
+          roommates: listing.existingRoommates || [],
+          neighborhoodReview: listing.neighborhoodReview || "",
+          neighborhoodRatings: listing.neighborhoodRatings || {
+            safety: 0,
+            connectivity: 0,
+            amenities: 0,
+          },
+          neighborhoodImages: listing.neighborhoodImages || [],
+        });
       } catch (error: any) {
-        console.error("Failed to create draft:", error);
         toast({
           title: "Error",
-          description: error?.message || "Failed to create listing draft. Please try again.",
+          description: error?.message || "Failed to load listing data. Please try again.",
           variant: "destructive",
         });
+        navigate("/my-listings");
       } finally {
-        setInitializing(false);
+        setLoading(false);
       }
     };
 
-    initializeListing();
-  }, []);
-
-  // Auto-save when form data changes
-  useEffect(() => {
-    if (!listingId || initializing) return;
-
-    const saveChanges = async () => {
-      setSaving(true);
-      try {
-        const payload: any = {};
-        
-        // Only include non-empty fields
-        if (formData.description) payload.description = formData.description;
-        if (formData.monthlyRent) payload.monthlyRent = parseInt(formData.monthlyRent);
-        if (formData.maintenance) payload.maintenance = parseInt(formData.maintenance);
-        payload.maintenanceIncluded = formData.maintenanceIncluded;
-        if (formData.deposit) payload.deposit = parseInt(formData.deposit);
-        if (formData.availableDate) payload.availableDate = formData.availableDate;
-        if (formData.addressText) payload.addressText = formData.addressText;
-        if (formData.placeId) payload.placeId = formData.placeId;
-        if (formData.latitude) payload.latitude = formData.latitude;
-        if (formData.longitude) payload.longitude = formData.longitude;
-        if (formData.roomType) payload.roomType = formData.roomType;
-        if (formData.propertyType) payload.propertyType = formData.propertyType;
-        if (formData.bhkType) payload.bhkType = formData.bhkType;
-        payload.hasBalcony = formData.hasBalcony;
-        payload.hasPrivateWashroom = formData.hasPrivateWashroom;
-        payload.hasFurniture = formData.hasFurniture;
-        if (formData.amenities.length > 0) payload.amenities = formData.amenities;
-        if (formData.images.length > 0) payload.images = formData.images;
-        if (formData.minAge) payload.minAge = parseInt(formData.minAge);
-        if (formData.maxAge) payload.maxAge = parseInt(formData.maxAge);
-        if (formData.gender) payload.gender = formData.gender;
-        if (formData.profession) payload.profession = formData.profession;
-        if (formData.lifestyle.length > 0) payload.lifestyle = formData.lifestyle;
-        if (formData.roommates.length > 0) payload.roommates = formData.roommates;
-        if (formData.neighborhoodReview) payload.neighborhoodReview = formData.neighborhoodReview;
-        if (Object.values(formData.neighborhoodRatings).some(v => v > 0)) {
-          payload.neighborhoodRatings = formData.neighborhoodRatings;
-        }
-        if (formData.neighborhoodImages.length > 0) payload.neighborhoodImages = formData.neighborhoodImages;
-
-        await apiClient.updateRoomListing(listingId, payload);
-      } catch (error) {
-        console.error("Auto-save failed:", error);
-      } finally {
-        setSaving(false);
-      }
-    };
-
-    saveChanges();
-  }, [debouncedFormData, listingId, initializing]);
+    fetchListingData();
+  }, [listingId, navigate]);
 
   const handleFieldChange = (field: string, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -171,6 +176,15 @@ export default function CreateRoomListing() {
       amenities: prev.amenities.includes(amenity)
         ? prev.amenities.filter(a => a !== amenity)
         : [...prev.amenities, amenity]
+    }));
+  };
+
+  const handlePropertyTypeToggle = (propertyType: string) => {
+    setFormData(prev => ({
+      ...prev,
+      propertyType: prev.propertyType.includes(propertyType)
+        ? prev.propertyType.filter(p => p !== propertyType)
+        : [...prev.propertyType, propertyType]
     }));
   };
 
@@ -212,33 +226,78 @@ export default function CreateRoomListing() {
     }));
   };
 
-  const handlePublish = async () => {
-    if (!listingId) return;
-    
+  const handleSave = async () => {
+    setSaving(true);
     try {
-      await apiClient.updateListingStatus(listingId, "ACTIVE");
-      toast({
-        title: "Success",
-        description: "Your listing has been published!",
-      });
+      const payload: any = {};
+      
+      // Only include non-empty fields
+      if (formData.description) payload.description = formData.description;
+      if (formData.monthlyRent) payload.monthlyRent = parseInt(formData.monthlyRent);
+      if (formData.maintenance) payload.maintenance = parseInt(formData.maintenance);
+      payload.maintenanceIncluded = formData.maintenanceIncluded;
+      if (formData.deposit) payload.deposit = parseInt(formData.deposit);
+      if (formData.availableDate) payload.availableDate = formData.availableDate;
+      if (formData.addressText) payload.addressText = formData.addressText;
+      if (formData.placeId) payload.placeId = formData.placeId;
+      if (formData.latitude) payload.latitude = formData.latitude;
+      if (formData.longitude) payload.longitude = formData.longitude;
+      if (formData.roomType) payload.roomType = formData.roomType;
+      if (formData.propertyType.length > 0) payload.propertyType = formData.propertyType;
+      if (formData.bhkType) payload.bhkType = formData.bhkType;
+      if (formData.floor) payload.floor = formData.floor;
+      payload.hasBalcony = formData.hasBalcony;
+      payload.hasPrivateWashroom = formData.hasPrivateWashroom;
+      payload.hasFurniture = formData.hasFurniture;
+      if (formData.amenities.length > 0) payload.amenities = formData.amenities;
+      if (formData.images.length > 0) payload.images = formData.images;
+      if (formData.minAge) payload.minAge = parseInt(formData.minAge);
+      if (formData.maxAge) payload.maxAge = parseInt(formData.maxAge);
+      if (formData.gender) payload.gender = formData.gender;
+      if (formData.profession) payload.profession = formData.profession;
+      if (formData.lifestyle.length > 0) payload.lifestyle = formData.lifestyle;
+      if (formData.roommates.length > 0) payload.roommates = formData.roommates;
+      if (formData.neighborhoodReview) payload.neighborhoodReview = formData.neighborhoodReview;
+      if (Object.values(formData.neighborhoodRatings).some(v => v > 0)) {
+        payload.neighborhoodRatings = formData.neighborhoodRatings;
+      }
+      if (formData.neighborhoodImages.length > 0) payload.neighborhoodImages = formData.neighborhoodImages;
+
+      if (listingId) {
+        // Update existing listing using PATCH
+        await apiClient.updateRoomListing(listingId, payload);
+        toast({
+          title: "Success",
+          description: "Your listing has been updated!",
+        });
+      } else {
+        // Create new listing using POST
+        await apiClient.createRoomListing(payload);
+        toast({
+          title: "Success",
+          description: "Your listing has been saved!",
+        });
+      }
       navigate("/my-listings");
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "Error",
-        description: "Failed to publish listing. Please try again.",
+        description: error?.message || "Failed to save listing. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setSaving(false);
     }
   };
 
-  if (initializing) {
+
+  if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin" />
       </div>
     );
   }
-
 
   return (
     <div className="min-h-screen bg-background">
@@ -247,13 +306,17 @@ export default function CreateRoomListing() {
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-3xl font-bold">List Your Room</h1>
-            <p className="text-muted-foreground mt-1">
-              Changes save automatically • {saving && "Saving..."}
-            </p>
+            <h1 className="text-3xl font-bold">{listingId ? "Edit Listing" : "List Your Room"}</h1>
           </div>
-          <Button onClick={handlePublish} size="lg">
-            Publish Listing
+          <Button onClick={handleSave} size="lg" disabled={saving || loading}>
+            {saving ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                {listingId ? "Updating..." : "Saving..."}
+              </>
+            ) : (
+              listingId ? "Update Listing" : "Save Listing"
+            )}
           </Button>
         </div>
 
@@ -288,23 +351,12 @@ export default function CreateRoomListing() {
                   {config?.roomTypes && config.roomTypes.length > 0 && (
                     <SelectContent>
                       {config.roomTypes.map(type => (
-                        <SelectItem key={type.value} value={type.value}>{type.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  )}
-                </Select>
-              </div>
-
-              <div>
-                <Label htmlFor="propertyType">Property Type</Label>
-                <Select value={formData.propertyType} onValueChange={(v) => handleFieldChange("propertyType", v)} disabled={!config?.propertyTypes || config.propertyTypes.length === 0}>
-                  <SelectTrigger>
-                    <SelectValue placeholder={config?.propertyTypes && config.propertyTypes.length > 0 ? "Select property type" : "Loading..."} />
-                  </SelectTrigger>
-                  {config?.propertyTypes && config.propertyTypes.length > 0 && (
-                    <SelectContent>
-                      {config.propertyTypes.map(type => (
-                        <SelectItem key={type.value} value={type.value}>{type.label}</SelectItem>
+                        <SelectItem key={type.value} value={type.value}>
+                          <div className="flex items-center gap-2">
+                            <IconRenderer symbol={type.symbol} />
+                            <span>{type.label}</span>
+                          </div>
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   )}
@@ -320,11 +372,34 @@ export default function CreateRoomListing() {
                   {config?.bhkTypes && config.bhkTypes.length > 0 && (
                     <SelectContent>
                       {config.bhkTypes.map(type => (
-                        <SelectItem key={type.value} value={type.value}>{type.label}</SelectItem>
+                        <SelectItem key={type.value} value={type.value}>
+                          <div className="flex items-center gap-2">
+                            <IconRenderer symbol={type.symbol} />
+                            <span>{type.label}</span>
+                          </div>
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   )}
                 </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="floor">Floor</Label>
+                <Input
+                  id="floor"
+                  type="number"
+                  placeholder="e.g., 2, 3, 0 (Ground)"
+                  value={formData.floor}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    // Only allow integers (including negative for basement floors)
+                    if (value === '' || /^-?\d+$/.test(value)) {
+                      handleFieldChange("floor", value);
+                    }
+                  }}
+                  min="0"
+                />
               </div>
 
               <div>
@@ -335,6 +410,29 @@ export default function CreateRoomListing() {
                   value={formData.availableDate}
                   onChange={(e) => handleFieldChange("availableDate", e.target.value)}
                 />
+              </div>
+            </div>
+
+            <div>
+              <Label>Property Type</Label>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-2">
+                {config?.propertyTypes && config.propertyTypes.length > 0 ? (
+                  config.propertyTypes.map(type => (
+                    <div key={type.value} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`property-${type.value}`}
+                        checked={formData.propertyType.includes(type.value)}
+                        onCheckedChange={() => handlePropertyTypeToggle(type.value)}
+                      />
+                      <Label htmlFor={`property-${type.value}`} className="flex items-center gap-2 cursor-pointer">
+                        <IconRenderer symbol={type.symbol} />
+                        <span>{type.label}</span>
+                      </Label>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-sm text-muted-foreground">Loading property types...</p>
+                )}
               </div>
             </div>
 
@@ -469,7 +567,10 @@ export default function CreateRoomListing() {
                           checked={formData.amenities.includes(amenity.value)}
                           onCheckedChange={() => handleAmenityToggle(amenity.value)}
                         />
-                        <Label htmlFor={amenity.value}>{amenity.label}</Label>
+                        <Label htmlFor={amenity.value} className="flex items-center gap-2 cursor-pointer">
+                          <IconRenderer symbol={amenity.symbol} />
+                          <span>{amenity.label}</span>
+                        </Label>
                       </div>
                     ))}
                   </div>
@@ -485,7 +586,10 @@ export default function CreateRoomListing() {
                           checked={formData.amenities.includes(amenity.value)}
                           onCheckedChange={() => handleAmenityToggle(amenity.value)}
                         />
-                        <Label htmlFor={amenity.value}>{amenity.label}</Label>
+                        <Label htmlFor={amenity.value} className="flex items-center gap-2 cursor-pointer">
+                          <IconRenderer symbol={amenity.symbol} />
+                          <span>{amenity.label}</span>
+                        </Label>
                       </div>
                     ))}
                   </div>
@@ -501,7 +605,10 @@ export default function CreateRoomListing() {
                           checked={formData.amenities.includes(amenity.value)}
                           onCheckedChange={() => handleAmenityToggle(amenity.value)}
                         />
-                        <Label htmlFor={amenity.value}>{amenity.label}</Label>
+                        <Label htmlFor={amenity.value} className="flex items-center gap-2 cursor-pointer">
+                          <IconRenderer symbol={amenity.symbol} />
+                          <span>{amenity.label}</span>
+                        </Label>
                       </div>
                     ))}
                   </div>
@@ -546,31 +653,22 @@ export default function CreateRoomListing() {
 
               <div>
                 <Label htmlFor="gender">Preferred Gender</Label>
-                <Select value={formData.gender} onValueChange={(v) => handleFieldChange("gender", v)} disabled={!config?.genderOptions || config.genderOptions.length === 0}>
+                <Select value={formData.gender} onValueChange={(v) => handleFieldChange("gender", v)} disabled={!config?.genders || config.genders.length === 0}>
                   <SelectTrigger>
-                    <SelectValue placeholder={config?.genderOptions && config.genderOptions.length > 0 ? "Select gender" : "No options available"} />
+                    <SelectValue placeholder={config?.genders && config.genders.length > 0 ? "Select gender" : "No options available"} />
                   </SelectTrigger>
-                  {config?.genderOptions && config.genderOptions.length > 0 && (
+                  {config?.genders && config.genders.length > 0 && (
                     <SelectContent>
-                      {config.genderOptions.map(option => (
-                        <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                      {config.genders.map(option => (
+                        <SelectItem key={option.value} value={option.value}>
+                          <div className="flex items-center gap-2">
+                            <IconRenderer symbol={option.symbol} />
+                            <span>{option.label}</span>
+                          </div>
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   )}
-                </Select>
-              </div>
-
-              <div>
-                <Label htmlFor="renteeType">Rentee Type</Label>
-                <Select value={formData.renteeType} onValueChange={(v) => handleFieldChange("renteeType", v)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {config?.renteeTypes?.map(type => (
-                      <SelectItem key={type.value} value={type.value}>{type.label}</SelectItem>
-                    ))}
-                  </SelectContent>
                 </Select>
               </div>
 
@@ -583,7 +681,12 @@ export default function CreateRoomListing() {
                   {config?.professions && config.professions.length > 0 && (
                     <SelectContent>
                       {config.professions.map(prof => (
-                        <SelectItem key={prof.value} value={prof.value}>{prof.label}</SelectItem>
+                        <SelectItem key={prof.value} value={prof.value}>
+                          <div className="flex items-center gap-2">
+                            <IconRenderer symbol={prof.symbol} />
+                            <span>{prof.label}</span>
+                          </div>
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   )}
@@ -594,15 +697,18 @@ export default function CreateRoomListing() {
             <div>
               <Label>Lifestyle Preferences</Label>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-2">
-                {config?.lifestyleTags && config.lifestyleTags.length > 0 ? (
-                  config.lifestyleTags.map(lifestyle => (
+                {config?.lifestylePreferences && config.lifestylePreferences.length > 0 ? (
+                  config.lifestylePreferences.map(lifestyle => (
                     <div key={lifestyle.value} className="flex items-center space-x-2">
                       <Checkbox
                         id={`lifestyle-${lifestyle.value}`}
                         checked={formData.lifestyle.includes(lifestyle.value)}
                         onCheckedChange={() => handleLifestyleToggle(lifestyle.value)}
                       />
-                      <Label htmlFor={`lifestyle-${lifestyle.value}`}>{lifestyle.label}</Label>
+                      <Label htmlFor={`lifestyle-${lifestyle.value}`} className="flex items-center gap-2 cursor-pointer">
+                        <IconRenderer symbol={lifestyle.symbol} />
+                        <span>{lifestyle.label}</span>
+                      </Label>
                     </div>
                   ))
                 ) : (
@@ -641,15 +747,23 @@ export default function CreateRoomListing() {
                   <Select
                     value={roommate.gender}
                     onValueChange={(v) => handleRoommateChange(index, "gender", v)}
+                    disabled={!config?.genders || config.genders.length === 0}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Gender" />
+                      <SelectValue placeholder={config?.genders && config.genders.length > 0 ? "Gender" : "Loading..."} />
                     </SelectTrigger>
-                    <SelectContent>
-                      {config?.genderOptions?.map(option => (
-                        <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
-                      ))}
-                    </SelectContent>
+                    {config?.genders && config.genders.length > 0 && (
+                      <SelectContent>
+                        {config.genders.map(option => (
+                          <SelectItem key={option.value} value={option.value}>
+                            <div className="flex items-center gap-2">
+                              <IconRenderer symbol={option.symbol} />
+                              <span>{option.label}</span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    )}
                   </Select>
                   <Input
                     type="number"
@@ -657,11 +771,27 @@ export default function CreateRoomListing() {
                     value={roommate.age || ""}
                     onChange={(e) => handleRoommateChange(index, "age", parseInt(e.target.value))}
                   />
-                  <Input
-                    placeholder="Profession"
+                  <Select
                     value={roommate.profession}
-                    onChange={(e) => handleRoommateChange(index, "profession", e.target.value)}
-                  />
+                    onValueChange={(v) => handleRoommateChange(index, "profession", v)}
+                    disabled={!config?.professions || config.professions.length === 0}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={config?.professions && config.professions.length > 0 ? "Profession" : "Loading..."} />
+                    </SelectTrigger>
+                    {config?.professions && config.professions.length > 0 && (
+                      <SelectContent>
+                        {config.professions.map(prof => (
+                          <SelectItem key={prof.value} value={prof.value}>
+                            <div className="flex items-center gap-2">
+                              <IconRenderer symbol={prof.symbol} />
+                              <span>{prof.label}</span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    )}
+                  </Select>
                 </div>
                 <Textarea
                   placeholder="Bio"
@@ -798,8 +928,15 @@ export default function CreateRoomListing() {
           <Button variant="outline" onClick={() => navigate("/")}>
             Cancel
           </Button>
-          <Button onClick={handlePublish} size="lg">
-            Publish Listing
+          <Button onClick={handleSave} size="lg" disabled={saving || loading}>
+            {saving ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                {listingId ? "Updating..." : "Saving..."}
+              </>
+            ) : (
+              listingId ? "Update Listing" : "Save Listing"
+            )}
           </Button>
         </div>
       </div>

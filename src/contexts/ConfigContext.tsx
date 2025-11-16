@@ -17,9 +17,8 @@ interface ConfigData {
     safety: ConfigValue[];
   };
   professions: ConfigValue[];
-  renteeTypes: ConfigValue[];
-  lifestyleTags: ConfigValue[];
-  genderOptions: ConfigValue[];
+  genders: ConfigValue[];
+  lifestylePreferences: ConfigValue[];
 }
 
 interface ConfigContextType {
@@ -68,9 +67,8 @@ export const ConfigProvider = ({ children }: { children: ReactNode }) => {
             safety: data.amenities?.safety || [],
           },
           professions: data.professions || [],
-          renteeTypes: data.renteeTypes || [],
-          lifestyleTags: data.lifestyleTags || [],
-          genderOptions: data.genderOptions || [],
+          genders: data.genders || [],
+          lifestylePreferences: data.lifestylePreferences || [],
         };
         setConfig(mappedConfig);
         setError(null);
@@ -88,9 +86,8 @@ export const ConfigProvider = ({ children }: { children: ReactNode }) => {
             safety: [],
           },
           professions: [],
-          renteeTypes: [],
-          lifestyleTags: [],
-          genderOptions: [],
+          genders: [],
+          lifestylePreferences: [],
         });
       } finally {
         setLoading(false);

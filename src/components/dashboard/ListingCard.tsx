@@ -21,7 +21,7 @@ import { useState } from "react";
 
 interface Listing {
   id: string;
-  monthlyRent: number;
+  monthlyRent: number | null;
   address: string;
   hasBrokerage: boolean;
   photos: string[];
@@ -33,8 +33,8 @@ interface Listing {
     verificationLevel: string | null;
     profileScore: number | null;
   };
-  roomType: string;
-  bhkType: string;
+  roomType: string | null;
+  bhkType: string | null;
   layoutType: string | null;
   layoutTypeKey: string | null;
   propertyTypes: string[];
@@ -52,7 +52,19 @@ const ListingCard = ({ listing, onEdit, onDelete, onStatusChange }: ListingCardP
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   // Format room type display
-  const formatRoomType = (roomType: string, bhkType: string) => {
+  const formatRoomType = (roomType: string | null | undefined, bhkType: string | null | undefined) => {
+    if (!roomType && !bhkType) {
+      return "Room details not specified";
+    }
+    if (!roomType) {
+      return bhkType ? `Room in a ${bhkType.toUpperCase()}` : "Room";
+    }
+    if (!bhkType) {
+      const roomTypeFormatted = roomType.split('_').map(word => 
+        word.charAt(0).toUpperCase() + word.slice(1)
+      ).join(' ');
+      return roomTypeFormatted;
+    }
     const roomTypeFormatted = roomType.split('_').map(word => 
       word.charAt(0).toUpperCase() + word.slice(1)
     ).join(' ');
@@ -61,7 +73,10 @@ const ListingCard = ({ listing, onEdit, onDelete, onStatusChange }: ListingCardP
   };
 
   // Format address to show only first part
-  const formatAddress = (address: string) => {
+  const formatAddress = (address: string | null | undefined) => {
+    if (!address) {
+      return "Address not provided";
+    }
     const parts = address.split(',');
     return parts.slice(0, 2).join(',').trim();
   };
@@ -116,8 +131,10 @@ const ListingCard = ({ listing, onEdit, onDelete, onStatusChange }: ListingCardP
           {/* Listing Details */}
           <div className="space-y-2">
             <div className="flex items-baseline justify-between">
-              <h3 className="text-2xl font-bold">₹{listing.monthlyRent.toLocaleString()}</h3>
-              <span className="text-sm text-muted-foreground">/month</span>
+              <h3 className="text-2xl font-bold">
+                {listing.monthlyRent ? `₹${listing.monthlyRent.toLocaleString()}` : "Price not set"}
+              </h3>
+              {listing.monthlyRent && <span className="text-sm text-muted-foreground">/month</span>}
             </div>
             
             <div className="text-sm text-muted-foreground space-y-1">

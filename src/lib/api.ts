@@ -1,4 +1,4 @@
-const API_BASE_URL = "https://staging-api.roomiecircle.com";
+const API_BASE_URL = "http://localhost:8080";
 
 class ApiClient {
   private getAuthHeader(): HeadersInit {
@@ -397,13 +397,14 @@ class ApiClient {
   }
 
   // Room Listing endpoints
-  async createRoomListing() {
+  async createRoomListing(payload?: any) {
     const response = await this.request<{
       success: boolean;
       data: any;
       message: string;
     }>("/api/v1/listings/rooms", {
       method: "POST",
+      body: payload ? JSON.stringify(payload) : undefined,
     });
     return response.data;
   }
@@ -414,21 +415,36 @@ class ApiClient {
       data: any;
       message: string;
     }>(`/api/v1/listings/rooms/${listingId}`, {
-      method: "PUT",
+      method: "PATCH",
       body: JSON.stringify(data),
     });
     return response.data;
   }
 
-  async getMyListings() {
+  async getMyListings(status?: "ACTIVE" | "INACTIVE") {
+    const params = status ? `?status=${status}` : "";
     const response = await this.request<{
       success: boolean;
-      data: {
-        active: any[];
-        inactive: any[];
-      };
-    }>("/api/v1/listings/rooms/my");
-    return response.data;
+      data: any[] | { active: any[]; inactive: any[] };
+    }>(`/api/v1/listings/rooms/my${params}`);
+    
+    // Handle both response formats:
+    // 1. If data is an array, return it directly
+    // 2. If data is an object with active/inactive keys, return the appropriate array
+    if (Array.isArray(response.data)) {
+      return response.data;
+    } else if (response.data && typeof response.data === 'object') {
+      if (status === "ACTIVE") {
+        return Array.isArray(response.data.active) ? response.data.active : [];
+      } else if (status === "INACTIVE") {
+        return Array.isArray(response.data.inactive) ? response.data.inactive : [];
+      }
+      // If no status specified, return both combined
+      const active = Array.isArray(response.data.active) ? response.data.active : [];
+      const inactive = Array.isArray(response.data.inactive) ? response.data.inactive : [];
+      return [...active, ...inactive];
+    }
+    return [];
   }
 
   async getRoomListing(listingId: string) {
