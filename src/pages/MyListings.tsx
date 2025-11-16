@@ -11,32 +11,49 @@ import { Plus, FileX } from "lucide-react";
 
 interface Listing {
   id: string;
-  listerId: number;
-  description: string;
-  latitude: number;
-  longitude: number;
-  addressText: string;
-  placeId: string;
   monthlyRent: number;
-  maintenance: number;
-  maintenanceIncluded: boolean;
-  deposit: number;
-  availableDate: string;
-  listingType: string;
-  propertyType: string[];
-  layoutType: string;
-  hasBalcony: boolean;
-  hasPrivateWashroom: boolean;
-  hasFurniture: boolean;
-  washroomCount: number;
-  balconyCount: number;
-  bedroomCount: number;
-  amenities: Record<string, any>;
-  images: string[];
-  neighborhoodReview: string;
-  neighborhoodRatings: Record<string, number>;
-  neighborhoodImages: string[];
-  roommatePreferences: {
+  address: string;
+  hasBrokerage: boolean;
+  photos: string[];
+  lister: {
+    id: number;
+    name: string;
+    profilePicture: string | null;
+    verified: boolean;
+    verificationLevel: string | null;
+    profileScore: number | null;
+  };
+  roomType: string;
+  bhkType: string;
+  layoutType: string | null;
+  layoutTypeKey: string | null;
+  propertyTypes: string[];
+  propertyTypeKeys: string[];
+  // Additional fields that might be in the response
+  listerId?: number;
+  description?: string;
+  latitude?: number;
+  longitude?: number;
+  addressText?: string;
+  placeId?: string;
+  maintenance?: number;
+  maintenanceIncluded?: boolean;
+  deposit?: number;
+  availableDate?: string;
+  listingType?: string;
+  propertyType?: string[];
+  hasBalcony?: boolean;
+  hasPrivateWashroom?: boolean;
+  hasFurniture?: boolean;
+  washroomCount?: number;
+  balconyCount?: number;
+  bedroomCount?: number;
+  amenities?: Record<string, any>;
+  images?: string[];
+  neighborhoodReview?: string;
+  neighborhoodRatings?: Record<string, number>;
+  neighborhoodImages?: string[];
+  roommatePreferences?: {
     minAge: number;
     maxAge: number;
     gender: string;
@@ -44,20 +61,20 @@ interface Listing {
     renteeType: string;
     lifestyle: string[];
   };
-  existingRoommates: Array<{
+  existingRoommates?: Array<{
     name: string;
     gender: string;
     age: number;
     profession: string;
     bio: string;
   }>;
-  status: string;
-  completionScore: number;
-  missingSections: Record<string, string[]>;
-  publishedAt: string;
-  deactivatedAt: string;
-  createdAt: string;
-  updatedAt: string;
+  status?: string;
+  completionScore?: number;
+  missingSections?: Record<string, string[]>;
+  publishedAt?: string;
+  deactivatedAt?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 const MyListings = () => {

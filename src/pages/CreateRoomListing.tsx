@@ -570,20 +570,6 @@ export default function CreateRoomListing() {
               </div>
 
               <div>
-                <Label htmlFor="renteeType">Rentee Type</Label>
-                <Select value={formData.renteeType} onValueChange={(v) => handleFieldChange("renteeType", v)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {config?.renteeTypes?.map(type => (
-                      <SelectItem key={type.value} value={type.value}>{type.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
                 <Label htmlFor="profession">Preferred Profession</Label>
                 <Select value={formData.profession} onValueChange={(v) => handleFieldChange("profession", v)} disabled={!config?.professions || config.professions.length === 0}>
                   <SelectTrigger>

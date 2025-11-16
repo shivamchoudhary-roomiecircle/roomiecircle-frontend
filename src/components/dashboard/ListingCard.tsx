@@ -16,21 +16,29 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { MoreVertical, Edit, Power, Trash2, AlertCircle } from "lucide-react";
+import { MoreVertical, Edit, Trash2 } from "lucide-react";
 import { useState } from "react";
 
 interface Listing {
   id: string;
   monthlyRent: number;
-  listingType: string;
-  propertyType: string[];
-  layoutType: string;
-  bedroomCount: number;
-  addressText: string;
-  status: string;
-  completionScore: number;
-  missingSections: Record<string, string[]>;
-  images: string[];
+  address: string;
+  hasBrokerage: boolean;
+  photos: string[];
+  lister: {
+    id: number;
+    name: string;
+    profilePicture: string | null;
+    verified: boolean;
+    verificationLevel: string | null;
+    profileScore: number | null;
+  };
+  roomType: string;
+  bhkType: string;
+  layoutType: string | null;
+  layoutTypeKey: string | null;
+  propertyTypes: string[];
+  propertyTypeKeys: string[];
 }
 
 interface ListingCardProps {
@@ -43,159 +51,119 @@ interface ListingCardProps {
 const ListingCard = ({ listing, onEdit, onDelete, onStatusChange }: ListingCardProps) => {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
-  const isIncomplete = listing.status === "DRAFT" || listing.completionScore < 100;
-  const isActive = listing.status === "ACTIVE";
-
-  const formatMissingSections = () => {
-    const messages: string[] = [];
-    
-    if (listing.missingSections && typeof listing.missingSections === 'object') {
-      Object.entries(listing.missingSections).forEach(([section, fields]) => {
-        if (Array.isArray(fields) && fields.length > 0) {
-          fields.forEach(field => {
-            if (field === "images") {
-              const imageCount = listing.images?.length || 0;
-              messages.push(`Missing images (minimum 3)`);
-            } else if (field === "address" || field === "addressText") {
-              messages.push("Missing address");
-            } else if (field === "placeId") {
-              messages.push("Missing display location");
-            } else if (field === "availableDate") {
-              messages.push("Stale available date");
-            } else if (field === "listingType") {
-              messages.push("Missing listing type");
-            } else if (field === "currentFlatmates" || field === "existingRoommates") {
-              messages.push("Missing current flatmates");
-            } else if (field === "roommatePreferences") {
-              messages.push("Missing roommate preferences");
-            } else if (field === "neighborhoodReview") {
-              messages.push("Missing neighborhood review");
-            } else if (field === "neighborhoodRatings") {
-              messages.push("Missing neighborhood ratings");
-            } else if (field === "amenitiesInHome" || field === "inHomeAmenities") {
-              messages.push("Missing in-home amenities");
-            } else if (field === "amenitiesOnProperty" || field === "onPropertyAmenities") {
-              messages.push("Missing on-property amenities");
-            } else if (field === "amenitiesSafety" || field === "safetyAmenities") {
-              messages.push("Missing safety amenities");
-            } else {
-              // Format field name nicely
-              const formatted = field.replace(/([A-Z])/g, " $1").toLowerCase().trim();
-              messages.push(`Missing ${formatted}`);
-            }
-          });
-        }
-      });
-    }
-    
-    // If incomplete but no messages, add a generic message
-    if (messages.length === 0 && isIncomplete) {
-      messages.push("Listing is incomplete");
-    }
-    
-    return messages;
+  // Format room type display
+  const formatRoomType = (roomType: string, bhkType: string) => {
+    const roomTypeFormatted = roomType.split('_').map(word => 
+      word.charAt(0).toUpperCase() + word.slice(1)
+    ).join(' ');
+    const bhkFormatted = bhkType.toUpperCase();
+    return `${roomTypeFormatted} in a ${bhkFormatted}`;
   };
 
-  const missingMessages = formatMissingSections();
+  // Format address to show only first part
+  const formatAddress = (address: string) => {
+    const parts = address.split(',');
+    return parts.slice(0, 2).join(',').trim();
+  };
+
+  const defaultImage = 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800&q=80';
 
   return (
     <>
       <Card className="overflow-hidden hover:shadow-lg transition-shadow">
         <CardHeader className="pb-3">
-          <div className="flex items-center justify-end">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon">
-                  <MoreVertical className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => onEdit(listing.id)}>
-                  <Edit className="h-4 w-4 mr-2" />
-                  Edit
-                </DropdownMenuItem>
-                {isActive ? (
-                  <DropdownMenuItem onClick={() => onStatusChange(listing.id, "INACTIVE")}>
-                    <Power className="h-4 w-4 mr-2" />
-                    Deactivate
+          <div className="flex items-center justify-between">
+            {!listing.hasBrokerage && (
+              <span className="text-xs px-2 py-1 rounded-full bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-200 font-medium">
+                No Brokerage
+              </span>
+            )}
+            <div className={!listing.hasBrokerage ? '' : 'ml-auto'}>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon">
+                    <MoreVertical className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => onEdit(listing.id)}>
+                    <Edit className="mr-2 h-4 w-4" />
+                    Edit
                   </DropdownMenuItem>
-                ) : (
-                  <DropdownMenuItem onClick={() => onStatusChange(listing.id, "ACTIVE")}>
-                    <Power className="h-4 w-4 mr-2" />
-                    Activate
+                  <DropdownMenuItem
+                    onClick={() => setShowDeleteDialog(true)}
+                    className="text-destructive focus:text-destructive"
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Delete
                   </DropdownMenuItem>
-                )}
-                <DropdownMenuItem 
-                  onClick={() => setShowDeleteDialog(true)}
-                  className="text-destructive focus:text-destructive"
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Delete
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </div>
         </CardHeader>
 
         <CardContent className="space-y-4">
-          {/* Incomplete Warning */}
-          {isIncomplete && missingMessages.length > 0 && (
-            <div className="border-2 border-destructive/50 rounded-lg p-4 bg-destructive/5">
-              <div className="flex items-start gap-2 mb-3">
-                <AlertCircle className="h-5 w-5 text-destructive flex-shrink-0 mt-0.5" />
-                <div className="flex-1 space-y-1">
-                  {missingMessages.map((msg, idx) => (
-                    <p key={idx} className="text-sm text-destructive">{msg}</p>
-                  ))}
-                </div>
-              </div>
-              <Button 
-                variant="destructive" 
-                size="sm" 
-                className="w-full"
-                onClick={() => onEdit(listing.id)}
-              >
-                EDIT
-              </Button>
-            </div>
-          )}
-
-          {/* Listing Info */}
-          <div className="space-y-2">
-            <div className="text-2xl font-bold">₹{listing.monthlyRent?.toLocaleString() || 0}/mo</div>
-            <div className="text-sm text-muted-foreground capitalize">
-              {listing.listingType?.replace(/_/g, " ")}
-            </div>
-            <div className="text-sm">
-              {listing.layoutType} · {listing.bedroomCount} BR · {listing.propertyType?.[0] || "Property"}
-            </div>
-            <div className="text-sm text-muted-foreground truncate" title={listing.addressText}>
-              {listing.addressText || "No address provided"}
-            </div>
+          {/* Listing Image */}
+          <div className="aspect-video rounded-md overflow-hidden bg-muted">
+            <img
+              src={listing.photos && listing.photos.length > 0 ? listing.photos[0] : defaultImage}
+              alt="Room listing"
+              className="w-full h-full object-cover"
+            />
           </div>
 
-          {/* Status Badge */}
-          <div className="pt-2">
-            <span 
-              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                isActive 
-                  ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200" 
-                  : "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200"
-              }`}
-            >
-              {isActive ? "Active" : "Inactive"}
-            </span>
+          {/* Listing Details */}
+          <div className="space-y-2">
+            <div className="flex items-baseline justify-between">
+              <h3 className="text-2xl font-bold">₹{listing.monthlyRent.toLocaleString()}</h3>
+              <span className="text-sm text-muted-foreground">/month</span>
+            </div>
+            
+            <div className="text-sm text-muted-foreground space-y-1">
+              <p className="font-medium text-foreground">
+                {formatRoomType(listing.roomType, listing.bhkType)}
+              </p>
+              {listing.propertyTypes && listing.propertyTypes.length > 0 && (
+                <p className="text-foreground">{listing.propertyTypes[0]}</p>
+              )}
+              <p className="line-clamp-1">{formatAddress(listing.address)}</p>
+            </div>
+
+            {/* Lister Info */}
+            <div className="flex items-center gap-2 pt-2 border-t">
+              <div className="flex items-center gap-2 flex-1">
+                {listing.lister.profilePicture ? (
+                  <img 
+                    src={listing.lister.profilePicture} 
+                    alt={listing.lister.name}
+                    className="w-8 h-8 rounded-full object-cover"
+                  />
+                ) : (
+                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                    <span className="text-xs font-medium">{listing.lister.name.charAt(0)}</span>
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">{listing.lister.name}</p>
+                </div>
+              </div>
+              {listing.lister.verified && (
+                <span className="text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-200 font-medium whitespace-nowrap">
+                  ✓ Verified
+                </span>
+              )}
+            </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Delete Confirmation Dialog */}
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogTitle>Delete Listing</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete your listing.
+              Are you sure you want to delete this listing? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
