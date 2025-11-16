@@ -55,6 +55,7 @@ export default function CreateRoomListing() {
     maxAge: "",
     gender: "",
     profession: "",
+    renteeType: "",
     lifestyle: [] as string[],
     roommates: [] as RoommateData[],
     neighborhoodReview: "",
@@ -238,16 +239,6 @@ export default function CreateRoomListing() {
     );
   }
 
-  if (configLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
-          <p className="text-muted-foreground">Loading configuration...</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -566,6 +557,20 @@ export default function CreateRoomListing() {
                       ))}
                     </SelectContent>
                   )}
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="renteeType">Rentee Type</Label>
+                <Select value={formData.renteeType} onValueChange={(v) => handleFieldChange("renteeType", v)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {config?.renteeTypes?.map(type => (
+                      <SelectItem key={type.value} value={type.value}>{type.label}</SelectItem>
+                    ))}
+                  </SelectContent>
                 </Select>
               </div>
 
