@@ -384,7 +384,11 @@ export default function CreateRoomListing() {
         
         // Navigate to upload photos page for new listings
         if (savedListingId) {
-          navigate(`/upload-photos?id=${savedListingId}`);
+          navigate(`/upload-photos?id=${savedListingId}`, {
+            state: {
+              skipListingFetch: true,
+            },
+          });
         } else {
           navigate("/my-listings");
         }

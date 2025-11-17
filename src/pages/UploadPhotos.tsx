@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
 import { apiClient } from "@/lib/api";
 import Navbar from "@/components/Navbar";
@@ -12,7 +12,10 @@ import { Loader2, Image as ImageIcon, X, Upload } from "lucide-react";
 export default function UploadPhotos() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const location = useLocation();
   const listingId = searchParams.get("id");
+  const navigationState = location.state as { skipListingFetch?: boolean } | null;
+  const shouldSkipListingFetch = Boolean(navigationState?.skipListingFetch);
   
   const [uploadingImages, setUploadingImages] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -31,6 +34,10 @@ export default function UploadPhotos() {
           variant: "destructive",
         });
         navigate("/my-listings");
+        return;
+      }
+
+      if (shouldSkipListingFetch) {
         return;
       }
 
@@ -55,7 +62,7 @@ export default function UploadPhotos() {
     };
 
     loadExistingPhotos();
-  }, [listingId, navigate]);
+  }, [listingId, navigate, shouldSkipListingFetch]);
 
   const handlePropertyImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
