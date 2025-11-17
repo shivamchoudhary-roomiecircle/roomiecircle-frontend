@@ -184,7 +184,7 @@ class ApiClient {
         refreshToken: string;
         user: any;
       };
-    }>("/api/v1/auth/google/signup", {
+    }>("/api/v1/auth/google", {
       method: "POST",
       body: JSON.stringify({ idToken }),
       skipAuth: true,
@@ -201,7 +201,7 @@ class ApiClient {
         refreshToken: string;
         user: any;
       };
-    }>("/api/v1/auth/google/login", {
+    }>("/api/v1/auth/google", {
       method: "POST",
       body: JSON.stringify({ idToken }),
       skipAuth: true,
