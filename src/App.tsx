@@ -9,9 +9,9 @@ import { ConfigProvider } from "./contexts/ConfigContext";
 import { ThemeProvider } from "./components/ThemeProvider";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Index from "./pages/Index";
-import PostRoom from "./pages/PostRoom";
 import CreateRoomListing from "./pages/CreateRoomListing";
 import MyListings from "./pages/MyListings";
+import UploadPhotos from "./pages/UploadPhotos";
 import Signup from "./pages/auth/Signup";
 import Login from "./pages/auth/Login";
 import NotFound from "./pages/NotFound";
@@ -34,8 +34,9 @@ const App = () => (
                   <Route path="/" element={<Index />} />
                   <Route path="/auth/signup" element={<Signup />} />
                   <Route path="/auth/login" element={<Login />} />
-                  <Route path="/post-room" element={<ProtectedRoute><PostRoom /></ProtectedRoute>} />
                   <Route path="/create-listing" element={<ProtectedRoute><CreateRoomListing /></ProtectedRoute>} />
+                  <Route path="/edit-listing" element={<ProtectedRoute><CreateRoomListing /></ProtectedRoute>} />
+                  <Route path="/upload-photos" element={<ProtectedRoute><UploadPhotos /></ProtectedRoute>} />
                   <Route path="/my-listings" element={<ProtectedRoute><MyListings /></ProtectedRoute>} />
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="*" element={<NotFound />} />

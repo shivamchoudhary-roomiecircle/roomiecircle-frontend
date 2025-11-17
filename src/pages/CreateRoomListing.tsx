@@ -33,6 +33,8 @@ export default function CreateRoomListing() {
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(false);
   const [uploadingImages, setUploadingImages] = useState(false);
+  const [uploadingImageIndexes, setUploadingImageIndexes] = useState<Set<number>>(new Set());
+  const [uploadingNeighborhoodIndexes, setUploadingNeighborhoodIndexes] = useState<Set<number>>(new Set());
   
   const [formData, setFormData] = useState({
     description: "",
@@ -164,9 +166,21 @@ export default function CreateRoomListing() {
     const files = e.target.files;
     if (!files || files.length === 0 || !listingId) return;
 
+    // Create local preview URLs immediately
+    const fileArray = Array.from(files);
+    const previewUrls = fileArray.map(file => URL.createObjectURL(file));
+    const startIndex = formData.images.length;
+    
+    // Add preview URLs immediately for instant feedback
+    setFormData(prev => ({
+      ...prev,
+      images: [...prev.images, ...previewUrls]
+    }));
+    setUploadingImageIndexes(new Set(Array.from({ length: previewUrls.length }, (_, i) => startIndex + i)));
+
     setUploadingImages(true);
     try {
-      const uploadPromises = Array.from(files).map(async (file) => {
+      const uploadPromises = fileArray.map(async (file, index) => {
         // Validate file type
         const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
         if (!validTypes.includes(file.type)) {
@@ -193,22 +207,44 @@ export default function CreateRoomListing() {
           throw new Error(`Failed to upload ${file.name}`);
         }
 
-        return photoUrl;
+        return { index: startIndex + index, photoUrl };
       });
 
-      const uploadedUrls = await Promise.all(uploadPromises);
+      const results = await Promise.all(uploadPromises);
       
-      // Add uploaded photo URLs to form data
-      setFormData(prev => ({
-        ...prev,
-        images: [...prev.images, ...uploadedUrls]
-      }));
+      console.log("Uploaded photo URLs:", results);
+      
+      // Replace preview URLs with actual photo URLs
+      setFormData(prev => {
+        const newImages = [...prev.images];
+        results.forEach(({ index, photoUrl }) => {
+          // Revoke the blob URL to free memory
+          URL.revokeObjectURL(newImages[index]);
+          newImages[index] = photoUrl;
+        });
+        console.log("Updated images array:", newImages);
+        return {
+          ...prev,
+          images: newImages
+        };
+      });
 
+      setUploadingImageIndexes(new Set());
       toast({
         title: "Success",
-        description: `${uploadedUrls.length} photo(s) uploaded successfully`,
+        description: `${results.length} photo(s) uploaded successfully`,
       });
     } catch (error: any) {
+      // Remove failed previews
+      setFormData(prev => {
+        const newImages = prev.images.slice(0, startIndex);
+        previewUrls.forEach(url => URL.revokeObjectURL(url));
+        return {
+          ...prev,
+          images: newImages
+        };
+      });
+      setUploadingImageIndexes(new Set());
       toast({
         title: "Error",
         description: error?.message || "Failed to upload photos. Please try again.",
@@ -335,6 +371,7 @@ export default function CreateRoomListing() {
           title: "Success",
           description: "Your listing has been updated!",
         });
+        navigate("/my-listings");
       } else {
         // Create new listing using POST
         const response = await apiClient.createRoomListing(payload);
@@ -344,15 +381,14 @@ export default function CreateRoomListing() {
           title: "Success",
           description: "Your listing has been saved!",
         });
+        
+        // Navigate to upload photos page for new listings
+        if (savedListingId) {
+          navigate(`/upload-photos?id=${savedListingId}`);
+        } else {
+          navigate("/my-listings");
+        }
       }
-      
-      // If we have photos to upload and we just created a listing, upload them now
-      if (formData.images.length > 0 && savedListingId && !listingId) {
-        // Photos are already in formData.images, they'll be saved with the listing
-        // But if user uploaded new photos that need to be uploaded to storage, handle that
-      }
-      
-      navigate("/my-listings");
     } catch (error: any) {
       toast({
         title: "Error",
@@ -378,20 +414,8 @@ export default function CreateRoomListing() {
       <Navbar />
       
       <div className="container mx-auto px-4 py-8 max-w-4xl">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-3xl font-bold">{listingId ? "Edit Listing" : "List Your Room"}</h1>
-          </div>
-          <Button onClick={handleSave} size="lg" disabled={saving || loading}>
-            {saving ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                {listingId ? "Updating..." : "Saving..."}
-              </>
-            ) : (
-              listingId ? "Update Listing" : "Save Listing"
-            )}
-          </Button>
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold">{listingId ? "Edit Listing" : "List Your Room"}</h1>
         </div>
 
         {/* Basic Details */}
@@ -982,23 +1006,6 @@ export default function CreateRoomListing() {
           </CardContent>
         </Card>
 
-
-        <div className="flex justify-end gap-4 mb-6">
-          <Button variant="outline" onClick={() => navigate("/")}>
-            Cancel
-          </Button>
-          <Button onClick={handleSave} size="lg" disabled={saving || loading}>
-            {saving ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                {listingId ? "Updating..." : "Saving..."}
-              </>
-            ) : (
-              listingId ? "Update Listing" : "Save Listing"
-            )}
-          </Button>
-        </div>
-
         {/* Property Photos - Only show after listing is saved */}
         {listingId && (
           <Card className="mb-6">
@@ -1016,21 +1023,38 @@ export default function CreateRoomListing() {
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                     {formData.images.map((imageUrl, index) => (
                       <div key={index} className="relative group">
-                        <img
-                          src={imageUrl}
-                          alt={`Property photo ${index + 1}`}
-                          className="w-full h-48 object-cover rounded-lg"
-                        />
+                        <div className="w-full h-48 rounded-lg overflow-hidden bg-muted relative">
+                          {uploadingImageIndexes.has(index) && (
+                            <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-10">
+                              <Loader2 className="h-6 w-6 animate-spin text-white" />
+                            </div>
+                          )}
+                          <img
+                            src={imageUrl}
+                            alt={`Property photo ${index + 1}`}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              console.error("Failed to load image:", imageUrl);
+                              e.currentTarget.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Crect fill='%23ddd' width='100' height='100'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' fill='%23999'%3EImage%3C/text%3E%3C/svg%3E";
+                            }}
+                          />
+                        </div>
                         <button
                           type="button"
                           onClick={() => {
+                            const imageUrlToRemove = formData.images[index];
+                            // Revoke blob URL if it's a blob URL
+                            if (imageUrlToRemove && imageUrlToRemove.startsWith('blob:')) {
+                              URL.revokeObjectURL(imageUrlToRemove);
+                            }
                             setFormData(prev => ({
                               ...prev,
                               images: prev.images.filter((_, i) => i !== index)
                             }));
                           }}
-                          className="absolute top-2 right-2 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                          className="absolute top-2 right-2 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity z-10"
                           aria-label="Remove photo"
+                          disabled={uploadingImageIndexes.has(index)}
                         >
                           <X className="h-4 w-4" />
                         </button>
@@ -1095,21 +1119,38 @@ export default function CreateRoomListing() {
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                     {formData.neighborhoodImages.map((imageUrl, index) => (
                       <div key={index} className="relative group">
-                        <img
-                          src={imageUrl}
-                          alt={`Neighborhood photo ${index + 1}`}
-                          className="w-full h-48 object-cover rounded-lg"
-                        />
+                        <div className="w-full h-48 rounded-lg overflow-hidden bg-muted relative">
+                          {uploadingNeighborhoodIndexes.has(index) && (
+                            <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-10">
+                              <Loader2 className="h-6 w-6 animate-spin text-white" />
+                            </div>
+                          )}
+                          <img
+                            src={imageUrl}
+                            alt={`Neighborhood photo ${index + 1}`}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              console.error("Failed to load image:", imageUrl);
+                              e.currentTarget.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Crect fill='%23ddd' width='100' height='100'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' fill='%23999'%3EImage%3C/text%3E%3C/svg%3E";
+                            }}
+                          />
+                        </div>
                         <button
                           type="button"
                           onClick={() => {
+                            const imageUrlToRemove = formData.neighborhoodImages[index];
+                            // Revoke blob URL if it's a blob URL
+                            if (imageUrlToRemove && imageUrlToRemove.startsWith('blob:')) {
+                              URL.revokeObjectURL(imageUrlToRemove);
+                            }
                             setFormData(prev => ({
                               ...prev,
                               neighborhoodImages: prev.neighborhoodImages.filter((_, i) => i !== index)
                             }));
                           }}
-                          className="absolute top-2 right-2 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                          className="absolute top-2 right-2 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity z-10"
                           aria-label="Remove photo"
+                          disabled={uploadingNeighborhoodIndexes.has(index)}
                         >
                           <X className="h-4 w-4" />
                         </button>
@@ -1131,9 +1172,21 @@ export default function CreateRoomListing() {
                       const files = e.target.files;
                       if (!files || files.length === 0 || !listingId) return;
 
+                      // Create local preview URLs immediately
+                      const fileArray = Array.from(files);
+                      const previewUrls = fileArray.map(file => URL.createObjectURL(file));
+                      const startIndex = formData.neighborhoodImages.length;
+                      
+                      // Add preview URLs immediately for instant feedback
+                      setFormData(prev => ({
+                        ...prev,
+                        neighborhoodImages: [...prev.neighborhoodImages, ...previewUrls]
+                      }));
+                      setUploadingNeighborhoodIndexes(new Set(Array.from({ length: previewUrls.length }, (_, i) => startIndex + i)));
+
                       setUploadingImages(true);
                       try {
-                        const uploadPromises = Array.from(files).map(async (file) => {
+                        const uploadPromises = fileArray.map(async (file, index) => {
                           const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
                           if (!validTypes.includes(file.type)) {
                             throw new Error(`Invalid file type: ${file.type}`);
@@ -1155,21 +1208,41 @@ export default function CreateRoomListing() {
                             throw new Error(`Failed to upload ${file.name}`);
                           }
 
-                          return photoUrl;
+                          return { index: startIndex + index, photoUrl };
                         });
 
-                        const uploadedUrls = await Promise.all(uploadPromises);
+                        const results = await Promise.all(uploadPromises);
                         
-                        setFormData(prev => ({
-                          ...prev,
-                          neighborhoodImages: [...prev.neighborhoodImages, ...uploadedUrls]
-                        }));
+                        // Replace preview URLs with actual photo URLs
+                        setFormData(prev => {
+                          const newImages = [...prev.neighborhoodImages];
+                          results.forEach(({ index, photoUrl }) => {
+                            // Revoke the blob URL to free memory
+                            URL.revokeObjectURL(newImages[index]);
+                            newImages[index] = photoUrl;
+                          });
+                          return {
+                            ...prev,
+                            neighborhoodImages: newImages
+                          };
+                        });
 
+                        setUploadingNeighborhoodIndexes(new Set());
                         toast({
                           title: "Success",
-                          description: `${uploadedUrls.length} photo(s) uploaded successfully`,
+                          description: `${results.length} photo(s) uploaded successfully`,
                         });
                       } catch (error: any) {
+                        // Remove failed previews
+                        setFormData(prev => {
+                          const newImages = prev.neighborhoodImages.slice(0, startIndex);
+                          previewUrls.forEach(url => URL.revokeObjectURL(url));
+                          return {
+                            ...prev,
+                            neighborhoodImages: newImages
+                          };
+                        });
+                        setUploadingNeighborhoodIndexes(new Set());
                         toast({
                           title: "Error",
                           description: error?.message || "Failed to upload photos",
@@ -1208,6 +1281,23 @@ export default function CreateRoomListing() {
             </CardContent>
           </Card>
         )}
+
+        {/* Save/Update Button at Bottom */}
+        <div className="flex justify-end gap-4 mt-6">
+          <Button variant="outline" onClick={() => navigate("/my-listings")}>
+            Cancel
+          </Button>
+          <Button onClick={handleSave} size="lg" disabled={saving || loading}>
+            {saving ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                {listingId ? "Updating..." : "Saving..."}
+              </>
+            ) : (
+              listingId ? "Update Listing" : "Save Listing"
+            )}
+          </Button>
+        </div>
       </div>
 
       <Footer />

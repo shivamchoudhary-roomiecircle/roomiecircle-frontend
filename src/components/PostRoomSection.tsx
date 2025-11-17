@@ -84,7 +84,7 @@ const PostRoomSection = () => {
                     size="lg"
                     variant="hero"
                     className="w-full h-14 text-lg"
-                    onClick={() => navigate('/post-room')}
+                    onClick={() => navigate('/create-listing')}
                   >
                     <Plus className="mr-2 h-5 w-5" />
                     Post Your Room

@@ -269,13 +269,7 @@ const MyListings = () => {
   };
 
   const handleEdit = (listingId: string) => {
-    // Find the listing from current lists
-    const listing = [...activeListings, ...inactiveListings].find(l => l.id === listingId);
-    
-    // Pass listing data via navigation state to avoid refetching
-    navigate(`/create-listing?id=${listingId}`, { 
-      state: { listing } 
-    });
+    navigate(`/edit-listing?id=${listingId}`);
   };
 
   const currentListings = selectedTab === "active" ? activeListings : inactiveListings;

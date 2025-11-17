@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
+import { apiClient } from "@/lib/api";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -14,12 +15,51 @@ export default function UploadPhotos() {
   const listingId = searchParams.get("id");
   
   const [uploadingImages, setUploadingImages] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [propertyImages, setPropertyImages] = useState<string[]>([]);
   const [neighborhoodImages, setNeighborhoodImages] = useState<string[]>([]);
+  const [uploadingPropertyIndexes, setUploadingPropertyIndexes] = useState<Set<number>>(new Set());
+  const [uploadingNeighborhoodIndexes, setUploadingNeighborhoodIndexes] = useState<Set<number>>(new Set());
 
-  const handlePropertyImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Load existing photos if editing
+  useEffect(() => {
+    const loadExistingPhotos = async () => {
+      if (!listingId) {
+        toast({
+          title: "Error",
+          description: "No listing ID provided",
+          variant: "destructive",
+        });
+        navigate("/my-listings");
+        return;
+      }
+
+      try {
+        setLoading(true);
+        const listing = await apiClient.getRoomListing(listingId);
+        if (listing) {
+          const listingData = listing.data || listing;
+          setPropertyImages(listingData.images || []);
+          setNeighborhoodImages(listingData.neighborhoodImages || []);
+        }
+      } catch (error: any) {
+        console.error("Error loading listing:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load listing photos",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadExistingPhotos();
+  }, [listingId, navigate]);
+
+  const handlePropertyImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
-    if (!files) return;
+    if (!files || files.length === 0 || !listingId) return;
 
     if (propertyImages.length + files.length > 8) {
       toast({
@@ -30,14 +70,89 @@ export default function UploadPhotos() {
       return;
     }
 
-    // Simulate image upload - replace with actual upload logic
-    const newImages = Array.from(files).map(file => URL.createObjectURL(file));
-    setPropertyImages(prev => [...prev, ...newImages]);
+    // Create local preview URLs immediately
+    const fileArray = Array.from(files);
+    const previewUrls = fileArray.map(file => URL.createObjectURL(file));
+    const startIndex = propertyImages.length;
+    
+    // Add preview URLs immediately for instant feedback
+    setPropertyImages(prev => [...prev, ...previewUrls]);
+    setUploadingPropertyIndexes(new Set(Array.from({ length: previewUrls.length }, (_, i) => startIndex + i)));
+
+    setUploadingImages(true);
+    try {
+      const uploadPromises = fileArray.map(async (file, index) => {
+        // Validate file type
+        const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+        if (!validTypes.includes(file.type)) {
+          throw new Error(`Invalid file type: ${file.type}. Please upload JPEG, PNG, or WebP images.`);
+        }
+
+        // Get upload URL from API
+        const { uploadUrl, photoUrl } = await apiClient.getPhotoUploadUrl(
+          listingId,
+          file.type,
+          file.name
+        );
+
+        // Upload file to the provided URL
+        const uploadResponse = await fetch(uploadUrl, {
+          method: 'PUT',
+          body: file,
+          headers: {
+            'Content-Type': file.type,
+          },
+        });
+
+        if (!uploadResponse.ok) {
+          throw new Error(`Failed to upload ${file.name}`);
+        }
+
+        return { index: startIndex + index, photoUrl };
+      });
+
+      const results = await Promise.all(uploadPromises);
+      console.log("Uploaded property photo URLs:", results);
+      
+      // Replace preview URLs with actual photo URLs
+      setPropertyImages(prev => {
+        const newImages = [...prev];
+        results.forEach(({ index, photoUrl }) => {
+          // Revoke the blob URL to free memory
+          URL.revokeObjectURL(newImages[index]);
+          newImages[index] = photoUrl;
+        });
+        console.log("Updated property images array:", newImages);
+        return newImages;
+      });
+
+      setUploadingPropertyIndexes(new Set());
+      toast({
+        title: "Success",
+        description: `${results.length} photo(s) uploaded successfully`,
+      });
+    } catch (error: any) {
+      // Remove failed previews
+      setPropertyImages(prev => {
+        const newImages = prev.slice(0, startIndex);
+        previewUrls.forEach(url => URL.revokeObjectURL(url));
+        return newImages;
+      });
+      setUploadingPropertyIndexes(new Set());
+      toast({
+        title: "Error",
+        description: error?.message || "Failed to upload photos. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setUploadingImages(false);
+      e.target.value = '';
+    }
   };
 
-  const handleNeighborhoodImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleNeighborhoodImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
-    if (!files) return;
+    if (!files || files.length === 0 || !listingId) return;
 
     if (neighborhoodImages.length + files.length > 8) {
       toast({
@@ -48,20 +163,118 @@ export default function UploadPhotos() {
       return;
     }
 
-    // Simulate image upload - replace with actual upload logic
-    const newImages = Array.from(files).map(file => URL.createObjectURL(file));
-    setNeighborhoodImages(prev => [...prev, ...newImages]);
+    // Create local preview URLs immediately
+    const fileArray = Array.from(files);
+    const previewUrls = fileArray.map(file => URL.createObjectURL(file));
+    const startIndex = neighborhoodImages.length;
+    
+    // Add preview URLs immediately for instant feedback
+    setNeighborhoodImages(prev => [...prev, ...previewUrls]);
+    setUploadingNeighborhoodIndexes(new Set(Array.from({ length: previewUrls.length }, (_, i) => startIndex + i)));
+
+    setUploadingImages(true);
+    try {
+      const uploadPromises = fileArray.map(async (file, index) => {
+        // Validate file type
+        const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+        if (!validTypes.includes(file.type)) {
+          throw new Error(`Invalid file type: ${file.type}. Please upload JPEG, PNG, or WebP images.`);
+        }
+
+        // Get upload URL from API
+        const { uploadUrl, photoUrl } = await apiClient.getPhotoUploadUrl(
+          listingId,
+          file.type,
+          file.name
+        );
+
+        // Upload file to the provided URL
+        const uploadResponse = await fetch(uploadUrl, {
+          method: 'PUT',
+          body: file,
+          headers: {
+            'Content-Type': file.type,
+          },
+        });
+
+        if (!uploadResponse.ok) {
+          throw new Error(`Failed to upload ${file.name}`);
+        }
+
+        return { index: startIndex + index, photoUrl };
+      });
+
+      const results = await Promise.all(uploadPromises);
+      console.log("Uploaded neighborhood photo URLs:", results);
+      
+      // Replace preview URLs with actual photo URLs
+      setNeighborhoodImages(prev => {
+        const newImages = [...prev];
+        results.forEach(({ index, photoUrl }) => {
+          // Revoke the blob URL to free memory
+          URL.revokeObjectURL(newImages[index]);
+          newImages[index] = photoUrl;
+        });
+        console.log("Updated neighborhood images array:", newImages);
+        return newImages;
+      });
+
+      setUploadingNeighborhoodIndexes(new Set());
+      toast({
+        title: "Success",
+        description: `${results.length} photo(s) uploaded successfully`,
+      });
+    } catch (error: any) {
+      // Remove failed previews
+      setNeighborhoodImages(prev => {
+        const newImages = prev.slice(0, startIndex);
+        previewUrls.forEach(url => URL.revokeObjectURL(url));
+        return newImages;
+      });
+      setUploadingNeighborhoodIndexes(new Set());
+      toast({
+        title: "Error",
+        description: error?.message || "Failed to upload photos. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setUploadingImages(false);
+      e.target.value = '';
+    }
   };
 
   const removePropertyImage = (index: number) => {
-    setPropertyImages(prev => prev.filter((_, i) => i !== index));
+    setPropertyImages(prev => {
+      const imageUrl = prev[index];
+      // Revoke blob URL if it's a blob URL
+      if (imageUrl && imageUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(imageUrl);
+      }
+      return prev.filter((_, i) => i !== index);
+    });
   };
 
   const removeNeighborhoodImage = (index: number) => {
-    setNeighborhoodImages(prev => prev.filter((_, i) => i !== index));
+    setNeighborhoodImages(prev => {
+      const imageUrl = prev[index];
+      // Revoke blob URL if it's a blob URL
+      if (imageUrl && imageUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(imageUrl);
+      }
+      return prev.filter((_, i) => i !== index);
+    });
   };
 
   const handleSubmit = async () => {
+    if (!listingId) {
+      toast({
+        title: "Error",
+        description: "No listing ID provided",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (propertyImages.length < 3) {
       toast({
         title: "Not enough photos",
@@ -74,26 +287,41 @@ export default function UploadPhotos() {
     try {
       setUploadingImages(true);
       
-      // Add your API call here to upload images
-      // await apiClient.uploadListingImages(listingId, { propertyImages, neighborhoodImages });
+      // Update listing with photo URLs
+      await apiClient.updateRoomListing(listingId, {
+        images: propertyImages,
+        neighborhoodImages: neighborhoodImages,
+      });
       
       toast({
         title: "Success",
-        description: "Photos uploaded successfully!",
+        description: "Photos saved successfully!",
       });
 
-      navigate("/dashboard");
+      navigate("/my-listings");
     } catch (error: any) {
-      console.error("Error uploading images:", error);
+      console.error("Error saving photos:", error);
       toast({
         title: "Error",
-        description: error.message || "Failed to upload photos",
+        description: error?.message || "Failed to save photos",
         variant: "destructive",
       });
     } finally {
       setUploadingImages(false);
     }
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
+
+  if (!listingId) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -132,10 +360,11 @@ export default function UploadPhotos() {
                     id="property-images"
                     type="file"
                     multiple
-                    accept="image/*"
+                    accept="image/jpeg,image/jpg,image/png,image/webp"
+                    capture="environment"
                     className="hidden"
                     onChange={handlePropertyImageUpload}
-                    disabled={propertyImages.length >= 8}
+                    disabled={uploadingImages || propertyImages.length >= 8}
                   />
                 </Label>
               </div>
@@ -144,14 +373,27 @@ export default function UploadPhotos() {
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   {propertyImages.map((image, index) => (
                     <div key={index} className="relative group">
-                      <img
-                        src={image}
-                        alt={`Property ${index + 1}`}
-                        className="w-full h-32 object-cover rounded-lg"
-                      />
+                      <div className="w-full h-32 rounded-lg overflow-hidden bg-muted relative">
+                        {uploadingPropertyIndexes.has(index) && (
+                          <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-10">
+                            <Loader2 className="h-6 w-6 animate-spin text-white" />
+                          </div>
+                        )}
+                        <img
+                          src={image}
+                          alt={`Property ${index + 1}`}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            console.error("Failed to load image:", image);
+                            e.currentTarget.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Crect fill='%23ddd' width='100' height='100'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' fill='%23999'%3EImage%3C/text%3E%3C/svg%3E";
+                          }}
+                        />
+                      </div>
                       <button
                         onClick={() => removePropertyImage(index)}
-                        className="absolute top-2 right-2 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="absolute top-2 right-2 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                        aria-label="Remove photo"
+                        disabled={uploadingPropertyIndexes.has(index)}
                       >
                         <X className="h-4 w-4" />
                       </button>
@@ -189,10 +431,11 @@ export default function UploadPhotos() {
                     id="neighborhood-images"
                     type="file"
                     multiple
-                    accept="image/*"
+                    accept="image/jpeg,image/jpg,image/png,image/webp"
+                    capture="environment"
                     className="hidden"
                     onChange={handleNeighborhoodImageUpload}
-                    disabled={neighborhoodImages.length >= 8}
+                    disabled={uploadingImages || neighborhoodImages.length >= 8}
                   />
                 </Label>
               </div>
@@ -201,14 +444,27 @@ export default function UploadPhotos() {
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   {neighborhoodImages.map((image, index) => (
                     <div key={index} className="relative group">
-                      <img
-                        src={image}
-                        alt={`Neighborhood ${index + 1}`}
-                        className="w-full h-32 object-cover rounded-lg"
-                      />
+                      <div className="w-full h-32 rounded-lg overflow-hidden bg-muted relative">
+                        {uploadingNeighborhoodIndexes.has(index) && (
+                          <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-10">
+                            <Loader2 className="h-6 w-6 animate-spin text-white" />
+                          </div>
+                        )}
+                        <img
+                          src={image}
+                          alt={`Neighborhood ${index + 1}`}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            console.error("Failed to load image:", image);
+                            e.currentTarget.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Crect fill='%23ddd' width='100' height='100'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' fill='%23999'%3EImage%3C/text%3E%3C/svg%3E";
+                          }}
+                        />
+                      </div>
                       <button
                         onClick={() => removeNeighborhoodImage(index)}
-                        className="absolute top-2 right-2 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="absolute top-2 right-2 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                        aria-label="Remove photo"
+                        disabled={uploadingNeighborhoodIndexes.has(index)}
                       >
                         <X className="h-4 w-4" />
                       </button>
@@ -224,16 +480,22 @@ export default function UploadPhotos() {
             <Button
               type="button"
               variant="outline"
-              onClick={() => navigate("/dashboard")}
+              onClick={() => navigate("/my-listings")}
             >
               Skip
             </Button>
             <Button
               onClick={handleSubmit}
-              disabled={uploadingImages || propertyImages.length < 3}
+              disabled={uploadingImages || loading || propertyImages.length < 3}
             >
-              {uploadingImages && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Upload Photos
+              {uploadingImages ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                "Save Photos"
+              )}
             </Button>
           </div>
         </div>
