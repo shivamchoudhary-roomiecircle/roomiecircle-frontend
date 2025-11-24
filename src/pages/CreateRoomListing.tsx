@@ -29,13 +29,13 @@ export default function CreateRoomListing() {
   const [searchParams] = useSearchParams();
   const listingId = searchParams.get("id");
   const { config, loading: configLoading } = useConfig();
-  
+
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(false);
   const [uploadingImages, setUploadingImages] = useState(false);
   const [uploadingImageIndexes, setUploadingImageIndexes] = useState<Set<number>>(new Set());
   const [uploadingNeighborhoodIndexes, setUploadingNeighborhoodIndexes] = useState<Set<number>>(new Set());
-  
+
   const [formData, setFormData] = useState({
     description: "",
     monthlyRent: "",
@@ -75,13 +75,13 @@ export default function CreateRoomListing() {
   useEffect(() => {
     const fetchListingData = async () => {
       if (!listingId) return;
-      
+
       try {
         setLoading(true);
         const response = await apiClient.getRoomListing(listingId);
         // Handle response structure - could be response.data or response directly
         const listing = response.data || response;
-        
+
         // Transform and prefill form data
         setFormData({
           description: listing.description || "",
@@ -95,10 +95,10 @@ export default function CreateRoomListing() {
           latitude: listing.latitude || 0,
           longitude: listing.longitude || 0,
           roomType: listing.roomType || "",
-          propertyType: Array.isArray(listing.propertyType) 
-            ? listing.propertyType 
-            : listing.propertyType 
-              ? [listing.propertyType] 
+          propertyType: Array.isArray(listing.propertyType)
+            ? listing.propertyType
+            : listing.propertyType
+              ? [listing.propertyType]
               : [],
           bhkType: listing.bhkType || "",
           floor: listing.floor ? listing.floor.toString() : "",
@@ -162,15 +162,42 @@ export default function CreateRoomListing() {
     fetchListingData();
   }, [listingId, navigate]);
 
+  // Helper function to extract file key from presigned URL
+  const extractFileKey = (presignedUrl: string): string => {
+    try {
+      const url = new URL(presignedUrl);
+      // Remove leading slash and bucket name, get object key
+      const pathname = url.pathname.substring(1);
+      // Split on first slash after bucket name
+      const parts = pathname.split('/');
+      // Return everything after the bucket name
+      return parts.slice(1).join('/');
+    } catch (error) {
+      console.error("Error extracting file key:", error);
+      throw new Error("Failed to extract file key from URL");
+    }
+  };
+
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0 || !listingId) return;
+
+    // Check limit (8 per tag)
+    if (formData.images.length + files.length > 8) {
+      toast({
+        title: "Media limit exceeded",
+        description: "You can upload a maximum of 8 room photos",
+        variant: "destructive",
+      });
+      e.target.value = '';
+      return;
+    }
 
     // Create local preview URLs immediately
     const fileArray = Array.from(files);
     const previewUrls = fileArray.map(file => URL.createObjectURL(file));
     const startIndex = formData.images.length;
-    
+
     // Add preview URLs immediately for instant feedback
     setFormData(prev => ({
       ...prev,
@@ -187,15 +214,16 @@ export default function CreateRoomListing() {
           throw new Error(`Invalid file type: ${file.type}. Please upload JPEG, PNG, or WebP images.`);
         }
 
-        // Get upload URL from API
-        const { uploadUrl, photoUrl } = await apiClient.getPhotoUploadUrl(
+        // Step 1: Request upload URL
+        const { id, presigned_url } = await apiClient.requestMediaUploadUrl(
           listingId,
+          "room",
           file.type,
           file.name
         );
 
-        // Upload file to the provided URL
-        const uploadResponse = await fetch(uploadUrl, {
+        // Step 2: Upload to GCS
+        const uploadResponse = await fetch(presigned_url, {
           method: 'PUT',
           body: file,
           headers: {
@@ -207,20 +235,28 @@ export default function CreateRoomListing() {
           throw new Error(`Failed to upload ${file.name}`);
         }
 
-        return { index: startIndex + index, photoUrl };
+        // Step 3: Confirm upload
+        const fileKey = extractFileKey(presigned_url);
+        await apiClient.confirmMediaUpload(listingId, fileKey);
+
+        // Return the media URL (will be from CDN once processed)
+        return { index: startIndex + index, mediaId: id, presigned_url };
       });
 
       const results = await Promise.all(uploadPromises);
-      
-      console.log("Uploaded photo URLs:", results);
-      
-      // Replace preview URLs with actual photo URLs
+
+      console.log("Uploaded media:", results);
+
+      // For now, store the presigned URLs - these will be replaced by CDN URLs once processed
+      // In production, you might want to fetch the media list to get CDN URLs
       setFormData(prev => {
         const newImages = [...prev.images];
-        results.forEach(({ index, photoUrl }) => {
+        results.forEach(({ index, presigned_url }) => {
           // Revoke the blob URL to free memory
           URL.revokeObjectURL(newImages[index]);
-          newImages[index] = photoUrl;
+          // Extract base URL without query params for cleaner storage
+          const url = new URL(presigned_url);
+          newImages[index] = `${url.origin}${url.pathname}`;
         });
         console.log("Updated images array:", newImages);
         return {
@@ -235,6 +271,21 @@ export default function CreateRoomListing() {
         description: `${results.length} photo(s) uploaded successfully`,
       });
     } catch (error: any) {
+      // Check for media limit error
+      if (error?.message?.includes("Media limit exceeded")) {
+        toast({
+          title: "Upload limit reached",
+          description: "Maximum 8 photos per room listing",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: error?.message || "Failed to upload photos. Please try again.",
+          variant: "destructive",
+        });
+      }
+
       // Remove failed previews
       setFormData(prev => {
         const newImages = prev.images.slice(0, startIndex);
@@ -245,11 +296,6 @@ export default function CreateRoomListing() {
         };
       });
       setUploadingImageIndexes(new Set());
-      toast({
-        title: "Error",
-        description: error?.message || "Failed to upload photos. Please try again.",
-        variant: "destructive",
-      });
     } finally {
       setUploadingImages(false);
       // Reset input
@@ -328,7 +374,7 @@ export default function CreateRoomListing() {
     setSaving(true);
     try {
       const payload: any = {};
-      
+
       // Only include non-empty fields
       if (formData.description) payload.description = formData.description;
       if (formData.monthlyRent) payload.monthlyRent = parseInt(formData.monthlyRent);
@@ -362,7 +408,7 @@ export default function CreateRoomListing() {
       if (formData.neighborhoodImages.length > 0) payload.neighborhoodImages = formData.neighborhoodImages;
 
       let savedListingId = listingId;
-      
+
       if (listingId) {
         // Update existing listing using PATCH
         const response = await apiClient.updateRoomListing(listingId, payload);
@@ -381,7 +427,7 @@ export default function CreateRoomListing() {
           title: "Success",
           description: "Your listing has been saved!",
         });
-        
+
         // Navigate to upload photos page for new listings
         if (savedListingId) {
           navigate(`/upload-photos?id=${savedListingId}`, {
@@ -407,16 +453,16 @@ export default function CreateRoomListing() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen">
       <Navbar />
-      
+
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         <div className="mb-6">
           <h1 className="text-3xl font-bold">{listingId ? "Edit Listing" : "List Your Room"}</h1>
@@ -943,11 +989,10 @@ export default function CreateRoomListing() {
                       aria-label={`Rate ${star} out of 5 stars for safety`}
                     >
                       <Star
-                        className={`h-6 w-6 transition-colors ${
-                          star <= formData.neighborhoodRatings.safety
-                            ? "fill-yellow-400 text-yellow-400"
-                            : "fill-none text-muted-foreground"
-                        }`}
+                        className={`h-6 w-6 transition-colors ${star <= formData.neighborhoodRatings.safety
+                          ? "fill-yellow-400 text-yellow-400"
+                          : "fill-none text-muted-foreground"
+                          }`}
                       />
                     </button>
                   ))}
@@ -968,11 +1013,10 @@ export default function CreateRoomListing() {
                       aria-label={`Rate ${star} out of 5 stars for connectivity`}
                     >
                       <Star
-                        className={`h-6 w-6 transition-colors ${
-                          star <= formData.neighborhoodRatings.connectivity
-                            ? "fill-yellow-400 text-yellow-400"
-                            : "fill-none text-muted-foreground"
-                        }`}
+                        className={`h-6 w-6 transition-colors ${star <= formData.neighborhoodRatings.connectivity
+                          ? "fill-yellow-400 text-yellow-400"
+                          : "fill-none text-muted-foreground"
+                          }`}
                       />
                     </button>
                   ))}
@@ -993,11 +1037,10 @@ export default function CreateRoomListing() {
                       aria-label={`Rate ${star} out of 5 stars for amenities`}
                     >
                       <Star
-                        className={`h-6 w-6 transition-colors ${
-                          star <= formData.neighborhoodRatings.amenities
-                            ? "fill-yellow-400 text-yellow-400"
-                            : "fill-none text-muted-foreground"
-                        }`}
+                        className={`h-6 w-6 transition-colors ${star <= formData.neighborhoodRatings.amenities
+                          ? "fill-yellow-400 text-yellow-400"
+                          : "fill-none text-muted-foreground"
+                          }`}
                       />
                     </button>
                   ))}
@@ -1176,11 +1219,22 @@ export default function CreateRoomListing() {
                       const files = e.target.files;
                       if (!files || files.length === 0 || !listingId) return;
 
+                      // Check limit (8 per tag)
+                      if (formData.neighborhoodImages.length + files.length > 8) {
+                        toast({
+                          title: "Media limit exceeded",
+                          description: "You can upload a maximum of 8 neighborhood photos",
+                          variant: "destructive",
+                        });
+                        e.target.value = '';
+                        return;
+                      }
+
                       // Create local preview URLs immediately
                       const fileArray = Array.from(files);
                       const previewUrls = fileArray.map(file => URL.createObjectURL(file));
                       const startIndex = formData.neighborhoodImages.length;
-                      
+
                       // Add preview URLs immediately for instant feedback
                       setFormData(prev => ({
                         ...prev,
@@ -1191,39 +1245,50 @@ export default function CreateRoomListing() {
                       setUploadingImages(true);
                       try {
                         const uploadPromises = fileArray.map(async (file, index) => {
+                          // Validate file type
                           const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
                           if (!validTypes.includes(file.type)) {
-                            throw new Error(`Invalid file type: ${file.type}`);
+                            throw new Error(`Invalid file type: ${file.type}. Please upload JPEG, PNG, or WebP images.`);
                           }
 
-                          const { uploadUrl, photoUrl } = await apiClient.getPhotoUploadUrl(
+                          // Step 1: Request upload URL
+                          const { id, presigned_url } = await apiClient.requestMediaUploadUrl(
                             listingId,
+                            "neighbourhood",
                             file.type,
                             file.name
                           );
 
-                          const uploadResponse = await fetch(uploadUrl, {
+                          // Step 2: Upload to GCS
+                          const uploadResponse = await fetch(presigned_url, {
                             method: 'PUT',
                             body: file,
-                            headers: { 'Content-Type': file.type },
+                            headers: {
+                              'Content-Type': file.type,
+                            },
                           });
 
                           if (!uploadResponse.ok) {
                             throw new Error(`Failed to upload ${file.name}`);
                           }
 
-                          return { index: startIndex + index, photoUrl };
+                          // Step 3: Confirm upload
+                          const fileKey = extractFileKey(presigned_url);
+                          await apiClient.confirmMediaUpload(listingId, fileKey);
+
+                          return { index: startIndex + index, mediaId: id, presigned_url };
                         });
 
                         const results = await Promise.all(uploadPromises);
-                        
-                        // Replace preview URLs with actual photo URLs
+                        console.log("Uploaded neighborhood media:", results);
+
+                        // Replace preview URLs with actual URLs
                         setFormData(prev => {
                           const newImages = [...prev.neighborhoodImages];
-                          results.forEach(({ index, photoUrl }) => {
-                            // Revoke the blob URL to free memory
+                          results.forEach(({ index, presigned_url }) => {
                             URL.revokeObjectURL(newImages[index]);
-                            newImages[index] = photoUrl;
+                            const url = new URL(presigned_url);
+                            newImages[index] = `${url.origin}${url.pathname}`;
                           });
                           return {
                             ...prev,
@@ -1237,6 +1302,21 @@ export default function CreateRoomListing() {
                           description: `${results.length} photo(s) uploaded successfully`,
                         });
                       } catch (error: any) {
+                        // Check for media limit error
+                        if (error?.message?.includes("Media limit exceeded")) {
+                          toast({
+                            title: "Upload limit reached",
+                            description: "Maximum 8 photos per neighborhood listing",
+                            variant: "destructive",
+                          });
+                        } else {
+                          toast({
+                            title: "Error",
+                            description: error?.message || "Failed to upload photos. Please try again.",
+                            variant: "destructive",
+                          });
+                        }
+
                         // Remove failed previews
                         setFormData(prev => {
                           const newImages = prev.neighborhoodImages.slice(0, startIndex);
@@ -1247,11 +1327,6 @@ export default function CreateRoomListing() {
                           };
                         });
                         setUploadingNeighborhoodIndexes(new Set());
-                        toast({
-                          title: "Error",
-                          description: error?.message || "Failed to upload photos",
-                          variant: "destructive",
-                        });
                       } finally {
                         setUploadingImages(false);
                         e.target.value = '';

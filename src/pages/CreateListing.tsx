@@ -27,9 +27,9 @@ interface RoommateData {
 export default function CreateListing() {
   const navigate = useNavigate();
   const { config, loading: configLoading } = useConfig();
-  
+
   const [saving, setSaving] = useState(false);
-  
+
   const [formData, setFormData] = useState({
     description: "",
     monthlyRent: "",
@@ -169,7 +169,7 @@ export default function CreateListing() {
       };
 
       const response = await apiClient.createRoomListing(payload);
-      
+
       toast({
         title: "Success",
         description: "Listing created successfully!",
@@ -198,7 +198,7 @@ export default function CreateListing() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen">
       <Navbar />
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         <div className="mb-8">
@@ -405,7 +405,7 @@ export default function CreateListing() {
             </CardHeader>
             <CardContent>
               <Label>Address</Label>
-              <LocationAutocomplete 
+              <LocationAutocomplete
                 value={formData.addressText}
                 onChange={(value, placeId) => {
                   setFormData(prev => ({

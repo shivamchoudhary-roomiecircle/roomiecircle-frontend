@@ -74,7 +74,7 @@ export const RoommatesResults = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen">
       {/* Search Bar */}
       <div className="md:sticky top-0 z-40 bg-background border-b border-border">
         <div className="container mx-auto px-4 py-4">

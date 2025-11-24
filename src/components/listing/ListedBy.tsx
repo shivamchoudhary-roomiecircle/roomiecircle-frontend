@@ -1,0 +1,55 @@
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
+interface ListedByProps {
+    lister: {
+        name: string;
+        profilePicture?: string;
+        verificationLevel?: string;
+        profileScore?: number;
+    };
+}
+
+export function ListedBy({ lister }: ListedByProps) {
+    return (
+        <Card className="border-none shadow-sm bg-card/50 backdrop-blur-sm">
+            <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Posted by</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+                <div className="flex items-center gap-3">
+                    <Avatar className="h-12 w-12 border-2 border-background shadow-sm">
+                        <AvatarImage src={lister?.profilePicture} />
+                        <AvatarFallback className="text-sm bg-primary/10 text-primary">
+                            {lister?.name?.charAt(0).toUpperCase() || "U"}
+                        </AvatarFallback>
+                    </Avatar>
+                    <div>
+                        <h3 className="font-semibold text-base">{lister?.name || "Host"}</h3>
+                        {lister?.verificationLevel && (
+                            <div className="flex items-center gap-1.5 mt-0.5">
+                                <Badge variant="secondary" className="h-5 text-[10px] px-1.5 font-normal">
+                                    {lister.verificationLevel} Verified
+                                </Badge>
+                                {lister.profileScore && (
+                                    <span className="text-xs text-muted-foreground">• {lister.profileScore} Score</span>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                    <Button className="w-full font-semibold shadow-sm" size="sm">
+                        Start a chat
+                    </Button>
+                    <Button variant="outline" className="w-full shadow-sm" size="sm">
+                        View Profile
+                    </Button>
+                </div>
+            </CardContent>
+        </Card>
+    );
+}

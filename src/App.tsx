@@ -12,6 +12,7 @@ import Index from "./pages/Index";
 import CreateRoomListing from "./pages/CreateRoomListing";
 import MyListings from "./pages/MyListings";
 import UploadPhotos from "./pages/UploadPhotos";
+import ViewListing from "./pages/ViewListing";
 import Signup from "./pages/auth/Signup";
 import Login from "./pages/auth/Login";
 import NotFound from "./pages/NotFound";
@@ -38,6 +39,7 @@ const App = () => (
                   <Route path="/edit-listing" element={<ProtectedRoute><CreateRoomListing /></ProtectedRoute>} />
                   <Route path="/upload-photos" element={<ProtectedRoute><UploadPhotos /></ProtectedRoute>} />
                   <Route path="/my-listings" element={<ProtectedRoute><MyListings /></ProtectedRoute>} />
+                  <Route path="/listings/:id" element={<ViewListing />} />
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="*" element={<NotFound />} />
                 </Routes>

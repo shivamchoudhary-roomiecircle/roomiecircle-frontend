@@ -1,23 +1,17 @@
+
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { MoreVertical, Edit, Trash2 } from "lucide-react";
 import { useState } from "react";
+import "./ListingCard.css";
 
 interface Listing {
   id: string;
@@ -39,6 +33,7 @@ interface Listing {
   layoutTypeKey: string | null;
   propertyTypes: string[];
   propertyTypeKeys: string[];
+  status?: string;
 }
 
 interface ListingCardProps {
@@ -57,19 +52,19 @@ const ListingCard = ({ listing, onEdit, onDelete, onStatusChange }: ListingCardP
       return "Room details not specified";
     }
     if (!roomType) {
-      return bhkType ? `Room in a ${bhkType.toUpperCase()}` : "Room";
+      return bhkType ? `Room in a ${bhkType.toUpperCase()} ` : "Room";
     }
     if (!bhkType) {
-      const roomTypeFormatted = roomType.split('_').map(word => 
+      const roomTypeFormatted = roomType.split('_').map(word =>
         word.charAt(0).toUpperCase() + word.slice(1)
       ).join(' ');
       return roomTypeFormatted;
     }
-    const roomTypeFormatted = roomType.split('_').map(word => 
+    const roomTypeFormatted = roomType.split('_').map(word =>
       word.charAt(0).toUpperCase() + word.slice(1)
     ).join(' ');
     const bhkFormatted = bhkType.toUpperCase();
-    return `${roomTypeFormatted} in a ${bhkFormatted}`;
+    return `${roomTypeFormatted} in a ${bhkFormatted} `;
   };
 
   // Format address to show only first part
@@ -83,17 +78,29 @@ const ListingCard = ({ listing, onEdit, onDelete, onStatusChange }: ListingCardP
 
   const defaultImage = 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800&q=80';
 
+  const handleToggleStatus = () => {
+    const newStatus = listing.status === "ACTIVE" ? "INACTIVE" : "ACTIVE";
+    onStatusChange(listing.id, newStatus);
+  };
+
   return (
     <>
-      <Card className="overflow-hidden hover:shadow-lg transition-shadow">
+      <Card className="overflow-hidden hover:shadow-elevated relative transition-all duration-300">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
-            {!listing.hasBrokerage && (
-              <span className="text-xs px-2 py-1 rounded-full bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-200 font-medium">
-                No Brokerage
-              </span>
-            )}
-            <div className={!listing.hasBrokerage ? '' : 'ml-auto'}>
+            {/* Status Toggle */}
+            <div className="flex items-center space-x-2">
+              <Switch
+                id={`status-${listing.id}`}
+                checked={listing.status === "ACTIVE"}
+                onCheckedChange={handleToggleStatus}
+              />
+              <Label htmlFor={`status-${listing.id}`} className="text-sm font-medium">
+                {listing.status === "ACTIVE" ? "Active" : "Inactive"}
+              </Label>
+            </div>
+
+            <div className="ml-auto">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="icon">
@@ -132,11 +139,11 @@ const ListingCard = ({ listing, onEdit, onDelete, onStatusChange }: ListingCardP
           <div className="space-y-2">
             <div className="flex items-baseline justify-between">
               <h3 className="text-2xl font-bold">
-                {listing.monthlyRent ? `₹${listing.monthlyRent.toLocaleString()}` : "Price not set"}
+                {listing.monthlyRent ? `₹${listing.monthlyRent.toLocaleString()} ` : "Price not set"}
               </h3>
               {listing.monthlyRent && <span className="text-sm text-muted-foreground">/month</span>}
             </div>
-            
+
             <div className="text-sm text-muted-foreground space-y-1">
               <p className="font-medium text-foreground">
                 {formatRoomType(listing.roomType, listing.bhkType)}
@@ -151,8 +158,8 @@ const ListingCard = ({ listing, onEdit, onDelete, onStatusChange }: ListingCardP
             <div className="flex items-center gap-2 pt-2 border-t">
               <div className="flex items-center gap-2 flex-1">
                 {listing.lister.profilePicture ? (
-                  <img 
-                    src={listing.lister.profilePicture} 
+                  <img
+                    src={listing.lister.profilePicture}
                     alt={listing.lister.name}
                     className="w-8 h-8 rounded-full object-cover"
                   />
@@ -175,28 +182,44 @@ const ListingCard = ({ listing, onEdit, onDelete, onStatusChange }: ListingCardP
         </CardContent>
       </Card>
 
-      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Listing</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete this listing? This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => {
-                onDelete(listing.id);
-                setShowDeleteDialog(false);
-              }}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {/* Custom Delete Confirmation Popup */}
+      {showDeleteDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="delete-card">
+            <div className="delete-header">
+              <div className="delete-image">
+                <svg aria-hidden="true" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24" fill="none">
+                  <path d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" strokeLinejoin="round" strokeLinecap="round"></path>
+                </svg>
+              </div>
+              <div className="delete-content">
+                <span className="delete-title">Delete Listing</span>
+                <p className="delete-message">Are you sure you want to delete this listing? This action cannot be undone.</p>
+
+              </div>
+              <div className="delete-actions">
+                <button
+                  className="delete-desactivate"
+                  type="button"
+                  onClick={() => {
+                    onDelete(listing.id);
+                    setShowDeleteDialog(false);
+                  }}
+                >
+                  Delete
+                </button>
+                <button
+                  className="delete-cancel"
+                  type="button"
+                  onClick={() => setShowDeleteDialog(false)}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 };

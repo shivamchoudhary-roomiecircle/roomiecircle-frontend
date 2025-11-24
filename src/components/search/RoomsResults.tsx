@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { LocationAutocomplete } from "./LocationAutocomplete";
 import { Button } from "@/components/ui/button";
 import { useConfig } from "@/contexts/ConfigContext";
@@ -16,8 +17,10 @@ import { apiClient } from "@/lib/api";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useDebounce } from "@/hooks/useDebounce";
+import { PremiumSlider } from "@/components/ui/PremiumSlider";
 
 export const RoomsResults = () => {
+  const navigate = useNavigate();
   const { config } = useConfig();
   const [location, setLocation] = useState("");
   const [placeId, setPlaceId] = useState("");
@@ -40,7 +43,7 @@ export const RoomsResults = () => {
   const [duration, setDuration] = useState("");
   const [roomType, setRoomType] = useState("");
   const [mapBounds, setMapBounds] = useState<{ minLat: number; maxLat: number; minLng: number; maxLng: number } | null>(null);
-  
+
   const debouncedBounds = useDebounce(mapBounds, 300);
 
   const handleLocationChange = async (value: string, id?: string) => {
@@ -49,22 +52,24 @@ export const RoomsResults = () => {
       setPlaceId(id);
       // Fetch place details and listings
       try {
+        const mappedRoomType = roomType === "private" ? "private_room" : roomType === "shared" ? "shared_room" : undefined;
+        const mappedBhkType = layout === "studio" ? "RK" : layout === "1br" ? "1BHK" : layout === "2br" ? "2BHK" : layout === "3br+" ? "3BHK" : undefined;
+
         const data = await apiClient.searchPlaceListings(id, {
           radiusKm: radius || 5,
           minRent: minPrice ? parseInt(minPrice) : undefined,
           maxRent: maxPrice ? parseInt(maxPrice) : undefined,
-          layoutType: roomType ? [roomType] : undefined,
+          roomType: mappedRoomType ? [mappedRoomType] : undefined,
+          bhkType: mappedBhkType ? [mappedBhkType] : undefined,
           amenities: amenities,
         });
-        
-        if (data.place) {
-          setMapCenter({
-            lat: data.place.latitude,
-            lng: data.place.longitude,
-          });
-        }
-        
+
+        // Map center update is removed as new API doesn't return place details directly in the same structure
+        // If we need map center, we might need to get it from the autocomplete selection or a separate call
+        // For now, we'll assume the list update is the priority.
+
         setListings(data.listings || []);
+        setTotalElements(data.totalElements || 0);
       } catch (error) {
         console.error("Error fetching place listings:", error);
       }
@@ -133,7 +138,7 @@ export const RoomsResults = () => {
   return (
     <>
       {viewMode === "list" ? (
-        <div className="min-h-screen bg-background">
+        <div className="min-h-screen">
           {/* Search Bar */}
           <div className="md:sticky top-0 z-40 bg-background border-b border-border">
             <div className="container mx-auto px-4 py-4">
@@ -207,32 +212,19 @@ export const RoomsResults = () => {
                   </SelectContent>
                 </Select>
 
-                <div className="flex items-center gap-2 border border-border rounded-lg px-3 h-12">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => adjustRadius(-1)}
-                    className="h-8 w-8 p-0"
-                  >
-                    <Minus className="h-4 w-4" />
-                  </Button>
-                  <Input
-                    type="number"
+                <div className="w-[200px] px-2">
+                  <PremiumSlider
                     value={radius}
-                    onChange={(e) => handleRadiusInput(e.target.value)}
-                    className="h-8 w-16 text-center text-sm border-0 p-0 focus-visible:ring-0"
+                    onChange={setRadius}
+                    onCommit={(val) => {
+                      // Trigger search with new radius
+                      if (placeId) {
+                        handleLocationChange(location, placeId);
+                      }
+                    }}
                     min={1}
                     max={100}
                   />
-                  <span className="text-sm font-medium">km</span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => adjustRadius(1)}
-                    className="h-8 w-8 p-0"
-                  >
-                    <Plus className="h-4 w-4" />
-                  </Button>
                 </div>
 
                 <Button
@@ -421,110 +413,45 @@ export const RoomsResults = () => {
                   ))
                 ) : (
                   listings.map((listing) => (
-                    <div 
-                      key={listing.id} 
+                    <div
+                      key={listing.id}
                       className="group bg-card rounded-xl border border-border/50 overflow-hidden hover:shadow-xl hover:shadow-primary/5 hover:border-primary/30 transition-all duration-300 cursor-pointer hover:-translate-y-1"
                       onClick={() => {
-                        // TODO: Navigate to detailed listing page
-                        console.log('Open listing details:', listing.id);
+                        navigate(`/listings/${listing.id}`);
                       }}
                     >
                       <div className="aspect-[4/3] bg-muted relative overflow-hidden">
                         {listing.images?.[0] && (
-                          <img 
-                            src={listing.images[0]} 
-                            alt={listing.description || "Room"} 
+                          <img
+                            src={listing.images[0]}
+                            alt={listing.description || "Room"}
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                           />
                         )}
                         <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
                       </div>
-                      
-                      <div className="p-4 space-y-3">
-                        {/* Profile and Price Row */}
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="flex items-center gap-2.5">
-                            <Avatar className="w-11 h-11 border-2 border-background shadow-md">
-                              {listing.lister?.profilePicture && (
-                                <AvatarImage src={listing.lister.profilePicture} alt={listing.lister.name || "Host"} />
-                              )}
-                              <AvatarFallback className="bg-primary text-primary-foreground font-semibold text-base">
-                                {listing.lister?.name?.charAt(0)?.toUpperCase() || "L"}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div className="min-w-0">
-                              <p className="font-semibold text-sm text-foreground truncate">
-                                {listing.lister?.name || "Host"}
-                              </p>
-                              <p className="text-xs text-muted-foreground truncate">
-                                {listing.listingType === "FULL_HOUSE" 
-                                  ? "Full House" 
-                                  : listing.existingRoommates?.length 
-                                    ? `${listing.existingRoommates.length} Roommate${listing.existingRoommates.length !== 1 ? "s" : ""}`
-                                    : "Private"}
-                              </p>
-                            </div>
-                          </div>
-                          
-                          <div className="flex items-start gap-3 flex-shrink-0">
-                            <div className="text-right">
-                              <p className="text-xl font-bold text-foreground leading-tight">
-                                ₹{(listing.monthlyRent || 0).toLocaleString('en-IN')}
-                              </p>
-                              <p className="text-xs text-muted-foreground font-medium">rent/mo</p>
-                            </div>
-                            {listing.deposit && listing.deposit > 0 && (
-                              <div className="text-right pl-3 border-l border-border/50">
-                                <p className="text-base font-semibold text-foreground leading-tight">
-                                  ₹{listing.deposit.toLocaleString('en-IN')}
-                                </p>
-                                <p className="text-xs text-muted-foreground font-medium">deposit</p>
-                              </div>
-                            )}
+
+                      <div className="p-4 space-y-2">
+                        {/* Price and Type */}
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <p className="text-lg font-bold text-foreground">
+                              ₹{(listing.monthlyRent || 0).toLocaleString('en-IN')}
+                              <span className="text-xs font-normal text-muted-foreground ml-1">/mo</span>
+                            </p>
+                            <p className="text-sm text-muted-foreground font-medium mt-0.5">
+                              {listing.listingType === "PRIVATE_ROOM" ? "Private Room" :
+                                listing.listingType === "SHARED_ROOM" ? "Shared Room" : "Full House"}
+                              <span className="mx-1.5">•</span>
+                              {listing.layoutType || "Studio"}
+                            </p>
                           </div>
                         </div>
 
-                        {/* Listing Type Details */}
-                        <div className="flex items-center gap-2 text-sm pt-1">
-                          <span className="font-semibold text-foreground">
-                            {listing.listingType === "FULL_HOUSE" 
-                              ? "Full House" 
-                              : listing.listingType === "PRIVATE_ROOM"
-                                ? "Private Room"
-                                : "Shared Room"}
-                          </span>
-                          <span className="text-muted-foreground/40">•</span>
-                          <span className="text-muted-foreground font-medium uppercase text-xs tracking-wide">
-                            {listing.layoutType || "Studio"}
-                          </span>
-                          {listing.propertyType?.[0] && (
-                            <>
-                              <span className="text-muted-foreground/40">•</span>
-                              <span className="text-muted-foreground text-xs capitalize">
-                                {listing.propertyType[0].replace(/_/g, ' ')}
-                              </span>
-                            </>
-                          )}
-                        </div>
-
-                        {/* Available From */}
-                        <div className="flex items-center gap-1.5 text-sm bg-muted/30 rounded-md px-3 py-2">
-                          <span className="text-muted-foreground font-medium">Available</span>
-                          <span className="font-semibold text-foreground">
-                            {listing.availableDate 
-                              ? new Date(listing.availableDate).toLocaleDateString('en-IN', { 
-                                  day: 'numeric', 
-                                  month: 'short', 
-                                  year: 'numeric' 
-                                }) 
-                              : "Immediately"}
-                          </span>
-                        </div>
-
-                        {/* Address */}
-                        <div className="flex items-start gap-2 text-sm pt-1">
-                          <MapPin className="h-4 w-4 flex-shrink-0 mt-0.5 text-primary" />
-                          <p className="line-clamp-1 flex-1 text-muted-foreground">
+                        {/* Location */}
+                        <div className="flex items-center gap-1.5 text-sm text-muted-foreground pt-1">
+                          <MapPin className="h-3.5 w-3.5 flex-shrink-0" />
+                          <p className="line-clamp-1">
                             {listing.addressText || "Location not specified"}
                           </p>
                         </div>
@@ -749,8 +676,8 @@ export const RoomsResults = () => {
 
           {/* Full Screen Map */}
           <div className="h-full w-full">
-            <GoogleMap 
-              center={mapCenter} 
+            <GoogleMap
+              center={mapCenter}
               listings={listings}
               onBoundsChange={setMapBounds}
             />

@@ -1,4 +1,4 @@
-const API_BASE_URL = "https://staging-api.roomiecircle.com";
+const API_BASE_URL = "http://localhost:8080";
 
 class ApiClient {
   private getAuthHeader(): HeadersInit {
@@ -38,7 +38,7 @@ class ApiClient {
         const errorMessage = responseData.message || "Authentication failed";
         throw new Error(errorMessage);
       }
-      
+
       // For other endpoints, try to refresh token
       const refreshed = await this.refreshToken();
       if (refreshed) {
@@ -213,7 +213,7 @@ class ApiClient {
   async searchPlaces(input: string, sessionToken?: string) {
     const params = new URLSearchParams({ input });
     if (sessionToken) params.append("sessionToken", sessionToken);
-    
+
     const response = await this.request<{
       success: boolean;
       data: {
@@ -234,43 +234,56 @@ class ApiClient {
     radiusKm?: number;
     minRent?: number;
     maxRent?: number;
-    availableAfter?: string;
     propertyType?: string[];
-    layoutType?: string[];
+    roomType?: string[];
+    bhkType?: string[];
     amenities?: string[];
-    amenitiesMatch?: string;
     page?: number;
     size?: number;
   }) {
+    const params = new URLSearchParams({
+      placeId,
+      page: (filters.page || 0).toString(),
+      size: (filters.size || 10).toString(),
+    });
+
+    if (filters.radiusKm) params.append('radiusKm', filters.radiusKm.toString());
+    if (filters.minRent) params.append('rentMin', filters.minRent.toString());
+    if (filters.maxRent) params.append('rentMax', filters.maxRent.toString());
+
+    if (filters.propertyType?.length) {
+      filters.propertyType.forEach(type => params.append('propertyType', type));
+    }
+    if (filters.roomType?.length) {
+      filters.roomType.forEach(type => params.append('roomType', type));
+    }
+    if (filters.bhkType?.length) {
+      filters.bhkType.forEach(type => params.append('bhkType', type));
+    }
+    if (filters.amenities?.length) {
+      filters.amenities.forEach(amenity => params.append('amenities', amenity));
+    }
+
     const response = await this.request<{
       success: boolean;
       data: {
-        place: {
-          placeId: string;
-          name: string;
-          address: string;
-          latitude: number;
-          longitude: number;
-        };
-        listings: any[];
+        content: any[];
+        totalElements: number;
+        totalPages: number;
+        page: number;
+        size: number;
+        last: boolean;
+        first: boolean;
       };
-    }>(`/api/v1/search/places/${placeId}/listings`, {
-      method: "POST",
-      body: JSON.stringify({
-        radiusKm: filters.radiusKm || 5,
-        minRent: filters.minRent || 0,
-        maxRent: filters.maxRent || 0,
-        availableAfter: filters.availableAfter,
-        propertyType: filters.propertyType || [],
-        layoutType: filters.layoutType || [],
-        amenities: filters.amenities || [],
-        amenitiesMatch: filters.amenitiesMatch || "ANY",
-        page: filters.page || 0,
-        size: filters.size || 50,
-      }),
+    }>(`/api/v1/search/rooms/location?${params.toString()}`, {
       skipAuth: true,
     });
-    return response.data;
+
+    return {
+      listings: response.data.content || [],
+      totalElements: response.data.totalElements || 0,
+      place: null
+    };
   }
 
   async search(filters: any) {
@@ -427,7 +440,7 @@ class ApiClient {
       success: boolean;
       data: any[] | { active: any[]; inactive: any[] };
     }>(`/api/v1/listings/rooms/my${params}`);
-    
+
     // Handle both response formats:
     // 1. If data is an array, return it directly
     // 2. If data is an object with active/inactive keys, return the appropriate array
@@ -455,21 +468,79 @@ class ApiClient {
     return response.data;
   }
 
-  async getPhotoUploadUrl(listingId: string, contentType: string, fileName?: string) {
+  async getRoomDetails(roomId: string) {
     const response = await this.request<{
       success: boolean;
+      data: any;
+    }>(`/api/v1/search/rooms/${roomId}`, {
+      skipAuth: true,
+    });
+    return response.data;
+  }
+
+  // Media Upload API - New 3-step flow
+  async requestMediaUploadUrl(resourceId: string, tag: "room" | "neighbourhood" | "selfie", mediaType: string, name: string) {
+    const response = await this.request<{
+      status: string;
       data: {
-        uploadUrl: string;
-        photoUrl: string;
+        id: number;
+        presigned_url: string;
+        tag: string;
+        media_type: string;
+        name: string;
       };
-    }>(`/api/v1/listings/rooms/${listingId}/photos/upload-url`, {
+      message: string;
+    }>("/api/v1/media/upload-url", {
       method: "POST",
       body: JSON.stringify({
-        contentType,
-        ...(fileName && { fileName }),
+        resourceId: resourceId,
+        tag,
+        mediaType: mediaType,
+        name,
       }),
     });
     return response.data;
+  }
+
+  async confirmMediaUpload(resourceId: string, fileKey: string) {
+    const response = await this.request<{
+      status: string;
+      message: string;
+    }>(`/api/v1/resources/${resourceId}/media/confirm`, {
+      method: "POST",
+      body: JSON.stringify({
+        fileKey: fileKey,
+      }),
+    });
+    return response;
+  }
+
+  async getResourceMedia(resourceId: string, tag?: "room" | "neighbourhood" | "selfie") {
+    const params = tag ? `?tag=${tag}` : "";
+    const response = await this.request<{
+      status: string;
+      data: Array<{
+        id: number;
+        url: string;
+        tag: string;
+        media_type: string;
+        status: "REQUESTED" | "UPLOADED" | "PROCESSING" | "READY" | "FAILED" | "DELETED";
+        created_at: string;
+      }>;
+    }>(`/api/v1/resources/${resourceId}/media${params}`, {
+      skipAuth: true,
+    });
+    return response.data;
+  }
+
+  async deleteMedia(mediaId: number) {
+    const response = await this.request<{
+      status: string;
+      message: string;
+    }>(`/api/v1/media/${mediaId}`, {
+      method: "DELETE",
+    });
+    return response;
   }
 
   async updateListingStatus(listingId: string, status: string) {

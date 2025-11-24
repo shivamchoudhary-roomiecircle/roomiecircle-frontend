@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, useRef, ReactNode } from "react";
 import { apiClient } from "@/lib/api";
 
 interface ConfigValue {
@@ -34,6 +34,37 @@ const ConfigContext = createContext<ConfigContextType>({
   error: null,
 });
 
+const MAX_FETCH_ATTEMPTS = 3;
+
+const createEmptyConfig = (): ConfigData => ({
+  roomTypes: [],
+  propertyTypes: [],
+  bhkTypes: [],
+  amenities: {
+    in_home: [],
+    on_property: [],
+    safety: [],
+  },
+  professions: [],
+  genders: [],
+  lifestylePreferences: [],
+});
+
+const hasConfigValues = (cfg: ConfigData | null): boolean => {
+  if (!cfg) return false;
+  return (
+    cfg.roomTypes.length > 0 ||
+    cfg.propertyTypes.length > 0 ||
+    cfg.bhkTypes.length > 0 ||
+    cfg.amenities.in_home.length > 0 ||
+    cfg.amenities.on_property.length > 0 ||
+    cfg.amenities.safety.length > 0 ||
+    cfg.professions.length > 0 ||
+    cfg.genders.length > 0 ||
+    cfg.lifestylePreferences.length > 0
+  );
+};
+
 export const useConfig = () => {
   const context = useContext(ConfigContext);
   if (!context) {
@@ -46,18 +77,29 @@ export const ConfigProvider = ({ children }: { children: ReactNode }) => {
   const [config, setConfig] = useState<ConfigData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const fetchAttemptsRef = useRef(0);
 
   useEffect(() => {
-    const fetchConfig = async () => {
-      // Only fetch if config is null
-      if (config !== null) {
-        return;
-      }
+    const shouldFetch = !hasConfigValues(config);
+    if (!shouldFetch) {
+      return;
+    }
 
+    if (fetchAttemptsRef.current >= MAX_FETCH_ATTEMPTS) {
+      setLoading(false);
+      return;
+    }
+
+    let isMounted = true;
+
+    const fetchConfig = async () => {
       setLoading(true);
+      fetchAttemptsRef.current += 1;
+
       try {
         const data = await apiClient.getConfiguration();
-        // Map API response to ConfigData structure
+        if (!isMounted) return;
+
         const mappedConfig: ConfigData = {
           roomTypes: data.roomTypes || [],
           propertyTypes: data.propertyTypes || [],
@@ -71,32 +113,28 @@ export const ConfigProvider = ({ children }: { children: ReactNode }) => {
           genders: data.genders || [],
           lifestylePreferences: data.lifestylePreferences || [],
         };
+
         setConfig(mappedConfig);
         setError(null);
       } catch (err) {
+        if (!isMounted) return;
         console.error("Failed to load configuration:", err);
         setError(err instanceof Error ? err.message : "Failed to load configuration");
-        // Set empty config so page can still render
-        setConfig({
-          roomTypes: [],
-          propertyTypes: [],
-          bhkTypes: [],
-          amenities: {
-            in_home: [],
-            on_property: [],
-            safety: [],
-          },
-          professions: [],
-          genders: [],
-          lifestylePreferences: [],
-        });
+        // Trigger another fetch attempt if within limit by setting empty config
+        setConfig(createEmptyConfig());
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
 
     fetchConfig();
-  }, []); // Only run on mount
+
+    return () => {
+      isMounted = false;
+    };
+  }, [config]);
 
   return (
     <ConfigContext.Provider value={{ config, loading, error }}>

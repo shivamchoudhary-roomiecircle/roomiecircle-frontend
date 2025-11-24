@@ -16,7 +16,7 @@ export default function UploadPhotos() {
   const listingId = searchParams.get("id");
   const navigationState = location.state as { skipListingFetch?: boolean } | null;
   const shouldSkipListingFetch = Boolean(navigationState?.skipListingFetch);
-  
+
   const [uploadingImages, setUploadingImages] = useState(false);
   const [loading, setLoading] = useState(false);
   const [propertyImages, setPropertyImages] = useState<string[]>([]);
@@ -64,6 +64,19 @@ export default function UploadPhotos() {
     loadExistingPhotos();
   }, [listingId, navigate, shouldSkipListingFetch]);
 
+  // Helper function to extract file key from presigned URL
+  const extractFileKey = (presignedUrl: string): string => {
+    try {
+      const url = new URL(presignedUrl);
+      const pathname = url.pathname.substring(1);
+      const parts = pathname.split('/');
+      return parts.slice(1).join('/');
+    } catch (error) {
+      console.error("Error extracting file key:", error);
+      throw new Error("Failed to extract file key from URL");
+    }
+  };
+
   const handlePropertyImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0 || !listingId) return;
@@ -81,7 +94,7 @@ export default function UploadPhotos() {
     const fileArray = Array.from(files);
     const previewUrls = fileArray.map(file => URL.createObjectURL(file));
     const startIndex = propertyImages.length;
-    
+
     // Add preview URLs immediately for instant feedback
     setPropertyImages(prev => [...prev, ...previewUrls]);
     setUploadingPropertyIndexes(new Set(Array.from({ length: previewUrls.length }, (_, i) => startIndex + i)));
@@ -95,15 +108,16 @@ export default function UploadPhotos() {
           throw new Error(`Invalid file type: ${file.type}. Please upload JPEG, PNG, or WebP images.`);
         }
 
-        // Get upload URL from API
-        const { uploadUrl, photoUrl } = await apiClient.getPhotoUploadUrl(
+        // Step 1: Request upload URL
+        const { id, presigned_url } = await apiClient.requestMediaUploadUrl(
           listingId,
+          "room",
           file.type,
           file.name
         );
 
-        // Upload file to the provided URL
-        const uploadResponse = await fetch(uploadUrl, {
+        // Step 2: Upload to GCS
+        const uploadResponse = await fetch(presigned_url, {
           method: 'PUT',
           body: file,
           headers: {
@@ -115,19 +129,24 @@ export default function UploadPhotos() {
           throw new Error(`Failed to upload ${file.name}`);
         }
 
-        return { index: startIndex + index, photoUrl };
+        // Step 3: Confirm upload
+        const fileKey = extractFileKey(presigned_url);
+        await apiClient.confirmMediaUpload(listingId, fileKey);
+
+        return { index: startIndex + index, mediaId: id, presigned_url };
       });
 
       const results = await Promise.all(uploadPromises);
       console.log("Uploaded property photo URLs:", results);
-      
+
       // Replace preview URLs with actual photo URLs
       setPropertyImages(prev => {
         const newImages = [...prev];
-        results.forEach(({ index, photoUrl }) => {
+        results.forEach(({ index, presigned_url }) => {
           // Revoke the blob URL to free memory
           URL.revokeObjectURL(newImages[index]);
-          newImages[index] = photoUrl;
+          const url = new URL(presigned_url);
+          newImages[index] = `${url.origin}${url.pathname}`;
         });
         console.log("Updated property images array:", newImages);
         return newImages;
@@ -174,7 +193,7 @@ export default function UploadPhotos() {
     const fileArray = Array.from(files);
     const previewUrls = fileArray.map(file => URL.createObjectURL(file));
     const startIndex = neighborhoodImages.length;
-    
+
     // Add preview URLs immediately for instant feedback
     setNeighborhoodImages(prev => [...prev, ...previewUrls]);
     setUploadingNeighborhoodIndexes(new Set(Array.from({ length: previewUrls.length }, (_, i) => startIndex + i)));
@@ -188,15 +207,16 @@ export default function UploadPhotos() {
           throw new Error(`Invalid file type: ${file.type}. Please upload JPEG, PNG, or WebP images.`);
         }
 
-        // Get upload URL from API
-        const { uploadUrl, photoUrl } = await apiClient.getPhotoUploadUrl(
+        // Step 1: Request upload URL
+        const { id, presigned_url } = await apiClient.requestMediaUploadUrl(
           listingId,
+          "neighbourhood",
           file.type,
           file.name
         );
 
-        // Upload file to the provided URL
-        const uploadResponse = await fetch(uploadUrl, {
+        // Step 2: Upload to GCS
+        const uploadResponse = await fetch(presigned_url, {
           method: 'PUT',
           body: file,
           headers: {
@@ -208,19 +228,24 @@ export default function UploadPhotos() {
           throw new Error(`Failed to upload ${file.name}`);
         }
 
-        return { index: startIndex + index, photoUrl };
+        // Step 3: Confirm upload
+        const fileKey = extractFileKey(presigned_url);
+        await apiClient.confirmMediaUpload(listingId, fileKey);
+
+        return { index: startIndex + index, mediaId: id, presigned_url };
       });
 
       const results = await Promise.all(uploadPromises);
       console.log("Uploaded neighborhood photo URLs:", results);
-      
+
       // Replace preview URLs with actual photo URLs
       setNeighborhoodImages(prev => {
         const newImages = [...prev];
-        results.forEach(({ index, photoUrl }) => {
+        results.forEach(({ index, presigned_url }) => {
           // Revoke the blob URL to free memory
           URL.revokeObjectURL(newImages[index]);
-          newImages[index] = photoUrl;
+          const url = new URL(presigned_url);
+          newImages[index] = `${url.origin}${url.pathname}`;
         });
         console.log("Updated neighborhood images array:", newImages);
         return newImages;
@@ -293,13 +318,13 @@ export default function UploadPhotos() {
 
     try {
       setUploadingImages(true);
-      
+
       // Update listing with photo URLs
       await apiClient.updateRoomListing(listingId, {
         images: propertyImages,
         neighborhoodImages: neighborhoodImages,
       });
-      
+
       toast({
         title: "Success",
         description: "Photos saved successfully!",
