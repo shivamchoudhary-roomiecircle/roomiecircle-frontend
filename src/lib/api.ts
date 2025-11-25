@@ -232,8 +232,8 @@ class ApiClient {
 
   async searchPlaceListings(placeId: string, filters: {
     radiusKm?: number;
-    minRent?: number;
-    maxRent?: number;
+    rentMin?: number;
+    rentMax?: number;
     propertyType?: string[];
     roomType?: string[];
     bhkType?: string[];
@@ -248,8 +248,8 @@ class ApiClient {
     });
 
     if (filters.radiusKm) params.append('radiusKm', filters.radiusKm.toString());
-    if (filters.minRent) params.append('rentMin', filters.minRent.toString());
-    if (filters.maxRent) params.append('rentMax', filters.maxRent.toString());
+    if (filters.rentMin) params.append('rentMin', filters.rentMin.toString());
+    if (filters.rentMax) params.append('rentMax', filters.rentMax.toString());
 
     if (filters.propertyType?.length) {
       filters.propertyType.forEach(type => params.append('propertyType', type));

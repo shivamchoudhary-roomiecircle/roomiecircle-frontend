@@ -33,7 +33,7 @@ export function ListingDetails({ listing }: ListingDetailsProps) {
 
 
     return (
-        <Card className="border-none shadow-sm bg-card/50 backdrop-blur-sm">
+        <Card className="border border-border/50 shadow-md bg-card">
             <CardContent className="p-6 space-y-8">
                 {/* Header Section */}
                 <div className="space-y-4">

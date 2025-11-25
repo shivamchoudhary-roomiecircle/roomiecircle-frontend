@@ -19,7 +19,7 @@ export function ListingMap({ listing }: ListingMapProps) {
     };
 
     return (
-        <Card className="border-none shadow-sm bg-card/50 backdrop-blur-sm overflow-hidden">
+        <Card className="border border-border/50 shadow-md bg-card overflow-hidden">
             <CardContent className="p-0">
                 <Dialog open={isOpen} onOpenChange={setIsOpen}>
                     <div className="relative w-full h-[250px] group">

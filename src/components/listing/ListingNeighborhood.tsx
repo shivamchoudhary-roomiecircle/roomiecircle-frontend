@@ -24,7 +24,7 @@ export function ListingNeighborhood({ review, ratings, images }: ListingNeighbor
     if (!hasReview && !hasRatings && !hasImages) return null;
 
     return (
-        <Card className="border-none shadow-sm bg-card/50 backdrop-blur-sm">
+        <Card className="border border-border/50 shadow-md bg-card">
             <CardHeader>
                 <CardTitle className="text-lg">Neighborhood</CardTitle>
             </CardHeader>

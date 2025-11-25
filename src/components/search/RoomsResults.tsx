@@ -18,6 +18,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useDebounce } from "@/hooks/useDebounce";
 import { PremiumSlider } from "@/components/ui/PremiumSlider";
+import { RoomCard } from "./RoomCard";
 
 export const RoomsResults = () => {
   const navigate = useNavigate();
@@ -46,33 +47,12 @@ export const RoomsResults = () => {
 
   const debouncedBounds = useDebounce(mapBounds, 300);
 
-  const handleLocationChange = async (value: string, id?: string) => {
+  const handleLocationChange = (value: string, id?: string) => {
     setLocation(value);
     if (id) {
       setPlaceId(id);
-      // Fetch place details and listings
-      try {
-        const mappedRoomType = roomType === "private" ? "private_room" : roomType === "shared" ? "shared_room" : undefined;
-        const mappedBhkType = layout === "studio" ? "RK" : layout === "1br" ? "1BHK" : layout === "2br" ? "2BHK" : layout === "3br+" ? "3BHK" : undefined;
-
-        const data = await apiClient.searchPlaceListings(id, {
-          radiusKm: radius || 5,
-          minRent: minPrice ? parseInt(minPrice) : undefined,
-          maxRent: maxPrice ? parseInt(maxPrice) : undefined,
-          roomType: mappedRoomType ? [mappedRoomType] : undefined,
-          bhkType: mappedBhkType ? [mappedBhkType] : undefined,
-          amenities: amenities,
-        });
-
-        // Map center update is removed as new API doesn't return place details directly in the same structure
-        // If we need map center, we might need to get it from the autocomplete selection or a separate call
-        // For now, we'll assume the list update is the priority.
-
-        setListings(data.listings || []);
-        setTotalElements(data.totalElements || 0);
-      } catch (error) {
-        console.error("Error fetching place listings:", error);
-      }
+    } else if (value === "") {
+      setPlaceId("");
     }
   };
 
@@ -89,51 +69,58 @@ export const RoomsResults = () => {
     }
   };
 
-  // Fetch listings when map bounds change (map mode only)
+  // Unified fetch logic for List View
   useEffect(() => {
-    if (viewMode === "map" && debouncedBounds) {
-      const fetchMapListings = async () => {
-        try {
-          setLoading(true);
-          const filters = {
-            minRent: minPrice ? parseInt(minPrice) : undefined,
-            maxRent: maxPrice ? parseInt(maxPrice) : undefined,
-            layoutType: roomType ? [roomType] : undefined,
-            amenities: amenities.length > 0 ? amenities : undefined,
-          };
-          const data = await apiClient.searchListingsByMap(debouncedBounds, filters);
-          setListings(data.content || []);
+    if (viewMode !== "list") return;
+
+    const fetchListings = async () => {
+      setLoading(true);
+      try {
+        if (placeId) {
+          // Search by location and filters
+          const mappedRoomType = roomType === "private" ? "private_room" : roomType === "shared" ? "shared_room" : roomType === "entire" ? "entire_place" : undefined;
+          const mappedBhkType = layout === "studio" ? "RK" : layout === "1br" ? "1BHK" : layout === "2br" ? "2BHK" : layout === "3br+" ? "3BHK" : undefined;
+
+          const data = await apiClient.searchPlaceListings(placeId, {
+            radiusKm: radius || 5,
+            rentMin: minPrice ? parseInt(minPrice) : undefined,
+            rentMax: maxPrice ? parseInt(maxPrice) : undefined,
+            roomType: mappedRoomType ? [mappedRoomType] : undefined,
+            bhkType: mappedBhkType ? [mappedBhkType] : undefined,
+            amenities: amenities,
+          });
+          setListings(data.listings || []);
           setTotalElements(data.totalElements || 0);
-        } catch (error) {
-          console.error("Error fetching map listings:", error);
-        } finally {
-          setLoading(false);
-        }
-      };
-
-      fetchMapListings();
-    }
-  }, [debouncedBounds, viewMode, minPrice, maxPrice, roomType, amenities]);
-
-  // Fetch recent rooms on initial load (list mode)
-  useEffect(() => {
-    if (viewMode === "list") {
-      const fetchRecentRooms = async () => {
-        try {
-          setLoading(true);
+        } else {
+          // Fallback to recent rooms if no location selected
           const data = await apiClient.searchRecentRooms(0, 20);
           setListings(data.content || []);
           setTotalElements(data.totalElements || 0);
-        } catch (error) {
-          console.error("Error fetching recent rooms:", error);
-        } finally {
-          setLoading(false);
         }
-      };
+      } catch (error) {
+        console.error("Error fetching listings:", error);
+        setListings([]);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-      fetchRecentRooms();
-    }
-  }, [viewMode]);
+    // Debounce the fetch to avoid too many API calls while typing/sliding
+    const timeoutId = setTimeout(fetchListings, 500);
+    return () => clearTimeout(timeoutId);
+
+  }, [
+    viewMode,
+    placeId,
+    radius,
+    minPrice,
+    maxPrice,
+    roomType,
+    layout,
+    amenities,
+    // Add other dependencies if they are supported by the API in the future
+    // gender, verifications, duration 
+  ]);
 
   return (
     <>
@@ -413,50 +400,11 @@ export const RoomsResults = () => {
                   ))
                 ) : (
                   listings.map((listing) => (
-                    <div
+                    <RoomCard
                       key={listing.id}
-                      className="group bg-card rounded-xl border border-border/50 overflow-hidden hover:shadow-xl hover:shadow-primary/5 hover:border-primary/30 transition-all duration-300 cursor-pointer hover:-translate-y-1"
-                      onClick={() => {
-                        navigate(`/listings/${listing.id}`);
-                      }}
-                    >
-                      <div className="aspect-[4/3] bg-muted relative overflow-hidden">
-                        {listing.images?.[0] && (
-                          <img
-                            src={listing.images[0]}
-                            alt={listing.description || "Room"}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                          />
-                        )}
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
-                      </div>
-
-                      <div className="p-4 space-y-2">
-                        {/* Price and Type */}
-                        <div className="flex items-start justify-between">
-                          <div>
-                            <p className="text-lg font-bold text-foreground">
-                              ₹{(listing.monthlyRent || 0).toLocaleString('en-IN')}
-                              <span className="text-xs font-normal text-muted-foreground ml-1">/mo</span>
-                            </p>
-                            <p className="text-sm text-muted-foreground font-medium mt-0.5">
-                              {listing.listingType === "PRIVATE_ROOM" ? "Private Room" :
-                                listing.listingType === "SHARED_ROOM" ? "Shared Room" : "Full House"}
-                              <span className="mx-1.5">•</span>
-                              {listing.layoutType || "Studio"}
-                            </p>
-                          </div>
-                        </div>
-
-                        {/* Location */}
-                        <div className="flex items-center gap-1.5 text-sm text-muted-foreground pt-1">
-                          <MapPin className="h-3.5 w-3.5 flex-shrink-0" />
-                          <p className="line-clamp-1">
-                            {listing.addressText || "Location not specified"}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
+                      listing={listing}
+                      onClick={() => navigate(`/listings/${listing.id}`)}
+                    />
                   ))
                 )}
               </div>

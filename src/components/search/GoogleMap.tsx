@@ -47,6 +47,7 @@ export const GoogleMap = ({ center, listings = [], onBoundsChange, fullscreenCon
       mapInstanceRef.current = new google.maps.Map(el, {
         center: defaultCenter,
         zoom: 12,
+        mapId: "DEMO_MAP_ID", // Required for AdvancedMarkerElement
         styles: [
           {
             featureType: "poi",
@@ -98,30 +99,38 @@ export const GoogleMap = ({ center, listings = [], onBoundsChange, fullscreenCon
       resizeObserver?.disconnect();
     };
 
-    const loadGoogleMaps = () => {
+    const loadGoogleMaps = (): Promise<void> => {
       if ((window as any).google?.maps) {
-        initMap();
-        return;
+        return Promise.resolve();
       }
 
-      let script = document.querySelector('script[data-google-maps]') as HTMLScriptElement | null;
-      if (!script) {
-        script = document.createElement("script");
-        script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=places&v=weekly`;
+      if ((window as any).googleMapsPromise) {
+        return (window as any).googleMapsPromise;
+      }
+
+      (window as any).googleMapsPromise = new Promise<void>((resolve, reject) => {
+        const callbackName = "__googleMapsCallback";
+        (window as any)[callbackName] = () => {
+          resolve();
+          delete (window as any)[callbackName];
+        };
+
+        const script = document.createElement("script");
+        script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=places,marker&v=weekly&loading=async&callback=${callbackName}`;
         script.async = true;
         script.defer = true;
-        script.setAttribute('data-google-maps', 'true');
+        script.onerror = (err) => reject(err);
         document.head.appendChild(script);
-      }
+      });
 
-      loadListener = () => {
-        // Give React a frame to commit the DOM
-        requestAnimationFrame(initMap);
-      };
-      script.addEventListener('load', loadListener, { once: true } as any);
+      return (window as any).googleMapsPromise;
     };
 
-    loadGoogleMaps();
+    loadGoogleMaps().then(() => {
+      requestAnimationFrame(initMap);
+    }).catch(err => {
+      console.error("Failed to load Google Maps API", err);
+    });
 
     // Observe size changes of the container and (re)try init
     if (mapRef.current && 'ResizeObserver' in window) {
@@ -140,7 +149,7 @@ export const GoogleMap = ({ center, listings = [], onBoundsChange, fullscreenCon
       // Cleanup map instance
       if (mapInstanceRef.current) {
         // Clear markers
-        markersRef.current.forEach(marker => marker.setMap(null));
+        markersRef.current.forEach(marker => marker.map = null);
         markersRef.current = [];
         mapInstanceRef.current = null;
         setIsMapReady(false);
@@ -156,35 +165,33 @@ export const GoogleMap = ({ center, listings = [], onBoundsChange, fullscreenCon
     if (!google?.maps) return;
 
     // Clear existing markers
-    markersRef.current.forEach(marker => marker.setMap(null));
+    markersRef.current.forEach(marker => marker.map = null);
     markersRef.current = [];
 
     if (listings.length === 0) return;
 
-    const svgMarker = {
-      url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
+    listings.forEach((listing) => {
+      // Create a DOM element for the marker content
+      const markerContent = document.createElement('div');
+      markerContent.innerHTML = `
         <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40">
           <defs>
-            <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <linearGradient id="grad-${listing.id}" x1="0%" y1="0%" x2="100%" y2="100%">
               <stop offset="0%" style="stop-color:hsl(14, 85%, 58%);stop-opacity:1" />
               <stop offset="100%" style="stop-color:hsl(180, 65%, 45%);stop-opacity:1" />
             </linearGradient>
           </defs>
-          <rect x="0" y="0" width="40" height="40" rx="12" fill="url(#grad)" />
+          <rect x="0" y="0" width="40" height="40" rx="12" fill="url(#grad-${listing.id})" />
           <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" transform="translate(10, 10)" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
           <path d="M9 22V12h6v10" transform="translate(10, 10)" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
         </svg>
-      `)}`,
-      scaledSize: new google.maps.Size(40, 40),
-      anchor: new google.maps.Point(20, 20),
-    };
+      `;
 
-    listings.forEach((listing) => {
-      const marker = new google.maps.Marker({
+      const marker = new google.maps.marker.AdvancedMarkerElement({
         position: { lat: listing.latitude, lng: listing.longitude },
         map: mapInstanceRef.current!,
         title: listing.addressText,
-        icon: svgMarker,
+        content: markerContent,
       });
 
       // Helper to get property label
@@ -235,14 +242,15 @@ export const GoogleMap = ({ center, listings = [], onBoundsChange, fullscreenCon
 
       // Add smooth hover effect with animation
       let hoverTimeout: any;
-      marker.addListener("mouseover", () => {
+      // AdvancedMarkerElement uses DOM events on the content element
+      markerContent.addEventListener("mouseenter", () => {
         clearTimeout(hoverTimeout);
         hoverTimeout = setTimeout(() => {
           infoWindow.open(mapInstanceRef.current!, marker);
         }, 200);
       });
 
-      marker.addListener("mouseout", () => {
+      markerContent.addEventListener("mouseleave", () => {
         clearTimeout(hoverTimeout);
         hoverTimeout = setTimeout(() => {
           infoWindow.close();

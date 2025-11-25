@@ -44,7 +44,7 @@ export function ListingAmenities({ listing }: ListingAmenitiesProps) {
     };
 
     return (
-        <Card className="border-none shadow-sm bg-card/50 backdrop-blur-sm">
+        <Card className="border border-border/50 shadow-md bg-card">
             <CardHeader>
                 <CardTitle className="text-lg">Amenities</CardTitle>
             </CardHeader>
