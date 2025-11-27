@@ -128,8 +128,8 @@ const ComingSoon = () => {
                         </div>
 
                         <div className="space-y-10">
-                            <h1 className="text-5xl md:text-7xl font-bold tracking-tight">
-                                <span className="text-primary">Coming</span> <span className="text-orange-500">Soon</span>
+                            <h1 className="text-4xl md:text-5xl font-bold tracking-tight">
+                                <span className="text-primary">few days</span> <span className="text-orange-500">to go</span>
                             </h1>
 
                             <div className="max-w-md mx-auto space-y-6 text-left bg-card/50 backdrop-blur-sm p-8 rounded-2xl border border-border/50 shadow-sm">
