@@ -19,9 +19,9 @@ const Hero = () => {
     <section className="relative min-h-[90vh] flex items-center justify-center overflow-hidden">
       {/* Background Image with Overlay */}
       <div className="absolute inset-0 z-0">
-        <img 
-          src={heroImage} 
-          alt="Happy roommates in a shared living space" 
+        <img
+          src={heroImage}
+          alt="Happy roommates in a shared living space"
           className="w-full h-full object-cover"
         />
         <div className="absolute inset-0 bg-gradient-to-br from-background/95 via-background/85 to-background/75" />
@@ -54,8 +54,8 @@ const Hero = () => {
 
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-4">
-            <Button 
-              size="lg" 
+            <Button
+              size="lg"
               variant="hero"
               className="text-lg px-8 py-6 h-auto group"
               onClick={handleFindClick}
@@ -63,14 +63,14 @@ const Hero = () => {
               <Search className="mr-2 h-5 w-5 group-hover:scale-110 transition-transform" />
               Find Rooms
             </Button>
-            <Button 
-              size="lg" 
+            <Button
+              size="lg"
               variant="trust"
               className="text-lg px-8 py-6 h-auto group"
-              onClick={handleFindClick}
+              onClick={() => navigate('/roommates')}
             >
               <Users className="mr-2 h-5 w-5 group-hover:scale-110 transition-transform" />
-              Find Roommates
+              Find Roommates (Coming Soon)
             </Button>
           </div>
 

@@ -1,12 +1,10 @@
-import { useState } from "react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
 import { Card } from "@/components/ui/card";
 import RoomSearch from "./RoomSearch";
-import RoommateSearch from "./RoommateSearch";
 import { Home, Users } from "lucide-react";
 
 const SearchSection = () => {
-  const [activeTab, setActiveTab] = useState("rooms");
+
 
   return (
     <section id="search-section" className="py-20 bg-muted/30">
@@ -24,32 +22,27 @@ const SearchSection = () => {
 
           {/* Search Tabs */}
           <Card className="p-6 shadow-card">
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="grid w-full grid-cols-2 mb-8 h-14">
-                <TabsTrigger 
-                  value="rooms" 
-                  className="text-base data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+            <div className="w-full">
+              <div className="grid w-full grid-cols-2 mb-8 h-14 bg-muted rounded-lg p-1">
+                <button
+                  className="inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-background text-foreground shadow"
                 >
                   <Home className="mr-2 h-5 w-5" />
                   Find Rooms
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="roommates"
-                  className="text-base data-[state=active]:bg-secondary data-[state=active]:text-secondary-foreground"
+                </button>
+                <button
+                  onClick={() => window.location.href = '/roommates'}
+                  className="inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-background/50 hover:text-foreground"
                 >
                   <Users className="mr-2 h-5 w-5" />
-                  Find Roommates
-                </TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="rooms" className="mt-0">
+                  Find Roommates (Coming Soon)
+                </button>
+              </div>
+
+              <div className="mt-0">
                 <RoomSearch />
-              </TabsContent>
-              
-              <TabsContent value="roommates" className="mt-0">
-                <RoommateSearch />
-              </TabsContent>
-            </Tabs>
+              </div>
+            </div>
           </Card>
         </div>
       </div>

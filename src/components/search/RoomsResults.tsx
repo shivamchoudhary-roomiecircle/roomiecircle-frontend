@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { LocationAutocomplete } from "./LocationAutocomplete";
 import { Button } from "@/components/ui/button";
@@ -47,6 +47,10 @@ export const RoomsResults = () => {
 
   const debouncedBounds = useDebounce(mapBounds, 300);
 
+  const [page, setPage] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+  const observerTarget = useRef(null);
+
   const handleLocationChange = (value: string, id?: string) => {
     setLocation(value);
     if (id) {
@@ -70,62 +74,92 @@ export const RoomsResults = () => {
   };
 
   // Unified fetch logic for List View
+  const fetchListings = useCallback(async (pageParam: number, shouldAppend: boolean) => {
+    if (viewMode !== "list") return;
+
+    setLoading(true);
+    try {
+      if (placeId) {
+        // Search by location and filters
+        const mappedRoomType = roomType === "private" ? "private_room" : roomType === "shared" ? "shared_room" : roomType === "entire" ? "entire_place" : undefined;
+        const mappedBhkType = layout === "studio" ? "RK" : layout === "1br" ? "1BHK" : layout === "2br" ? "2BHK" : layout === "3br+" ? "3BHK" : undefined;
+
+        const data = await apiClient.searchPlaceListings(placeId, {
+          radiusKm: radius || 5,
+          rentMin: minPrice ? parseInt(minPrice) : undefined,
+          rentMax: maxPrice ? parseInt(maxPrice) : undefined,
+          roomType: mappedRoomType ? [mappedRoomType] : undefined,
+          bhkType: mappedBhkType ? [mappedBhkType] : undefined,
+          amenities: amenities,
+          page: pageParam,
+          size: 10
+        });
+
+        if (shouldAppend) {
+          setListings(prev => [...prev, ...data.listings]);
+        } else {
+          setListings(data.listings || []);
+        }
+        setTotalElements(data.totalElements || 0);
+        setHasMore(data.listings.length === 10); // Assuming size is 10
+      } else {
+        // Fallback to recent rooms if no location selected
+        const data = await apiClient.searchRecentRooms(pageParam, 20);
+        if (shouldAppend) {
+          setListings(prev => [...prev, ...data.content]);
+        } else {
+          setListings(data.content || []);
+        }
+        setTotalElements(data.totalElements || 0);
+        setHasMore(!data.last);
+      }
+    } catch (error) {
+      console.error("Error fetching listings:", error);
+      if (!shouldAppend) setListings([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [viewMode, placeId, radius, minPrice, maxPrice, roomType, layout, amenities]);
+
+  // Search/Reset Effect
   useEffect(() => {
     if (viewMode !== "list") return;
 
-    const fetchListings = async () => {
-      setLoading(true);
-      try {
-        if (placeId) {
-          // Search by location and filters
-          const mappedRoomType = roomType === "private" ? "private_room" : roomType === "shared" ? "shared_room" : roomType === "entire" ? "entire_place" : undefined;
-          const mappedBhkType = layout === "studio" ? "RK" : layout === "1br" ? "1BHK" : layout === "2br" ? "2BHK" : layout === "3br+" ? "3BHK" : undefined;
-
-          const data = await apiClient.searchPlaceListings(placeId, {
-            radiusKm: radius || 5,
-            rentMin: minPrice ? parseInt(minPrice) : undefined,
-            rentMax: maxPrice ? parseInt(maxPrice) : undefined,
-            roomType: mappedRoomType ? [mappedRoomType] : undefined,
-            bhkType: mappedBhkType ? [mappedBhkType] : undefined,
-            amenities: amenities,
-          });
-          setListings(data.listings || []);
-          setTotalElements(data.totalElements || 0);
-        } else {
-          // Fallback to recent rooms if no location selected
-          const data = await apiClient.searchRecentRooms(0, 20);
-          setListings(data.content || []);
-          setTotalElements(data.totalElements || 0);
-        }
-      } catch (error) {
-        console.error("Error fetching listings:", error);
-        setListings([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    // Debounce the fetch to avoid too many API calls while typing/sliding
-    const timeoutId = setTimeout(fetchListings, 500);
+    const timeoutId = setTimeout(() => {
+      setPage(0);
+      fetchListings(0, false);
+    }, 500);
     return () => clearTimeout(timeoutId);
+  }, [fetchListings]);
 
-  }, [
-    viewMode,
-    placeId,
-    radius,
-    minPrice,
-    maxPrice,
-    roomType,
-    layout,
-    amenities,
-    // Add other dependencies if they are supported by the API in the future
-    // gender, verifications, duration 
-  ]);
+  // Load More Effect
+  useEffect(() => {
+    if (page === 0) return;
+    fetchListings(page, true);
+  }, [page, fetchListings]);
+
+  // Intersection Observer for Infinite Scroll
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      entries => {
+        if (entries[0].isIntersecting && hasMore && !loading) {
+          setPage(prev => prev + 1);
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (observerTarget.current) {
+      observer.observe(observerTarget.current);
+    }
+
+    return () => observer.disconnect();
+  }, [hasMore, loading]);
 
   return (
     <>
       {viewMode === "list" ? (
-        <div className="min-h-screen">
+        <div className="pb-8">
           {/* Search Bar */}
           <div className="md:sticky top-0 z-40 bg-background border-b border-border">
             <div className="container mx-auto px-4 py-4">
@@ -186,18 +220,7 @@ export const RoomsResults = () => {
                   </PopoverContent>
                 </Popover>
 
-                <Select value={sortBy} onValueChange={setSortBy}>
-                  <SelectTrigger className="w-[120px] h-12">
-                    <ArrowUpDown className="h-4 w-4 mr-2" />
-                    <SelectValue placeholder="Sort" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="price-low">Price: Low to High</SelectItem>
-                    <SelectItem value="price-high">Price: High to Low</SelectItem>
-                    <SelectItem value="newest">Newest First</SelectItem>
-                    <SelectItem value="relevant">Most Relevant</SelectItem>
-                  </SelectContent>
-                </Select>
+
 
                 <div className="w-[200px] px-2">
                   <PremiumSlider
@@ -350,6 +373,18 @@ export const RoomsResults = () => {
                     </div>
                   </SheetContent>
                 </Sheet>
+
+                <Select value={sortBy} onValueChange={setSortBy}>
+                  <SelectTrigger className="w-12 h-12 p-0 flex items-center justify-center">
+                    <ArrowUpDown className="h-4 w-4" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="price-low">Price: Low to High</SelectItem>
+                    <SelectItem value="price-high">Price: High to Low</SelectItem>
+                    <SelectItem value="newest">Newest First</SelectItem>
+                    <SelectItem value="relevant">Most Relevant</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
           </div>
@@ -379,10 +414,38 @@ export const RoomsResults = () => {
                 </p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {loading ? (
-                  Array.from({ length: 8 }).map((_, i) => (
-                    <div key={i} className="bg-card rounded-lg border border-border overflow-hidden">
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                  {loading && page === 0 ? (
+                    Array.from({ length: 8 }).map((_, i) => (
+                      <div key={i} className="bg-card rounded-lg border border-border overflow-hidden">
+                        <Skeleton className="aspect-[4/3]" />
+                        <div className="p-4 space-y-3">
+                          <div className="flex items-center gap-2">
+                            <Skeleton className="w-10 h-10 rounded-full" />
+                            <div className="space-y-1 flex-1">
+                              <Skeleton className="h-4 w-24" />
+                              <Skeleton className="h-3 w-32" />
+                            </div>
+                          </div>
+                          <Skeleton className="h-6 w-32" />
+                          <Skeleton className="h-4 w-full" />
+                          <Skeleton className="h-4 w-3/4" />
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    listings.map((listing) => (
+                      <RoomCard
+                        key={listing.id}
+                        listing={listing}
+                        onClick={() => navigate(`/listings/${listing.id}`)}
+                      />
+                    ))
+                  )}
+                  {/* Loading indicator for next page */}
+                  {loading && page > 0 && Array.from({ length: 4 }).map((_, i) => (
+                    <div key={`skeleton-${i}`} className="bg-card rounded-lg border border-border overflow-hidden">
                       <Skeleton className="aspect-[4/3]" />
                       <div className="p-4 space-y-3">
                         <div className="flex items-center gap-2">
@@ -397,17 +460,11 @@ export const RoomsResults = () => {
                         <Skeleton className="h-4 w-3/4" />
                       </div>
                     </div>
-                  ))
-                ) : (
-                  listings.map((listing) => (
-                    <RoomCard
-                      key={listing.id}
-                      listing={listing}
-                      onClick={() => navigate(`/listings/${listing.id}`)}
-                    />
-                  ))
-                )}
-              </div>
+                  ))}
+                </div>
+                {/* Observer Target */}
+                <div ref={observerTarget} className="h-10 w-full" />
+              </>
             )}
           </div>
         </div>

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -20,6 +20,8 @@ const Login = () => {
   const [highlightSignup, setHighlightSignup] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const redirectPath = searchParams.get('redirect') || '/';
   const { login } = useAuth();
 
   // Check for token expiration message on mount
@@ -48,13 +50,13 @@ const Login = () => {
         title: 'Success',
         description: 'Logged in successfully!',
       });
-      navigate('/');
+      navigate(redirectPath);
     } catch (error: any) {
       const errorMessage = error.message || 'Failed to login';
-      const shouldHighlight = errorMessage.toLowerCase().includes('sign up') || 
-                              errorMessage.toLowerCase().includes('signup') ||
-                              errorMessage.toLowerCase().includes('register');
-      
+      const shouldHighlight = errorMessage.toLowerCase().includes('sign up') ||
+        errorMessage.toLowerCase().includes('signup') ||
+        errorMessage.toLowerCase().includes('register');
+
       // Show toast for 2 seconds
       toast({
         title: 'Error',
@@ -62,7 +64,7 @@ const Login = () => {
         variant: 'destructive',
         duration: 2000, // 2 seconds
       });
-      
+
       // Show highlight after 2 seconds (when toast dismisses) for 3 seconds
       if (shouldHighlight) {
         setTimeout(() => {
@@ -91,10 +93,10 @@ const Login = () => {
       });
     } catch (error: any) {
       const errorMessage = error.message || 'Failed to send OTP';
-      const shouldHighlight = errorMessage.toLowerCase().includes('sign up') || 
-                              errorMessage.toLowerCase().includes('signup') ||
-                              errorMessage.toLowerCase().includes('register');
-      
+      const shouldHighlight = errorMessage.toLowerCase().includes('sign up') ||
+        errorMessage.toLowerCase().includes('signup') ||
+        errorMessage.toLowerCase().includes('register');
+
       // Show toast for 2 seconds
       toast({
         title: 'Error',
@@ -102,7 +104,7 @@ const Login = () => {
         variant: 'destructive',
         duration: 2000, // 2 seconds
       });
-      
+
       // Show highlight after 2 seconds (when toast dismisses) for 3 seconds
       if (shouldHighlight) {
         setTimeout(() => {
@@ -127,7 +129,7 @@ const Login = () => {
         title: 'Success',
         description: 'Logged in successfully!',
       });
-      navigate('/');
+      navigate(redirectPath);
     } catch (error: any) {
       toast({
         title: 'Error',
@@ -149,13 +151,13 @@ const Login = () => {
         title: 'Success',
         description: 'Logged in with Google successfully!',
       });
-      navigate('/');
+      navigate(redirectPath);
     } catch (error: any) {
       const errorMessage = error.message || 'Failed to login with Google';
-      const shouldHighlight = errorMessage.toLowerCase().includes('sign up') || 
-                              errorMessage.toLowerCase().includes('signup') ||
-                              errorMessage.toLowerCase().includes('register');
-      
+      const shouldHighlight = errorMessage.toLowerCase().includes('sign up') ||
+        errorMessage.toLowerCase().includes('signup') ||
+        errorMessage.toLowerCase().includes('register');
+
       // Show toast for 2 seconds
       toast({
         title: 'Error',
@@ -163,7 +165,7 @@ const Login = () => {
         variant: 'destructive',
         duration: 2000, // 2 seconds
       });
-      
+
       // Show highlight after 2 seconds (when toast dismisses) for 3 seconds
       if (shouldHighlight) {
         setTimeout(() => {
@@ -189,8 +191,8 @@ const Login = () => {
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back
         </Button>
-        
-        <div 
+
+        <div
           className="flex items-center justify-center gap-2 mb-8 cursor-pointer group"
           onClick={() => navigate('/')}
         >
@@ -332,13 +334,12 @@ const Login = () => {
             <button
               onClick={() => {
                 setHighlightSignup(false);
-                navigate('/auth/signup');
+                navigate(`/auth/signup${redirectPath !== '/' ? `?redirect=${redirectPath}` : ''}`);
               }}
-              className={`text-primary hover:underline font-medium transition-all duration-300 ${
-                highlightSignup
-                  ? 'ring-2 ring-primary ring-offset-2 ring-offset-background rounded px-2 py-1'
-                  : ''
-              }`}
+              className={`text-primary hover:underline font-medium transition-all duration-300 ${highlightSignup
+                ? 'ring-2 ring-primary ring-offset-2 ring-offset-background rounded px-2 py-1'
+                : ''
+                }`}
             >
               Sign up
             </button>

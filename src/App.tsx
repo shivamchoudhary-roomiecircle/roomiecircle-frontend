@@ -16,6 +16,7 @@ import ViewListing from "./pages/ViewListing";
 import Signup from "./pages/auth/Signup";
 import Login from "./pages/auth/Login";
 import NotFound from "./pages/NotFound";
+import ComingSoon from "./pages/ComingSoon";
 
 const queryClient = new QueryClient();
 const GOOGLE_CLIENT_ID = "485816600289-hgcsah1r27iopptput2o71rbal0g8es3.apps.googleusercontent.com";
@@ -39,7 +40,9 @@ const App = () => (
                   <Route path="/edit-listing" element={<ProtectedRoute><CreateRoomListing /></ProtectedRoute>} />
                   <Route path="/upload-photos" element={<ProtectedRoute><UploadPhotos /></ProtectedRoute>} />
                   <Route path="/my-listings" element={<ProtectedRoute><MyListings /></ProtectedRoute>} />
+                  <Route path="/my-listings" element={<ProtectedRoute><MyListings /></ProtectedRoute>} />
                   <Route path="/listings/:id" element={<ViewListing />} />
+                  <Route path="/roommates" element={<ComingSoon />} />
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="*" element={<NotFound />} />
                 </Routes>

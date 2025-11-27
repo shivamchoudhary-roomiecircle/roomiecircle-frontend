@@ -1,8 +1,15 @@
 import { Home as HomeIcon, Mail, MapPin, Phone, Instagram, Twitter, Linkedin, Facebook, Youtube } from "lucide-react";
+import { Link } from "react-router-dom";
 
-const Footer = () => {
+import { cn } from "@/lib/utils";
+
+interface FooterProps {
+  className?: string;
+}
+
+const Footer = ({ className }: FooterProps) => {
   return (
-    <footer className="bg-muted/30 border-t border-border mt-20">
+    <footer className={cn("bg-muted/30 border-t border-border mt-20", className)}>
       <div className="container mx-auto px-4 py-12">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Brand */}
@@ -20,41 +27,41 @@ const Footer = () => {
             </p>
             {/* Social Media Links */}
             <div className="flex items-center gap-3 mt-4">
-              <a 
-                href="https://instagram.com/roomiecircle" 
-                target="_blank" 
+              <a
+                href="https://instagram.com/roomiecircle"
+                target="_blank"
                 rel="noopener noreferrer"
                 className="w-9 h-9 rounded-full bg-muted hover:bg-primary/10 flex items-center justify-center transition-colors group"
               >
                 <Instagram className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
               </a>
-              <a 
-                href="https://twitter.com/roomiecircle" 
-                target="_blank" 
+              <a
+                href="https://twitter.com/roomiecircle"
+                target="_blank"
                 rel="noopener noreferrer"
                 className="w-9 h-9 rounded-full bg-muted hover:bg-primary/10 flex items-center justify-center transition-colors group"
               >
                 <Twitter className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
               </a>
-              <a 
-                href="https://linkedin.com/company/roomiecircle" 
-                target="_blank" 
+              <a
+                href="https://linkedin.com/company/roomiecircle"
+                target="_blank"
                 rel="noopener noreferrer"
                 className="w-9 h-9 rounded-full bg-muted hover:bg-primary/10 flex items-center justify-center transition-colors group"
               >
                 <Linkedin className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
               </a>
-              <a 
-                href="https://facebook.com/roomiecircle" 
-                target="_blank" 
+              <a
+                href="https://facebook.com/roomiecircle"
+                target="_blank"
                 rel="noopener noreferrer"
                 className="w-9 h-9 rounded-full bg-muted hover:bg-primary/10 flex items-center justify-center transition-colors group"
               >
                 <Facebook className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
               </a>
-              <a 
-                href="https://youtube.com/@roomiecircle" 
-                target="_blank" 
+              <a
+                href="https://youtube.com/@roomiecircle"
+                target="_blank"
                 rel="noopener noreferrer"
                 className="w-9 h-9 rounded-full bg-muted hover:bg-primary/10 flex items-center justify-center transition-colors group"
               >
@@ -68,7 +75,14 @@ const Footer = () => {
             <h3 className="font-semibold mb-4">Quick Links</h3>
             <ul className="space-y-2 text-sm text-muted-foreground">
               <li><a href="#" className="hover:text-primary transition-colors">Find Rooms</a></li>
-              <li><a href="#" className="hover:text-primary transition-colors">Find Roommates</a></li>
+              <li>
+                <Link to="/roommates" className="hover:text-primary transition-colors flex flex-col items-start leading-none">
+                  Find Roommates
+                  <span className="text-[8px] bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent font-bold animate-pulse mt-0.5">
+                    Coming Soon
+                  </span>
+                </Link>
+              </li>
               <li><a href="#" className="hover:text-primary transition-colors">Post a Room</a></li>
               <li><a href="#" className="hover:text-primary transition-colors">How It Works</a></li>
             </ul>

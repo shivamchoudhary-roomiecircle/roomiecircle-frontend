@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -19,6 +19,8 @@ const Signup = () => {
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const redirectPath = searchParams.get('redirect') || '/';
   const { login } = useAuth();
 
   const handleInitiateSignup = async (e: React.FormEvent) => {
@@ -55,7 +57,7 @@ const Signup = () => {
         title: 'Success',
         description: 'Account created successfully!',
       });
-      navigate('/');
+      navigate(redirectPath);
     } catch (error: any) {
       toast({
         title: 'Error',
@@ -95,7 +97,7 @@ const Signup = () => {
         title: 'Success',
         description: 'Signed up with Google successfully!',
       });
-      navigate('/');
+      navigate(redirectPath);
     } catch (error: any) {
       toast({
         title: 'Error',
@@ -119,8 +121,8 @@ const Signup = () => {
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back
         </Button>
-        
-        <div 
+
+        <div
           className="flex items-center justify-center gap-2 mb-8 cursor-pointer group"
           onClick={() => navigate('/')}
         >
@@ -204,7 +206,7 @@ const Signup = () => {
               <p className="text-center text-sm text-muted-foreground mt-6">
                 Already have an account?{' '}
                 <button
-                  onClick={() => navigate('/auth/login')}
+                  onClick={() => navigate(`/auth/login${redirectPath !== '/' ? `?redirect=${redirectPath}` : ''}`)}
                   className="text-primary hover:underline font-medium"
                 >
                   Sign in

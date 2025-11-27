@@ -6,12 +6,11 @@ import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "next-themes";
-interface NavbarProps {
-  activeTab?: "rooms" | "roommates";
-  onTabChange?: (tab: "rooms" | "roommates") => void;
-}
+// const { theme, setTheme } = useTheme(); // theme is unused in this scope based on previous code, but keeping if needed.
+// Actually, let's just keep the props optional or remove them if we are sure.
+// The plan says remove them.
 
-const Navbar = ({ activeTab, onTabChange }: NavbarProps) => {
+const Navbar = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
   const { isAuthenticated, user, logout } = useAuth();
@@ -30,7 +29,7 @@ const Navbar = ({ activeTab, onTabChange }: NavbarProps) => {
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <div 
+          <div
             className="flex items-center gap-2 cursor-pointer group"
             onClick={() => navigate('/')}
           >
@@ -43,42 +42,45 @@ const Navbar = ({ activeTab, onTabChange }: NavbarProps) => {
           </div>
 
           {/* Centered Toggle - Desktop & Mobile */}
-          {onTabChange && (
-            <div className="absolute left-1/2 -translate-x-1/2 flex items-center bg-muted/30 backdrop-blur-md p-1 rounded-full border border-border/30 shadow-sm">
-              <button 
-                onClick={() => onTabChange("rooms")}
-                className={`relative px-4 md:px-6 py-1.5 md:py-2 rounded-full text-xs md:text-sm font-medium transition-all duration-300 ease-out ${
-                  activeTab === "rooms" 
-                    ? "text-foreground" 
-                    : "text-muted-foreground hover:text-foreground"
+          <div className="absolute left-1/2 -translate-x-1/2 flex items-center bg-muted/30 backdrop-blur-md p-1 rounded-full border border-border/30 shadow-sm">
+            <button
+              onClick={() => navigate("/")}
+              className={`relative px-4 md:px-6 py-1.5 md:py-2 rounded-full text-xs md:text-sm font-medium transition-all duration-300 ease-out ${window.location.pathname === "/"
+                ? "text-foreground"
+                : "text-muted-foreground hover:text-foreground"
                 }`}
-              >
-                {activeTab === "rooms" && (
-                  <span className="absolute inset-0 bg-background rounded-full shadow-md -z-10 animate-scale-in" />
-                )}
-                <span className="relative z-10">Rooms</span>
-              </button>
-              <button 
-                onClick={() => onTabChange("roommates")}
-                className={`relative px-4 md:px-6 py-1.5 md:py-2 rounded-full text-xs md:text-sm font-medium transition-all duration-300 ease-out ${
-                  activeTab === "roommates" 
-                    ? "text-foreground" 
-                    : "text-muted-foreground hover:text-foreground"
+            >
+              {window.location.pathname === "/" && (
+                <span className="absolute inset-0 bg-background rounded-full shadow-md -z-10 animate-scale-in" />
+              )}
+              <span className="relative z-10">Rooms</span>
+            </button>
+            <button
+              onClick={() => navigate("/roommates")}
+              className={`relative px-4 md:px-6 py-1.5 md:py-2 rounded-full text-xs md:text-sm font-medium transition-all duration-300 ease-out ${window.location.pathname === "/roommates"
+                ? "text-foreground"
+                : "text-muted-foreground hover:text-foreground"
                 }`}
-              >
-                {activeTab === "roommates" && (
-                  <span className="absolute inset-0 bg-background rounded-full shadow-md -z-10 animate-scale-in" />
-                )}
-                <span className="relative z-10">Roommates</span>
-              </button>
-            </div>
-          )}
+            >
+              {window.location.pathname === "/roommates" && (
+                <span className="absolute inset-0 bg-background rounded-full shadow-md -z-10 animate-scale-in" />
+              )}
+              <span className="relative z-10 flex flex-col items-center leading-none">
+                <span className="text-sm">Roommates</span>
+                <span className="text-[8px] bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent font-bold animate-pulse mt-0.5">
+                  Coming Soon
+                </span>
+              </span>
+            </button>
+          </div>
 
           {/* Desktop Navigation */}
           <div className="hidden lg:flex items-center gap-3">
-            <Button variant="outline" onClick={() => handleProtectedAction('/create-listing')}>
-              List Your Room
-            </Button>
+            {!isAuthenticated && (
+              <Button variant="outline" onClick={() => navigate('/auth/login?redirect=/create-listing')}>
+                List Your Room
+              </Button>
+            )}
             <Button
               variant="ghost"
               size="icon"
@@ -126,7 +128,7 @@ const Navbar = ({ activeTab, onTabChange }: NavbarProps) => {
               <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
               <span className="sr-only">Toggle theme</span>
             </Button>
-            <button 
+            <button
               className="p-2"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             >
@@ -149,8 +151,8 @@ const Navbar = ({ activeTab, onTabChange }: NavbarProps) => {
                 {/* Floating Menu */}
                 <div className="fixed top-20 right-4 w-64 bg-background/95 backdrop-blur-xl border border-primary/20 rounded-2xl shadow-2xl z-[999] py-3 animate-scale-in">
                   {!isAuthenticated && (
-                    <Button 
-                      variant="ghost" 
+                    <Button
+                      variant="ghost"
                       className="w-full justify-start px-4 hover:bg-primary/10 transition-colors"
                       onClick={() => {
                         navigate('/auth/login');
@@ -163,8 +165,8 @@ const Navbar = ({ activeTab, onTabChange }: NavbarProps) => {
                   )}
                   {isAuthenticated && (
                     <>
-                      <Button 
-                        variant="ghost" 
+                      <Button
+                        variant="ghost"
                         className="w-full justify-start px-4 hover:bg-primary/10 transition-colors"
                         onClick={() => {
                           navigate('/');
@@ -174,8 +176,8 @@ const Navbar = ({ activeTab, onTabChange }: NavbarProps) => {
                         <LayoutDashboard className="h-4 w-4 mr-3" />
                         Dashboard
                       </Button>
-                      <Button 
-                        variant="ghost" 
+                      <Button
+                        variant="ghost"
                         className="w-full justify-start px-4 hover:bg-primary/10 transition-colors"
                         onClick={() => {
                           navigate('/?tab=profile');
@@ -185,8 +187,8 @@ const Navbar = ({ activeTab, onTabChange }: NavbarProps) => {
                         <UserCircle className="h-4 w-4 mr-3" />
                         Profile
                       </Button>
-                      <Button 
-                        variant="ghost" 
+                      <Button
+                        variant="ghost"
                         className="w-full justify-start px-4 hover:bg-primary/10 transition-colors"
                         onClick={() => {
                           navigate('/my-listings');
@@ -197,8 +199,8 @@ const Navbar = ({ activeTab, onTabChange }: NavbarProps) => {
                         My Listings
                       </Button>
                       <div className="my-2 border-t border-primary/10" />
-                      <Button 
-                        variant="ghost" 
+                      <Button
+                        variant="ghost"
                         className="w-full justify-start px-4 hover:bg-primary/10 transition-colors"
                         onClick={() => {
                           navigate('/create-listing');
@@ -209,8 +211,8 @@ const Navbar = ({ activeTab, onTabChange }: NavbarProps) => {
                         List Your Room
                       </Button>
                       <div className="my-2 border-t border-primary/10" />
-                      <Button 
-                        variant="ghost" 
+                      <Button
+                        variant="ghost"
                         className="w-full justify-start px-4 text-destructive hover:text-destructive hover:bg-destructive/10 transition-colors"
                         onClick={() => {
                           logout();

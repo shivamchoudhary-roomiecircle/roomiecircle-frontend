@@ -7,13 +7,9 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     // Check if theme preference already exists
     const storedTheme = localStorage.getItem("theme");
-    
+
     if (!storedTheme) {
-      // First time load - determine theme based on time
-      const currentHour = new Date().getHours();
-      // Night time is from 18:00 (6 PM) to 06:00 (6 AM)
-      const isNightTime = currentHour >= 18 || currentHour < 6;
-      setDefaultTheme(isNightTime ? "dark" : "light");
+      setDefaultTheme("dark");
     }
   }, []);
 
