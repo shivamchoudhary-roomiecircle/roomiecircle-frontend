@@ -1,16 +1,31 @@
 # Stage 1: Build
 FROM node:18-alpine as build
 WORKDIR /app
+
+# Copy package files
 COPY package*.json ./
-RUN npm install
+# Use --legacy-peer-deps to ignore potential Bun/NPM conflicts
+RUN npm install --legacy-peer-deps
+
+# Copy source code
 COPY . .
+
+# Run the build
 RUN npm run build
+
+# --- 🔍 DETECTIVE STEP 1 🔍 ---
+# Print the contents of the /app folder. 
+# Do we see 'dist'? Do we see 'build'?
+RUN echo "=== CONTENTS OF /app ===" && ls -la /app
+
+# --- 🔍 DETECTIVE STEP 2 🔍 ---
+# Print the contents of the output folder (if it exists)
+RUN echo "=== CONTENTS OF /app/dist ===" && ls -la /app/dist || echo "DIST FOLDER NOT FOUND"
 
 # Stage 2: Serve
 FROM nginx:alpine
-# Copy the build output
 COPY --from=build /app/dist /usr/share/nginx/html
-# Copy the Nginx config to support multiple routes
 COPY nginx.conf /etc/nginx/conf.d/default.conf
+
 EXPOSE 80
 CMD ["nginx", "-g", "daemon off;"]

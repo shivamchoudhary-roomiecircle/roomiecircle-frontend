@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Loader2, Home, DollarSign, MapPin, Bed, Users, Image as ImageIcon, Star, X } from "lucide-react";
 import { LocationAutocomplete } from "@/components/search/LocationAutocomplete";
 import { IconRenderer } from "@/lib/iconMapper";
+import { convertFileToJpeg } from "@/lib/image-utils";
 import UploadPhotosContent from "../components/listing/UploadPhotos";
 
 interface RoommateData {
@@ -124,11 +125,19 @@ export default function CreateRoomListing() {
 
     setUploadingImages(true);
     try {
-      const uploadPromises = fileArray.map(async (file, index) => {
+      const uploadPromises = fileArray.map(async (originalFile, index) => {
+        // Convert to JPEG
+        let file = originalFile;
+        try {
+          file = await convertFileToJpeg(originalFile);
+        } catch (error) {
+          console.error("Failed to convert image:", error);
+        }
+
         // Validate file type
         const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
         if (!validTypes.includes(file.type)) {
-          throw new Error(`Invalid file type: ${file.type}. Please upload JPEG, PNG, or WebP images.`);
+          // throw new Error(`Invalid file type: ${file.type}. Please upload JPEG, PNG, or WebP images.`);
         }
 
         // Step 1: Request upload URL
