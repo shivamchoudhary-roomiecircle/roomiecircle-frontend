@@ -37,7 +37,7 @@ const Navbar = () => {
               <Home className="h-5 w-5 text-white" />
             </div>
             <span className="hidden lg:inline text-xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-              RoomieCircle
+              Roomiecircle
             </span>
           </div>
 

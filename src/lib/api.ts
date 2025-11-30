@@ -1,7 +1,44 @@
 import JSONbig from "json-bigint";
-import { Listing, PageResponse } from "@/types/listing";
+import {
+  ApiResponse,
+  // Auth types
+  SignupInitiateResponse,
+  AuthResponse,
+  UserInfo,
+  RefreshTokenResponse,
+  ResendVerificationResponse,
+  OtpLoginInitiateResponse,
+  // User types
+  UserProfileDTO,
+  UploadProfilePhotoResponse,
+  DeleteAccountResponse,
+  // Room types
+  RoomListingDTO,
+  MyRoomsResponse,
+  DeleteRoomResponse,
+  // Search types
+  RoomSearchResultDTO,
+  RoomListingDetailDTO,
+  // Places types
+  PlaceAutocompleteResponse,
+  PlaceSuggestionDTO,
+  PlaceDetailsDTO,
+  // Media types
+  UploadResponseDto,
+  MediaDto,
+  MediaListResponse,
+  MediaMutationResponse,
+  MediaLinkDTO,
+  MediaType,
+  MediaStatus,
+  ResourceTag,
+  // Config types
+  ClientConfigResponse,
+  // Shared types
+  PagedResponse,
+} from "@/types/api.types";
 
-const API_BASE_URL = "http://localhost:8080";
+const API_BASE_URL = "https://staging-apiroomiecircle.com";
 
 class ApiClient {
   private getAuthHeader(): HeadersInit {
@@ -11,6 +48,7 @@ class ApiClient {
 
   private async request<T>(endpoint: string, options: RequestInit & { skipAuth?: boolean } = {}): Promise<T> {
     const { skipAuth, ...fetchOptions } = options;
+    console.log(`[API] Starting request to ${API_BASE_URL}${endpoint}`, fetchOptions);
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
       ...fetchOptions,
       headers: {
@@ -19,6 +57,7 @@ class ApiClient {
         ...fetchOptions.headers,
       },
     });
+    console.log(`[API] Response from ${endpoint}:`, response.status, response.statusText);
 
     // Parse response using json-bigint to handle large numbers (like Snowflake IDs)
     const text = await response.text();
@@ -92,11 +131,8 @@ class ApiClient {
   }
 
   // Auth endpoints
-  async initiateSignup(email: string, password: string, name: string) {
-    const response = await this.request<{
-      success: boolean;
-      data: { message: string; tempId: string };
-    }>("/api/v1/auth/signup/initiate-verification", {
+  async initiateSignup(email: string, password: string, name: string): Promise<SignupInitiateResponse> {
+    const response = await this.request<ApiResponse<SignupInitiateResponse>>("/api/v1/auth/signup/initiate-verification", {
       method: "POST",
       body: JSON.stringify({ email, password, name }),
       skipAuth: true,
@@ -104,137 +140,89 @@ class ApiClient {
     return response.data;
   }
 
-  async verifySignup(tempId: string, code: string) {
-    const response = await this.request<{
-      success: boolean;
-      data: {
-        message: string;
-        accessToken: string;
-        refreshToken: string;
-        user: any;
-      };
-    }>("/api/v1/auth/signup/verify", {
+  async verifySignup(tempId: string, code: string): Promise<AuthResponse> {
+    const response = await this.request<ApiResponse<AuthResponse>>("/api/v1/auth/signup/verify", {
       method: "POST",
       body: JSON.stringify({ tempId, code }),
       skipAuth: true,
     });
-    return response.data;
+    return response.data!;
   }
 
-  async resendVerification(tempId: string) {
-    const response = await this.request<{
-      success: boolean;
-      data: { message: string };
-    }>("/api/v1/auth/signup/resend-verification", {
+  async resendVerification(tempId: string): Promise<ResendVerificationResponse> {
+    const response = await this.request<ApiResponse<ResendVerificationResponse>>("/api/v1/auth/signup/resend-verification", {
       method: "POST",
       body: JSON.stringify({ tempId }),
       skipAuth: true,
     });
-    return response.data;
+    return response.data!;
   }
 
-  async login(email: string, password: string) {
-    const response = await this.request<{
-      success: boolean;
-      data: {
-        message: string;
-        accessToken: string;
-        refreshToken: string;
-        user: any;
-      };
-    }>("/api/v1/auth/login", {
+  async login(email: string, password: string): Promise<AuthResponse> {
+    const response = await this.request<ApiResponse<AuthResponse>>("/api/v1/auth/login", {
       method: "POST",
       body: JSON.stringify({ email, password }),
       skipAuth: true,
     });
-    return response.data;
+    return response.data!;
   }
 
-  async initiateOtpLogin(email: string) {
-    const response = await this.request<{
-      success: boolean;
-      data: { message: string; tempId: string };
-    }>("/api/v1/auth/login/otp/initiate", {
+  async initiateOtpLogin(email: string): Promise<OtpLoginInitiateResponse> {
+    const response = await this.request<ApiResponse<OtpLoginInitiateResponse>>("/api/v1/auth/login/otp/initiate", {
       method: "POST",
       body: JSON.stringify({ email }),
       skipAuth: true,
     });
-    return response.data;
+    return response.data!;
   }
 
-  async verifyOtpLogin(tempId: string, code: string) {
-    const response = await this.request<{
-      success: boolean;
-      data: {
-        message: string;
-        accessToken: string;
-        refreshToken: string;
-        user: any;
-      };
-    }>("/api/v1/auth/login/otp/verify", {
+  async verifyOtpLogin(tempId: string, code: string): Promise<AuthResponse> {
+    const response = await this.request<ApiResponse<AuthResponse>>("/api/v1/auth/login/otp/verify", {
       method: "POST",
       body: JSON.stringify({ tempId, code }),
       skipAuth: true,
     });
-    return response.data;
+    return response.data!;
   }
 
-  async googleSignup(idToken: string) {
-    const response = await this.request<{
-      success: boolean;
-      data: {
-        message: string;
-        accessToken: string;
-        refreshToken: string;
-        user: any;
-      };
-    }>("/api/v1/auth/google", {
+  async googleSignup(idToken: string): Promise<AuthResponse> {
+    const response = await this.request<ApiResponse<AuthResponse>>("/api/v1/auth/google", {
       method: "POST",
       body: JSON.stringify({ idToken }),
       skipAuth: true,
     });
-    return response.data;
+    return response.data!;
   }
 
-  async googleLogin(idToken: string) {
-    const response = await this.request<{
-      success: boolean;
-      data: {
-        message: string;
-        accessToken: string;
-        refreshToken: string;
-        user: any;
-      };
-    }>("/api/v1/auth/google", {
+  async googleLogin(idToken: string): Promise<AuthResponse> {
+    const response = await this.request<ApiResponse<AuthResponse>>("/api/v1/auth/google", {
       method: "POST",
       body: JSON.stringify({ idToken }),
       skipAuth: true,
     });
-    return response.data;
+    return response.data!;
   }
+
+  async deleteAccount(): Promise<void> {
+    await this.request<ApiResponse<null>>("/api/v1/users/me", {
+      method: "DELETE",
+    });
+  }
+
+
 
   // Search endpoints
-  async searchPlaces(input: string, sessionToken?: string) {
-    const params = new URLSearchParams({ input });
+  async searchPlacesStartingWith(prefix: string, sessionToken?: string): Promise<PlaceSuggestionDTO[]> {
+    const params = new URLSearchParams({ "input": prefix });
     if (sessionToken) params.append("sessionToken", sessionToken);
 
-    const response = await this.request<{
-      success: boolean;
-      data: {
-        suggestions: Array<{
-          placeId: string;
-          description: string;
-          mainText: string;
-          secondaryText: string;
-        }>;
-      };
-    }>(`/api/v1/places/autocomplete?${params.toString()}`, {
+    const response = await this.request<ApiResponse<PlaceAutocompleteResponse>>(`/api/v1/places/autocomplete?${params.toString()}`, {
       skipAuth: true,
     });
-    return response.data.suggestions;
+    return response.data!.suggestions;
   }
 
-  async searchPlaceListings(placeId: string, filters: {
+  async searchRoomsAroundPlace(placeId: string, filters: {
     radiusKm?: number;
     rentMin?: number;
     rentMax?: number;
@@ -244,7 +232,7 @@ class ApiClient {
     amenities?: string[];
     page?: number;
     size?: number;
-  }) {
+  }): Promise<PagedResponse<RoomSearchResultDTO>> {
     const params = new URLSearchParams({
       placeId,
       page: (filters.page || 0).toString(),
@@ -268,65 +256,25 @@ class ApiClient {
       filters.amenities.forEach(amenity => params.append('amenities', amenity));
     }
 
-    const response = await this.request<{
-      success: boolean;
-      data: PageResponse<Listing>;
-    }>(`/api/v1/search/rooms/location?${params.toString()}`, {
+    const response = await this.request<ApiResponse<PagedResponse<RoomSearchResultDTO>>>(`/api/v1/search/rooms/location?${params.toString()}`, {
       skipAuth: true,
     });
 
     return response.data;
   }
 
-  async search(filters: any) {
-    const response = await this.request<{
-      success: boolean;
-      data: any;
-    }>("/api/v1/search", {
-      method: "POST",
-      body: JSON.stringify(filters),
-      skipAuth: true,
-    });
-    return response.data;
-  }
-
-  async searchRecentRooms(page: number = 0, size: number = 20) {
+  async searchRecentRooms(page: number = 0, size: number = 20): Promise<PagedResponse<RoomSearchResultDTO>> {
     const params = new URLSearchParams({
       page: page.toString(),
       size: size.toString(),
     });
-    const response = await this.request<{
-      success: boolean;
-      data: PageResponse<Listing>;
-    }>(`/api/v1/search/rooms/recent?${params.toString()}`, {
+    const response = await this.request<ApiResponse<PagedResponse<RoomSearchResultDTO>>>(`/api/v1/search/rooms/recent?${params.toString()}`, {
       skipAuth: true,
     });
     return response.data;
   }
 
-  async searchRecentRoommates(page: number = 0, size: number = 20) {
-    const params = new URLSearchParams({
-      page: page.toString(),
-      size: size.toString(),
-    });
-    const response = await this.request<{
-      success: boolean;
-      data: {
-        content: any[];
-        page: number;
-        size: number;
-        totalElements: number;
-        totalPages: number;
-        last: boolean;
-        first: boolean;
-      };
-    }>(`/api/v1/search/roommates/recent?${params.toString()}`, {
-      skipAuth: true,
-    });
-    return response.data;
-  }
-
-  async searchListingsByMap(bounds: {
+  async searchRoomsByMapBounds(bounds: {
     minLat: number;
     maxLat: number;
     minLng: number;
@@ -344,7 +292,7 @@ class ApiClient {
     gender?: string;
     page?: number;
     size?: number;
-  } = {}) {
+  } = {}): Promise<PagedResponse<RoomSearchResultDTO>> {
     const params = new URLSearchParams({
       minLat: bounds.minLat.toString(),
       maxLat: bounds.maxLat.toString(),
@@ -374,64 +322,65 @@ class ApiClient {
       filters.amenities.forEach(amenity => params.append('amenities', amenity));
     }
 
-    const response = await this.request<{
-      success: boolean;
-      data: PageResponse<Listing>;
-    }>(`/api/v1/search/rooms/map?${params.toString()}`, {
+    const response = await this.request<ApiResponse<PageResponse<Listing>>>(`/api/v1/search/rooms/map?${params.toString()}`, {
       skipAuth: true,
     });
     return response.data;
+  }
+
+  async getRoomDetailsForSearch(roomId: string): Promise<RoomListingDetailDTO> {
+    const response = await this.request<ApiResponse<RoomListingDetailDTO>>(`/api/v1/search/rooms/${roomId}`, {
+      skipAuth: true,
+    });
+    return response.data!;
   }
 
   // Configuration endpoint
-  async getConfiguration() {
-    const response = await this.request<{
-      success: boolean;
-      data: any;
-    }>("/api/v1/configuration", {
+  async getConfiguration(): Promise<ClientConfigResponse> {
+    const response = await this.request<ApiResponse<ClientConfigResponse>>("/api/v1/configuration", {
       skipAuth: true,
     });
-    return response.data;
+    return response.data!;
   }
 
   // Room Listing endpoints
-  async createRoomListing(payload?: any) {
-    const response = await this.request<{
-      success: boolean;
-      data: any;
-      message: string;
-    }>("/api/v1/listings/rooms", {
+  async updateRoomStatus(roomId: string, status: string): Promise<RoomListingDTO> {
+    const response = await this.request<ApiResponse<RoomListingDTO>>(`/api/v1/listings/rooms/${roomId}/status`, {
+      method: "PATCH",
+      body: JSON.stringify({ status }),
+    });
+    return response.data!;
+  }
+
+  async deleteRoom(roomId: string): Promise<void> {
+    await this.request<ApiResponse<null>>(`/api/v1/listings/rooms/${roomId}`, {
+      method: "DELETE",
+    });
+  }
+
+  async createRoom(payload?: any): Promise<RoomListingDTO> {
+    const response = await this.request<ApiResponse<RoomListingDTO>>("/api/v1/listings/rooms", {
       method: "POST",
       body: payload ? JSON.stringify(payload) : undefined,
     });
-    return response.data;
+    return response.data!;
   }
 
-  async updateRoomListing(listingId: string, data: any) {
-    const response = await this.request<{
-      success: boolean;
-      data: any;
-      message: string;
-    }>(`/api/v1/listings/rooms/${listingId}`, {
+  async updateRoom(roomId: string, data: any): Promise<RoomListingDTO> {
+    const response = await this.request<ApiResponse<RoomListingDTO>>(`/api/v1/listings/rooms/${roomId}`, {
       method: "PATCH",
       body: JSON.stringify(data),
     });
-    return response.data;
+    return response.data!;
   }
 
-  async getMyListings(status?: "ACTIVE" | "INACTIVE") {
+  async getMyRooms(status?: "ACTIVE" | "INACTIVE"): Promise<RoomListingDTO[]> {
     const params = status ? `?status=${status}` : "";
-    const response = await this.request<{
-      success: boolean;
-      data: any[] | { active: any[]; inactive: any[] };
-    }>(`/api/v1/listings/rooms/my${params}`);
+    const response = await this.request<ApiResponse<MyRoomsResponse>>(`/api/v1/listings/rooms/my${params}`);
 
     // Handle both response formats:
-    // 1. If data is an array, return it directly
-    // 2. If data is an object with active/inactive keys, return the appropriate array
-    if (Array.isArray(response.data)) {
-      return response.data;
-    } else if (response.data && typeof response.data === 'object') {
+    // The API returns { active: RoomListingDTO[], inactive: RoomListingDTO[] }
+    if (response.data && typeof response.data === 'object') {
       if (status === "ACTIVE") {
         return Array.isArray(response.data.active) ? response.data.active : [];
       } else if (status === "INACTIVE") {
@@ -445,26 +394,14 @@ class ApiClient {
     return [];
   }
 
-  async getRoomListing(listingId: string) {
-    const response = await this.request<{
-      success: boolean;
-      data: any;
-    }>(`/api/v1/listings/rooms/${listingId}`);
-    return response.data;
+  async getRoomDetails(roomId: string): Promise<RoomListingDTO> {
+    const response = await this.request<ApiResponse<RoomListingDTO>>(`/api/v1/listings/rooms/${roomId}`);
+    return response.data!;
   }
 
-  async getRoomDetails(roomId: string) {
-    const response = await this.request<{
-      success: boolean;
-      data: any;
-    }>(`/api/v1/search/rooms/${roomId}`, {
-      skipAuth: true,
-    });
-    return response.data;
-  }
 
   // Media Upload API - New 3-step flow
-  async requestMediaUploadUrl(resourceId: string, tag: "LISTING" | "NEIGHBORHOOD" | "selfie" | "PROFILE", mediaType: string, name: string) {
+  async requestMediaUploadUrl(resourceId: string, tag: ResourceTag, mediaType: string): Promise<UploadResponseDto> {
     let backendMediaType = "OTHER";
     if (mediaType.toLowerCase().startsWith("image")) {
       backendMediaType = "IMAGE";
@@ -476,16 +413,7 @@ class ApiClient {
       backendMediaType = "DOCUMENT";
     }
 
-    const response = await this.request<{
-      success: boolean;
-      message: string;
-      data: {
-        uploadId: string;
-        presigned_url: string;
-        tag: string;
-        mediaType: string;
-      };
-    }>("/api/v1/media/upload-url", {
+    const response = await this.request<ApiResponse<UploadResponseDto>>("/api/v1/media/upload-url", {
       method: "POST",
       body: JSON.stringify({
         resourceId: resourceId,
@@ -493,31 +421,17 @@ class ApiClient {
         mediaType: backendMediaType,
       }),
     });
-    return response.data;
+    return response.data!;
   }
 
-  async confirmMediaUpload(uploadId: string) {
-    const response = await this.request<{
-      success: boolean;
-      message: string;
-      data: {
-        id: number;
-        url: string;
-        thumbnailUrl?: string;
-        mediumUrl?: string;
-        fullUrl?: string;
-        tag: string;
-        mediaType: string;
-        status: string;
-        createdAt: string;
-      };
-    }>(`/api/v1/media/confirm/${uploadId}`, {
+  async confirmMediaUpload(uploadId: string): Promise<MediaDto> {
+    const response = await this.request<ApiResponse<MediaDto>>(`/api/v1/media/confirm/${uploadId}`, {
       method: "POST",
     });
-    return response;
+    return response.data!;
   }
 
-  async reorderMedia(resourceId: string, mediaType: string, tag: string, mediaOrder: { id: number }[]) {
+  async reorderMedia(resourceId: string, mediaType: string, tag: string, mediaOrder: { id: number }[]): Promise<void> {
     let backendMediaType = "OTHER";
     if (mediaType.toLowerCase().startsWith("image") || mediaType === "IMAGE") {
       backendMediaType = "IMAGE";
@@ -525,11 +439,7 @@ class ApiClient {
       backendMediaType = "VIDEO";
     }
 
-    const response = await this.request<{
-      success: boolean;
-      message: string;
-      data: null;
-    }>("/api/v1/media/reorder", {
+    await this.request<ApiResponse<null>>("/api/v1/media/reorder", {
       method: "PUT",
       body: JSON.stringify({
         resourceId,
@@ -538,94 +448,23 @@ class ApiClient {
         mediaOrder,
       }),
     });
-    return response;
   }
 
-  async getResourceMedia(resourceId: string, tag?: "LISTING" | "NEIGHBORHOOD" | "selfie") {
-    const params = tag ? `?tag=${tag}` : "";
-    const response = await this.request<{
-      status: string;
-      data: Array<{
-        id: number;
-        url: string;
-        tag: string;
-        media_type: string;
-        status: "REQUESTED" | "UPLOADED" | "PROCESSING" | "READY" | "FAILED" | "DELETED";
-        created_at: string;
-      }>;
-    }>(`/api/v1/resources/${resourceId}/media${params}`, {
-      skipAuth: true,
-    });
-    return response.data;
-  }
-
-  async fetchMediaForResource(resourceId: string, type: string, tag: string) {
+  async fetchMediaForResource(resourceId: string, type: string, tag: string): Promise<MediaDto[]> {
     const params = new URLSearchParams({
       type,
       tag
     });
 
-    const response = await this.request<{
-      success: boolean;
-      data: Array<{
-        id: number;
-        url: string;
-        mediaType: string;
-        tag: string;
-        priority: number;
-        status: string;
-        originalName: string;
-        createdAt: string;
-        thumbnailUrl?: string;
-        mediumUrl?: string;
-        fullUrl?: string;
-      }>;
-      message: string;
-    }>(`/api/v1/media/resource/${resourceId}?${params.toString()}`);
+    const response = await this.request<ApiResponse<MediaDto[]>>(`/api/v1/media/resource/${resourceId}?${params.toString()}`);
 
-    return response.data;
+    return response.data!;
   }
 
-  async deleteMedia(mediaId: number) {
-    const response = await this.request<{
-      status: string;
-      message: string;
-    }>(`/api/v1/media/${mediaId}`, {
+  async deleteMedia(mediaId: number): Promise<void> {
+    await this.request<ApiResponse<null>>(`/api/v1/media/${mediaId}`, {
       method: "DELETE",
     });
-    return response;
-  }
-
-  async updateListingStatus(listingId: string, status: string) {
-    const response = await this.request<{
-      success: boolean;
-      data: any;
-    }>(`/api/v1/listings/rooms/${listingId}/status`, {
-      method: "PATCH",
-      body: JSON.stringify({ status }),
-    });
-    return response.data;
-  }
-
-  async deleteRoomListing(listingId: string) {
-    const response = await this.request<{
-      success: boolean;
-      data: any;
-    }>(`/api/v1/listings/rooms/${listingId}`, {
-      method: "DELETE",
-    });
-    return response.data;
-  }
-
-  async deleteAccount() {
-    const response = await this.request<{
-      success: boolean;
-      message: string;
-      timestamp: string;
-    }>("/api/v1/users/me", {
-      method: "DELETE",
-    });
-    return response;
   }
 }
 

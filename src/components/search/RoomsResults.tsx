@@ -17,9 +17,9 @@ import { apiClient } from "@/lib/api";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useDebounce } from "@/hooks/useDebounce";
 import { PremiumSlider } from "@/components/ui/PremiumSlider";
-import { RoomListingCard } from "@/components/search/RoomListingCard.tsx";
+import { RoomSearchCard } from "@/components/search/RoomSearchCard.tsx";
 import { useInfiniteQuery } from "@tanstack/react-query";
-import { Listing } from "@/types/listing";
+import { RoomSearchResultDTO } from "@/types/api.types";
 
 export const RoomsResults = () => {
   const navigate = useNavigate();
@@ -69,7 +69,7 @@ export const RoomsResults = () => {
     queryKey: ['rooms', placeId, radius, minPrice, maxPrice, roomType, layout, amenities, viewMode, mapBounds],
     queryFn: async ({ pageParam = 0 }) => {
       if (viewMode === 'map' && mapBounds) {
-        return await apiClient.searchListingsByMap(mapBounds, {
+        return await apiClient.searchRoomsByMapBounds(mapBounds, {
           rentMin: minPrice ? parseInt(minPrice) : undefined,
           rentMax: maxPrice ? parseInt(maxPrice) : undefined,
           roomTypes: mappedRoomType ? [mappedRoomType] : undefined,
@@ -79,7 +79,7 @@ export const RoomsResults = () => {
           size: 20
         });
       } else if (placeId) {
-        return await apiClient.searchPlaceListings(placeId, {
+        return await apiClient.searchRoomsAroundPlace(placeId, {
           radiusKm: radius || 5,
           rentMin: minPrice ? parseInt(minPrice) : undefined,
           rentMax: maxPrice ? parseInt(maxPrice) : undefined,
@@ -132,7 +132,7 @@ export const RoomsResults = () => {
     return () => observer.disconnect();
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
-  const listings = data?.pages.flatMap((page) => page.content) || [];
+  const rooms = data?.pages.flatMap((page) => page.content) || [];
   const totalElements = data?.pages[0]?.totalElements || 0;
 
   return (
@@ -379,7 +379,7 @@ export const RoomsResults = () => {
 
           {/* Results Grid */}
           <div className="container mx-auto px-4 pb-12">
-            {!isLoading && listings.length === 0 ? (
+            {!isLoading && rooms.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 px-4">
                 <div className="w-32 h-32 mb-6 flex items-center justify-center">
                   <Search className="w-20 h-20 text-muted-foreground/40" strokeWidth={1} />
@@ -392,11 +392,11 @@ export const RoomsResults = () => {
             ) : (
               <>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                  {listings.map((listing: Listing) => (
-                    <RoomListingCard
-                      key={listing.id}
-                      listing={listing}
-                      onClick={() => navigate(`/listings/${listing.id}`)}
+                  {rooms.map((room: RoomSearchResultDTO) => (
+                    <RoomSearchCard
+                      key={room.id}
+                      room={room}
+                      onClick={() => navigate(`/listings/${room.id}`)}
                     />
                   ))}
 
@@ -643,7 +643,7 @@ export const RoomsResults = () => {
           <div className="h-full w-full">
             <GoogleMap
               center={mapCenter}
-              listings={listings}
+              listings={rooms}
               onBoundsChange={setMapBounds}
             />
           </div>

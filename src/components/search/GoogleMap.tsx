@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { useConfig } from "@/contexts/ConfigContext";
-import { Listing } from "@/types/listing";
+import { RoomSearchResultDTO } from "@/types/api.types";
 
 const GOOGLE_MAPS_API_KEY = "AIzaSyDf5tpCzEbN1_RHkAh0rUrbQFM9UQE-O6k";
 
 interface GoogleMapProps {
   center?: { lat: number; lng: number };
-  listings?: Listing[];
+  listings?: RoomSearchResultDTO[];
   onBoundsChange?: (bounds: { minLat: number; maxLat: number; minLng: number; maxLng: number }) => void;
   fullscreenControl?: boolean;
 }

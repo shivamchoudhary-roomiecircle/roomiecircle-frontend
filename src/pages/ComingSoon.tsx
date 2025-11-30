@@ -206,7 +206,7 @@ const ComingSoon = () => {
                                         </DialogTrigger>
                                         <DialogContent className="sm:max-w-md">
                                             <DialogHeader>
-                                                <DialogTitle className="text-xl">Shape RoomieCircle</DialogTitle>
+                                                <DialogTitle className="text-xl">Shape Roomiecircle</DialogTitle>
                                                 <DialogDescription>
                                                     Vote for the features you want to see first!
                                                 </DialogDescription>

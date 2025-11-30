@@ -17,7 +17,7 @@ const SEO = ({
     type = 'website',
     keywords = []
 }: SEOProps) => {
-    const siteTitle = "RoomieCircle";
+    const siteTitle = "Roomiecircle";
     const fullTitle = title === siteTitle ? title : `${title} | ${siteTitle}`;
     const baseUrl = "https://roomiecircle.com";
     const fullCanonical = canonical ? (canonical.startsWith('http') ? canonical : `${baseUrl}${canonical}`) : baseUrl;

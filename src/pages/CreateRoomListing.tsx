@@ -145,16 +145,12 @@ export default function CreateRoomListing() {
           listingId,
           "LISTING",
           file.type,
-          file.name
         );
 
         // Step 2: Upload to GCS
         const uploadResponse = await fetch(presigned_url, {
           method: 'PUT',
           body: file,
-          headers: {
-            'Content-Type': file.type,
-          },
         });
 
         if (!uploadResponse.ok) {
@@ -333,7 +329,7 @@ export default function CreateRoomListing() {
       if (formData.neighborhoodImages.length > 0) payload.neighborhoodImages = formData.neighborhoodImages;
 
       // Create new listing using POST
-      const response = await apiClient.createRoomListing(payload);
+      const response = await apiClient.createRoom(payload);
       // Extract listing ID from response if available
       const savedListingId = response?.id || response?.data?.id || null;
       toast({
@@ -1182,16 +1178,12 @@ export default function CreateRoomListing() {
                                 listingId,
                                 "NEIGHBORHOOD",
                                 file.type,
-                                file.name
                               );
 
                               // Step 2: Upload to GCS
                               const uploadResponse = await fetch(presigned_url, {
                                 method: 'PUT',
                                 body: file,
-                                headers: {
-                                  'Content-Type': file.type,
-                                },
                               });
 
                               if (!uploadResponse.ok) {
@@ -1304,7 +1296,7 @@ export default function CreateRoomListing() {
         ) : (
           <UploadPhotosContent
             listingId={listingId!}
-            onFinish={() => navigate("/my-listings")}
+            onFinish={() => navigate("/my-listings?tab=inactive")}
           />
         )}
       </div>

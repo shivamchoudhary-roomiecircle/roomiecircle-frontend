@@ -32,7 +32,7 @@ export default function ViewRoomListingDetailed() {
       if (!id) return;
       try {
         setLoading(true);
-        const response = await apiClient.getRoomDetails(id);
+        const response = await apiClient.getRoomDetailsForSearch(id);
         const listingData = response.data || response;
         setListing(listingData);
       } catch (error) {
@@ -76,10 +76,9 @@ export default function ViewRoomListingDetailed() {
   return (
     <div className="min-h-screen flex flex-col">
       <SEO
-        title={`${listing.location.city} - ${listing.rent.amount}/mo`}
-        description={listing.description || `Check out this room in ${listing.location.city} for ${listing.rent.amount}.`}
-        image={listing.images?.[0]}
-        keywords={['room for rent', listing.location.city, 'shared apartment', 'roomiecircle']}
+        title={`${listing.addressText} - ${listing.monthlyRent}/mo`}
+        description={listing.description || `Check out this room in ${listing.addressText} for ${listing.monthlyRent}.`}
+        keywords={['room for rent', listing.addressText, 'shared apartment', 'roomiecircle']}
       />
       <Navbar />
 
@@ -89,7 +88,7 @@ export default function ViewRoomListingDetailed() {
           <div className="lg:col-span-2 space-y-6">
             {/* Photos */}
             <ListingPhotos
-              images={listing.images}
+              images={listing.photos?.map((p: any) => p.url) || (Array.isArray(listing.images) ? listing.images.map((img: any) => typeof img === 'string' ? img : img.url) : [])}
               description={listing.description}
             />
 
@@ -148,7 +147,7 @@ export default function ViewRoomListingDetailed() {
             <ListingNeighborhood
               review={listing.neighborhoodReview}
               ratings={listing.neighborhoodRatings}
-              images={listing.neighborhoodImages}
+              images={listing.neighborhoodImages?.map((img: any) => typeof img === 'string' ? img : img.url)}
             />
           </div>
         </div>

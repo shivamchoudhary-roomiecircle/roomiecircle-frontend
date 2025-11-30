@@ -3,11 +3,11 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import { ShieldCheck, MapPin } from "lucide-react";
-import { Listing } from "@/types/listing";
+import { RoomSearchResultDTO } from "@/types/api.types";
 import { cn } from "@/lib/utils";
 
 interface ListingCardProps {
-    listing: Listing;
+    listing: RoomSearchResultDTO;
     onClick?: () => void;
     className?: string;
 }

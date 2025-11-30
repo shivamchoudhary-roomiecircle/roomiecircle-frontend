@@ -84,10 +84,9 @@ const SortablePhoto = ({ id, url, onRemove, isUploading }: SortablePhotoProps) =
 };
 
 interface SortablePhotoGridProps {
-    images: { id: number; url: string }[];
-    onImagesChange: (newImages: { id: number; url: string }[]) => void;
+    images: { id: number; url: string; isUploading?: boolean }[];
+    onImagesChange: (newImages: { id: number; url: string; isUploading?: boolean }[]) => void;
     onUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
-    uploadingIndexes: Set<number>;
     maxImages?: number;
     uploadId: string;
 }
@@ -96,7 +95,6 @@ export function SortablePhotoGrid({
     images,
     onImagesChange,
     onUpload,
-    uploadingIndexes,
     maxImages = 8,
     uploadId,
 }: SortablePhotoGridProps) {
@@ -145,7 +143,7 @@ export function SortablePhotoGrid({
                                 const newImages = images.filter((_, i) => i !== index);
                                 onImagesChange(newImages);
                             }}
-                            isUploading={uploadingIndexes.has(index)}
+                            isUploading={!!img.isUploading}
                         />
                     ))}
 

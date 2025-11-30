@@ -1,122 +1,47 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { apiClient } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import ListingCard from "@/components/dashboard/ListingCard";
+import { MyListingCard } from "@/components/MyListingCard";
 import { toast } from "@/hooks/use-toast";
 import { Plus, FileX } from "lucide-react";
-
-interface Listing {
-  id: string;
-  monthlyRent: number;
-  address: string;
-  hasBrokerage: boolean;
-  photos: string[];
-  lister: {
-    id: number;
-    name: string;
-    profilePicture: string | null;
-    verified: boolean;
-    verificationLevel: string | null;
-    profileScore: number | null;
-  };
-  roomType: string;
-  bhkType: string;
-  layoutType: string | null;
-  layoutTypeKey: string | null;
-  propertyTypes: string[];
-  propertyTypeKeys: string[];
-  // Additional fields that might be in the response
-  listerId?: number;
-  description?: string;
-  latitude?: number;
-  longitude?: number;
-  addressText?: string;
-  placeId?: string;
-  maintenance?: number;
-  maintenanceIncluded?: boolean;
-  deposit?: number;
-  availableDate?: string;
-  listingType?: string;
-  propertyType?: string[];
-  hasBalcony?: boolean;
-  hasPrivateWashroom?: boolean;
-  hasFurniture?: boolean;
-  washroomCount?: number;
-  balconyCount?: number;
-  bedroomCount?: number;
-  amenities?: Record<string, any>;
-  images?: string[];
-  neighborhoodReview?: string;
-  neighborhoodRatings?: Record<string, number>;
-  neighborhoodImages?: string[];
-  roommatePreferences?: {
-    minAge: number;
-    maxAge: number;
-    gender: string;
-    profession: string;
-    renteeType: string;
-    lifestyle: string[];
-  };
-  existingRoommates?: Array<{
-    name: string;
-    gender: string;
-    age: number;
-    profession: string;
-    bio: string;
-  }>;
-  status?: string;
-  completionScore?: number;
-  missingSections?: Record<string, string[]>;
-  publishedAt?: string;
-  deactivatedAt?: string;
-  createdAt?: string;
-  updatedAt?: string;
-}
+import { RoomListingDTO, MediaDto } from "@/types/api.types";
 
 const MyListings = () => {
   const navigate = useNavigate();
-  const [activeListings, setActiveListings] = useState<Listing[]>([]);
-  const [inactiveListings, setInactiveListings] = useState<Listing[]>([]);
-  const [selectedTab, setSelectedTab] = useState<"active" | "inactive">("active");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get("tab");
+  const initialTab = tabParam === "inactive" ? "inactive" : "active";
+
+  const [activeListings, setActiveListings] = useState<RoomListingDTO[]>([]);
+  const [inactiveListings, setInactiveListings] = useState<RoomListingDTO[]>([]);
+  const [selectedTab, setSelectedTab] = useState<"active" | "inactive">(initialTab);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [inactiveLoaded, setInactiveLoaded] = useState(false);
 
-  const transformListing = (listing: any): Listing => {
+  const transformListing = (listing: any): RoomListingDTO => {
     return {
-      id: listing.id || "",
-      monthlyRent: listing.monthlyRent || 0,
-      address: listing.addressText || listing.address || "Address not provided",
-      hasBrokerage: listing.hasBrokerage || false,
-      photos: Array.isArray(listing.images)
-        ? listing.images.map((img: any) => typeof img === 'string' ? img : img.url)
-        : Array.isArray(listing.photos)
-          ? listing.photos
-          : [],
-      lister: {
-        id: (listing.lister && listing.lister.id) || 0,
-        name: (listing.lister && listing.lister.name) || "Unknown Lister",
-        profilePicture: (listing.lister && listing.lister.profilePicture) || null,
-        verified: (listing.lister && listing.lister.verified) || false,
-        verificationLevel: (listing.lister && listing.lister.verificationLevel) || null,
-        profileScore: (listing.lister && listing.lister.profileScore) || null,
-      },
-      roomType: listing.roomType || "",
-      bhkType: listing.bhkType || "",
-      layoutType: listing.layoutType || null,
-      layoutTypeKey: listing.layoutTypeKey || null,
-      propertyTypes: Array.isArray(listing.propertyType)
+      id: listing.id || 0,
+      listerId: listing.listerId || 0,
+      monthlyRent: listing.monthlyRent,
+      addressText: listing.addressText || listing.address,
+      images: Array.isArray(listing.images)
+        ? listing.images.map((img: any) =>
+          typeof img === 'string' ? { url: img, tag: 'ROOM_PHOTO' as const, mediaType: 'IMAGE' as const, status: 'ACTIVE' as const, id: 0, createdAt: '' } : img
+        )
+        : [],
+      lister: listing.lister,
+      roomType: listing.roomType,
+      bhkType: listing.bhkType,
+      propertyType: Array.isArray(listing.propertyType)
         ? listing.propertyType
         : listing.propertyType
           ? [listing.propertyType]
-          : listing.propertyTypes || listing.propertyTypeKeys || [],
-      propertyTypeKeys: listing.propertyTypeKeys || [],
-      // Include all other fields
-      listerId: listing.listerId,
+          : listing.propertyTypes || [],
       description: listing.description,
       latitude: listing.latitude,
       longitude: listing.longitude,
@@ -125,28 +50,18 @@ const MyListings = () => {
       maintenanceIncluded: listing.maintenanceIncluded,
       deposit: listing.deposit,
       availableDate: listing.availableDate,
-      listingType: listing.listingType,
-      propertyType: Array.isArray(listing.propertyType)
-        ? listing.propertyType
-        : listing.propertyType
-          ? [listing.propertyType]
-          : [],
       hasBalcony: listing.hasBalcony,
       hasPrivateWashroom: listing.hasPrivateWashroom,
       hasFurniture: listing.hasFurniture,
-      washroomCount: listing.washroomCount,
-      balconyCount: listing.balconyCount,
-      bedroomCount: listing.bedroomCount,
-      amenities: listing.amenities || {},
-      images: listing.images || [],
+      floor: listing.floor,
+      amenities: listing.amenities,
       neighborhoodReview: listing.neighborhoodReview,
-      neighborhoodRatings: listing.neighborhoodRatings || {},
-      neighborhoodImages: listing.neighborhoodImages || [],
+      neighborhoodRatings: listing.neighborhoodRatings,
+      neighborhoodImages: listing.neighborhoodImages,
       roommatePreferences: listing.roommatePreferences,
-      existingRoommates: listing.existingRoommates || [],
+      existingRoommates: listing.existingRoommates,
       status: listing.status,
       completionScore: listing.completionScore,
-      missingSections: listing.missingSections,
       publishedAt: listing.publishedAt,
       deactivatedAt: listing.deactivatedAt,
       createdAt: listing.createdAt,
@@ -158,7 +73,7 @@ const MyListings = () => {
     try {
       setIsLoading(true);
       setError(null);
-      const data = await apiClient.getMyListings(status);
+      const data = await apiClient.getMyRooms(status);
       console.log(`Fetched ${status} listings:`, data);
 
       const transformedListings = Array.isArray(data)
@@ -197,19 +112,36 @@ const MyListings = () => {
   useEffect(() => {
     // Fetch active listings on initial load
     fetchListings("ACTIVE");
+
+    // If initial tab is inactive, fetch inactive listings too
+    if (initialTab === "inactive") {
+      fetchListings("INACTIVE");
+    }
   }, []);
+
+  // Update selectedTab when URL param changes
+  useEffect(() => {
+    const currentTab = searchParams.get("tab") === "inactive" ? "inactive" : "active";
+    setSelectedTab(currentTab);
+
+    if (currentTab === "inactive" && !inactiveLoaded) {
+      fetchListings("INACTIVE");
+    }
+  }, [searchParams, inactiveLoaded]);
 
   const handleTabChange = (tab: "active" | "inactive") => {
     setSelectedTab(tab);
+    setSearchParams({ tab });
+
     // Fetch inactive listings when switching to inactive tab (only once)
     if (tab === "inactive" && !inactiveLoaded) {
       fetchListings("INACTIVE");
     }
   };
 
-  const handleDelete = async (listingId: string) => {
+  const handleDelete = async (listingId: number) => {
     try {
-      await apiClient.deleteRoomListing(listingId);
+      await apiClient.deleteRoom(listingId.toString());
 
       // Remove from UI and maintain sort order
       setActiveListings(prev => {
@@ -242,9 +174,9 @@ const MyListings = () => {
     }
   };
 
-  const handleStatusChange = async (listingId: string, newStatus: string) => {
+  const handleStatusChange = async (listingId: number, newStatus: string) => {
     try {
-      await apiClient.updateListingStatus(listingId, newStatus);
+      await apiClient.updateRoomStatus(listingId.toString(), newStatus);
 
       // Refetch both lists to ensure accurate data (they will be sorted automatically)
       const promises = [fetchListings("ACTIVE")];
@@ -266,7 +198,7 @@ const MyListings = () => {
     }
   };
 
-  const handleEdit = (listingId: string) => {
+  const handleEdit = (listingId: number) => {
     navigate(`/edit-listing?id=${listingId}`);
   };
 
@@ -351,7 +283,7 @@ const MyListings = () => {
         {!isLoading && !error && currentListings.length > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {currentListings.map((listing) => (
-              <ListingCard
+              <MyListingCard
                 key={listing.id}
                 listing={listing}
                 onEdit={handleEdit}

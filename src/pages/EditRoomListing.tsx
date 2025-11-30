@@ -132,8 +132,9 @@ export default function EditRoomListing() {
 
   const [loading, setLoading] = useState(false);
   const [uploadingImages, setUploadingImages] = useState(false);
-  const [uploadingImageIndexes, setUploadingImageIndexes] = useState<Set<number>>(new Set());
-  const [uploadingNeighborhoodIndexes, setUploadingNeighborhoodIndexes] = useState<Set<number>>(new Set());
+  const [listingStatus, setListingStatus] = useState<"ACTIVE" | "INACTIVE">("ACTIVE");
+
+
   const [step, setStep] = useState<'details' | 'photos'>('details');
   const [isLifestyleModalOpen, setIsLifestyleModalOpen] = useState(false);
   const [customLifestyle, setCustomLifestyle] = useState("");
@@ -157,7 +158,7 @@ export default function EditRoomListing() {
     hasPrivateWashroom: false,
     hasFurniture: false,
     amenities: [] as string[],
-    images: [] as { id: number; url: string }[],
+    images: [] as { id: number; url: string; isUploading?: boolean }[],
     minAge: "",
     maxAge: "",
     gender: "",
@@ -170,7 +171,7 @@ export default function EditRoomListing() {
       connectivity: 0,
       amenities: 0,
     },
-    neighborhoodImages: [] as { id: number; url: string }[],
+    neighborhoodImages: [] as { id: number; url: string; isUploading?: boolean }[],
   });
 
   // Fetch listing data when editing
@@ -180,9 +181,13 @@ export default function EditRoomListing() {
 
       try {
         setLoading(true);
-        const response = await apiClient.getRoomListing(listingId);
+        const response = await apiClient.getRoomDetails(listingId);
         // Handle response structure - could be response.data or response directly
         const listing = response.data || response;
+
+        if (listing.status) {
+          setListingStatus(listing.status);
+        }
 
         // Transform and prefill form data
         setFormData({
@@ -273,7 +278,7 @@ export default function EditRoomListing() {
     if (!listingId) return;
 
     try {
-      await apiClient.updateRoomListing(listingId, updates);
+      await apiClient.updateRoom(listingId, updates);
       toast({
         title: "Saved",
         description: "Changes saved successfully",
@@ -306,7 +311,7 @@ export default function EditRoomListing() {
 
     // Create local preview URLs immediately
     const fileArray = Array.from(files);
-    const previewItems = fileArray.map(file => ({ id: 0, url: URL.createObjectURL(file) }));
+    const previewItems = fileArray.map(file => ({ id: 0, url: URL.createObjectURL(file), isUploading: true }));
     const startIndex = formData.images.length;
 
     // Add preview URLs immediately for instant feedback
@@ -314,7 +319,6 @@ export default function EditRoomListing() {
       ...prev,
       images: [...prev.images, ...previewItems]
     }));
-    setUploadingImageIndexes(new Set(Array.from({ length: previewItems.length }, (_, i) => startIndex + i)));
 
     setUploadingImages(true);
     try {
@@ -330,21 +334,11 @@ export default function EditRoomListing() {
           // Let's log and proceed with original if conversion fails, but ideally it shouldn't.
         }
 
-        // Validate file type (now it should be jpeg)
-        const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
-        // We can relax this check or keep it. Since we convert, it will be jpeg.
-        // If conversion failed, it might be original type.
-        if (!validTypes.includes(file.type)) {
-          // If it's still not a valid type (e.g. if we allowed other types in input but conversion failed)
-          // For now, let's assume input is image/* so conversion works.
-        }
-
         // Step 1: Request upload URL
         const { uploadId, presigned_url } = await apiClient.requestMediaUploadUrl(
           listingId,
           "LISTING",
           file.type,
-          file.name
         );
 
         // Step 2: Upload to GCS
@@ -380,7 +374,7 @@ export default function EditRoomListing() {
           URL.revokeObjectURL(updatedImages[index].url);
 
           // Update with real ID and URL
-          updatedImages[index] = { id: mediaId, url: url };
+          updatedImages[index] = { id: mediaId, url: url, isUploading: false };
         });
 
         // Auto-save the new image list
@@ -405,7 +399,7 @@ export default function EditRoomListing() {
         };
       });
 
-      setUploadingImageIndexes(new Set());
+
       toast({
         title: "Success",
         description: `${results.length} photo(s) uploaded successfully`,
@@ -435,7 +429,7 @@ export default function EditRoomListing() {
           images: newImages
         };
       });
-      setUploadingImageIndexes(new Set());
+
     } finally {
       setUploadingImages(false);
       // Reset input
@@ -572,7 +566,7 @@ export default function EditRoomListing() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  onClick={() => navigate("/my-listings")}
+                  onClick={() => navigate(`/my-listings?tab=${listingStatus === "INACTIVE" ? "inactive" : "active"}`)}
                   className="rounded-full hover:bg-muted -ml-2"
                 >
                   <ArrowLeft className="h-5 w-5" />
@@ -624,7 +618,6 @@ export default function EditRoomListing() {
                       }
                     }}
                     onUpload={handlePhotoUpload}
-                    uploadingIndexes={uploadingImageIndexes}
                     uploadId="property-photo-upload"
                   />
                 </div>
@@ -1160,7 +1153,7 @@ export default function EditRoomListing() {
 
                       // Create local preview URLs immediately
                       const fileArray = Array.from(files);
-                      const previewItems = fileArray.map(file => ({ id: 0, url: URL.createObjectURL(file) }));
+                      const previewItems = fileArray.map(file => ({ id: 0, url: URL.createObjectURL(file), isUploading: true }));
                       const startIndex = formData.neighborhoodImages.length;
 
                       // Add preview URLs immediately for instant feedback
@@ -1168,7 +1161,6 @@ export default function EditRoomListing() {
                         ...prev,
                         neighborhoodImages: [...prev.neighborhoodImages, ...previewItems]
                       }));
-                      setUploadingNeighborhoodIndexes(new Set(Array.from({ length: previewItems.length }, (_, i) => startIndex + i)));
 
                       setUploadingImages(true);
                       try {
@@ -1184,16 +1176,12 @@ export default function EditRoomListing() {
                             listingId,
                             "NEIGHBORHOOD",
                             file.type,
-                            file.name
                           );
 
                           // Step 2: Upload to GCS
                           const uploadResponse = await fetch(presigned_url, {
                             method: 'PUT',
                             body: file,
-                            headers: {
-                              'Content-Type': file.type,
-                            },
                           });
 
                           if (!uploadResponse.ok) {
@@ -1217,7 +1205,7 @@ export default function EditRoomListing() {
                           const newImages = [...prev.neighborhoodImages];
                           results.forEach(({ index, mediaId, url }) => {
                             URL.revokeObjectURL(newImages[index].url);
-                            newImages[index] = { id: mediaId, url: url };
+                            newImages[index] = { id: mediaId, url: url, isUploading: false };
                           });
 
                           return {
@@ -1226,7 +1214,7 @@ export default function EditRoomListing() {
                           };
                         });
 
-                        setUploadingNeighborhoodIndexes(new Set());
+
                         toast({
                           title: "Success",
                           description: `${results.length} photo(s) uploaded successfully`,
@@ -1256,13 +1244,12 @@ export default function EditRoomListing() {
                             neighborhoodImages: newImages
                           };
                         });
-                        setUploadingNeighborhoodIndexes(new Set());
+
                       } finally {
                         setUploadingImages(false);
                         e.target.value = '';
                       }
                     }}
-                    uploadingIndexes={uploadingNeighborhoodIndexes}
                     uploadId="neighborhood-photo-upload"
                   />
                 </div>
@@ -1272,7 +1259,7 @@ export default function EditRoomListing() {
         ) : (
           <UploadPhotosContent
             listingId={listingId!}
-            onFinish={() => navigate("/my-listings")}
+            onFinish={() => navigate(`/my-listings?tab=${listingStatus === "INACTIVE" ? "inactive" : "active"}`)}
           />
         )}
       </div>

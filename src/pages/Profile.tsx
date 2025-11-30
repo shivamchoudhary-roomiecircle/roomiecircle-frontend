@@ -76,18 +76,14 @@ export default function Profile() {
             // 1. Get upload URL
             const { uploadId, presigned_url } = await apiClient.requestMediaUploadUrl(
                 user.id.toString(),
-                "profile",
+                "PROFILE",
                 file.type,
-                file.name
             );
 
             // 2. Upload to GCS
             const uploadResponse = await fetch(presigned_url, {
                 method: 'PUT',
                 body: file,
-                headers: {
-                    'Content-Type': file.type,
-                },
             });
 
             if (!uploadResponse.ok) {
@@ -236,7 +232,7 @@ export default function Profile() {
                 {/* Account Deletion Section */}
                 <Card className="border-destructive/20">
                     <CardHeader>
-                        <CardTitle className="text-destructive">Leaving RoomieCircle?</CardTitle>
+                        <CardTitle className="text-destructive">Leaving Roomiecircle?</CardTitle>
                         <CardDescription>We're sad to see you go, but you can delete your account here.</CardDescription>
                     </CardHeader>
                     <CardContent>

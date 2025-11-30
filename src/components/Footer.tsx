@@ -9,7 +9,7 @@ interface FooterProps {
 
 const Footer = ({ className }: FooterProps) => {
   // @ts-ignore
-    return (
+  return (
     <footer className={cn("bg-muted/30 border-t border-border mt-20", className)}>
       <div className="container mx-auto px-4 py-12">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
@@ -20,7 +20,7 @@ const Footer = ({ className }: FooterProps) => {
                 <HomeIcon className="h-5 w-5 text-white" />
               </div>
               <span className="text-xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-                RoomieCircle
+                Roomiecircle
               </span>
             </div>
             <p className="text-sm text-muted-foreground">
@@ -125,7 +125,7 @@ const Footer = ({ className }: FooterProps) => {
         </div>
 
         <div className="border-t border-border mt-8 pt-8 text-center text-sm text-muted-foreground">
-          <p>© 2024 RoomieCircle. All rights reserved. Built with ❤️ for India's students and professionals.</p>
+          <p>© 2024 Roomiecircle. All rights reserved. Built with ❤️ for India's students and professionals.</p>
         </div>
       </div>
     </footer>
