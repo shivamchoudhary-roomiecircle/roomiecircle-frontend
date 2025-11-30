@@ -351,10 +351,9 @@ export default function EditRoomListing() {
         const uploadResponse = await fetch(presigned_url, {
           method: 'PUT',
           body: file,
-          headers: {
-            'Content-Type': file.type,
-          },
         });
+        console.log("file type", file.type);
+        console.log("Upload response:", uploadResponse);
 
         if (!uploadResponse.ok) {
           throw new Error(`Failed to upload ${file.name}`);

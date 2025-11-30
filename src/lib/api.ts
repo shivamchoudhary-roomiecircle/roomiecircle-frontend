@@ -1,7 +1,7 @@
 import JSONbig from "json-bigint";
 import { Listing, PageResponse } from "@/types/listing";
 
-const API_BASE_URL = "https://staging-api.roomiecircle.com";
+const API_BASE_URL = "http://localhost:8080";
 
 class ApiClient {
   private getAuthHeader(): HeadersInit {
