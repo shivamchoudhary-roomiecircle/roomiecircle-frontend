@@ -38,7 +38,7 @@ import {
   PagedResponse,
 } from "@/types/api.types";
 
-const API_BASE_URL = "https://staging-apiroomiecircle.com";
+const API_BASE_URL = "https://staging-api.roomiecircle.com";
 
 class ApiClient {
   private getAuthHeader(): HeadersInit {
@@ -401,7 +401,7 @@ class ApiClient {
 
 
   // Media Upload API - New 3-step flow
-  async requestMediaUploadUrl(resourceId: string, tag: ResourceTag, mediaType: string): Promise<UploadResponseDto> {
+  async requestMediaUploadUrl(resourceId: string, tag: ResourceTag, mediaType: string, contentType: string): Promise<UploadResponseDto> {
     let backendMediaType = "OTHER";
     if (mediaType.toLowerCase().startsWith("image")) {
       backendMediaType = "IMAGE";
@@ -419,6 +419,7 @@ class ApiClient {
         resourceId: resourceId,
         tag,
         mediaType: backendMediaType,
+        contentType,
       }),
     });
     return response.data!;

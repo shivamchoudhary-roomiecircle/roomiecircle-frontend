@@ -17,8 +17,8 @@ import { LocationAutocomplete } from "@/components/search/LocationAutocomplete";
 import { IconRenderer } from "@/lib/iconMapper";
 import { convertFileToJpeg } from "@/lib/image-utils";
 import UploadPhotosContent from "../components/listing/UploadPhotos";
+import { PhotoUploadGrid } from "@/components/listing/PhotoUploadGrid";
 import { SortablePhotoGrid } from "@/components/listing/SortablePhotoGrid";
-
 interface RoommateData {
   name: string;
   gender: string;
@@ -183,10 +183,10 @@ export default function EditRoomListing() {
         setLoading(true);
         const response = await apiClient.getRoomDetails(listingId);
         // Handle response structure - could be response.data or response directly
-        const listing = response.data || response;
+        const listing = response;
 
         if (listing.status) {
-          setListingStatus(listing.status);
+          setListingStatus(listing.status as "ACTIVE" | "INACTIVE");
         }
 
         // Transform and prefill form data
@@ -197,7 +197,7 @@ export default function EditRoomListing() {
           maintenanceIncluded: listing.maintenanceIncluded || false,
           deposit: listing.deposit ? listing.deposit.toString() : "",
           availableDate: listing.availableDate || "",
-          addressText: listing.addressText || listing.address || "",
+          addressText: listing.addressText || "",
           placeId: listing.placeId || "",
           latitude: listing.latitude || 0,
           longitude: listing.longitude || 0,
@@ -246,13 +246,19 @@ export default function EditRoomListing() {
           maxAge: listing.roommatePreferences?.maxAge ? listing.roommatePreferences.maxAge.toString() : "",
           gender: listing.roommatePreferences?.gender || "",
           profession: listing.roommatePreferences?.profession || "",
-          lifestyle: listing.roommatePreferences?.lifestyle || listing.lifestyle || [],
-          roommates: listing.existingRoommates || [],
+          lifestyle: listing.roommatePreferences?.lifestyle || [],
+          roommates: (listing.existingRoommates || []).map((r: any) => ({
+            name: r.name,
+            gender: r.gender || "",
+            age: r.age || 0,
+            profession: r.profession || "",
+            bio: r.bio || ""
+          })),
           neighborhoodReview: listing.neighborhoodReview || "",
-          neighborhoodRatings: listing.neighborhoodRatings || {
-            safety: 0,
-            connectivity: 0,
-            amenities: 0,
+          neighborhoodRatings: {
+            safety: listing.neighborhoodRatings?.safety || 0,
+            connectivity: listing.neighborhoodRatings?.connectivity || 0,
+            amenities: listing.neighborhoodRatings?.amenities || 0,
           },
           neighborhoodImages: Array.isArray(listing.neighborhoodImages)
             ? listing.neighborhoodImages.map((img: any) => typeof img === 'string' ? { id: 0, url: img } : { id: img.id, url: img.url })
@@ -294,148 +300,7 @@ export default function EditRoomListing() {
     }
   };
 
-  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0 || !listingId) return;
 
-    // Check limit (8 per tag)
-    if (formData.images.length + files.length > 8) {
-      toast({
-        title: "Media limit exceeded",
-        description: "You can upload a maximum of 8 room photos",
-        variant: "destructive",
-      });
-      e.target.value = '';
-      return;
-    }
-
-    // Create local preview URLs immediately
-    const fileArray = Array.from(files);
-    const previewItems = fileArray.map(file => ({ id: 0, url: URL.createObjectURL(file), isUploading: true }));
-    const startIndex = formData.images.length;
-
-    // Add preview URLs immediately for instant feedback
-    setFormData(prev => ({
-      ...prev,
-      images: [...prev.images, ...previewItems]
-    }));
-
-    setUploadingImages(true);
-    try {
-      const uploadPromises = fileArray.map(async (originalFile, index) => {
-        // Convert to JPEG
-        let file = originalFile;
-        try {
-          file = await convertFileToJpeg(originalFile);
-        } catch (error) {
-          console.error("Failed to convert image:", error);
-          // Fallback to original file if conversion fails, or throw error?
-          // User asked to convert whatever gets selected. If conversion fails, maybe we should still try to upload or fail.
-          // Let's log and proceed with original if conversion fails, but ideally it shouldn't.
-        }
-
-        // Step 1: Request upload URL
-        const { uploadId, presigned_url } = await apiClient.requestMediaUploadUrl(
-          listingId,
-          "LISTING",
-          file.type,
-        );
-
-        // Step 2: Upload to GCS
-        const uploadResponse = await fetch(presigned_url, {
-          method: 'PUT',
-          body: file,
-        });
-        console.log("file type", file.type);
-        console.log("Upload response:", uploadResponse);
-
-        if (!uploadResponse.ok) {
-          throw new Error(`Failed to upload ${file.name}`);
-        }
-
-        // Step 3: Confirm upload
-        const confirmResponse = await apiClient.confirmMediaUpload(uploadId);
-
-        // Return the media URL (will be from CDN once processed)
-        return {
-          index: startIndex + index,
-          mediaId: confirmResponse.data.id, // Use the ID from confirmation response
-          url: confirmResponse.data.url || confirmResponse.data.fullUrl || presigned_url
-        };
-      });
-
-      const results = await Promise.all(uploadPromises);
-
-      // Update local state with real URLs and IDs
-      setFormData(prev => {
-        const updatedImages = [...prev.images];
-        results.forEach(({ index, mediaId, url }) => {
-          // Revoke the blob URL to free memory
-          URL.revokeObjectURL(updatedImages[index].url);
-
-          // Update with real ID and URL
-          updatedImages[index] = { id: mediaId, url: url, isUploading: false };
-        });
-
-        // Auto-save the new image list
-        updateListing({ images: updatedImages.map(img => img.url) }); // API expects strings for updateRoomListing? Or should we use reorder?
-        // Actually, updateRoomListing probably expects strings if we look at previous code.
-        // But wait, we want to use reorderMedia for ordering.
-        // For simply adding images, updateRoomListing might be fine if it accepts objects or if we just rely on the upload being done.
-        // However, the user request specifically asked for reordering.
-        // Let's check updateRoomListing implementation. It sends a PATCH.
-        // If the backend expects a list of strings for 'images', we should send that.
-        // But if we want to support reordering with IDs, we should use the new endpoint.
-
-        // For now, let's keep updateRoomListing sending strings to avoid breaking existing logic if backend expects strings.
-        // But we should ALSO call reorderMedia if we want to ensure order.
-        // Actually, let's just update the local state here. The upload itself adds the image to the listing on the backend.
-        // We might not need to call updateRoomListing for images if they are added via separate upload API.
-        // But we should probably refresh the list or just trust our local state.
-
-        return {
-          ...prev,
-          images: updatedImages
-        };
-      });
-
-
-      toast({
-        title: "Success",
-        description: `${results.length} photo(s) uploaded successfully`,
-      });
-    } catch (error: any) {
-      // Check for media limit error
-      if (error?.message?.includes("Media limit exceeded")) {
-        toast({
-          title: "Upload limit reached",
-          description: "Maximum 8 photos per room listing",
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "Error",
-          description: error?.message || "Failed to upload photos. Please try again.",
-          variant: "destructive",
-        });
-      }
-
-      // Remove failed previews
-      setFormData(prev => {
-        const newImages = prev.images.slice(0, startIndex);
-        previewItems.forEach(item => URL.revokeObjectURL(item.url));
-        return {
-          ...prev,
-          images: newImages
-        };
-      });
-
-    } finally {
-      setUploadingImages(false);
-      // Reset input
-      e.target.value = '';
-    }
-  };
 
   const handleFieldChange = (field: string, value: any) => {
     let parsedValue = value;
@@ -594,31 +459,13 @@ export default function EditRoomListing() {
                     <span className="text-sm text-muted-foreground">{formData.images.length}/8</span>
                   </div>
 
-                  <SortablePhotoGrid
+                  <PhotoUploadGrid
+                    listingId={listingId || ""}
+                    flow="listing"
                     images={formData.images}
-                    onImagesChange={async (newImages) => {
+                    onImagesChange={(newImages) => {
                       setFormData(prev => ({ ...prev, images: newImages }));
-                      // Call reorder API
-                      if (listingId) {
-                        try {
-                          await apiClient.reorderMedia(
-                            listingId,
-                            "IMAGE",
-                            "LISTING",
-                            newImages.map(img => ({ id: img.id }))
-                          );
-                        } catch (error) {
-                          console.error("Failed to reorder images:", error);
-                          toast({
-                            title: "Error",
-                            description: "Failed to save image order",
-                            variant: "destructive",
-                          });
-                        }
-                      }
                     }}
-                    onUpload={handlePhotoUpload}
-                    uploadId="property-photo-upload"
                   />
                 </div>
                 <div>
@@ -1164,7 +1011,7 @@ export default function EditRoomListing() {
 
                       setUploadingImages(true);
                       try {
-                        const uploadPromises = fileArray.map(async (file, index) => {
+                        const uploadPromises = fileArray.map(async (file: File, index) => {
                           // Validate file type
                           const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
                           if (!validTypes.includes(file.type)) {
@@ -1175,12 +1022,16 @@ export default function EditRoomListing() {
                           const { uploadId, presigned_url } = await apiClient.requestMediaUploadUrl(
                             listingId,
                             "NEIGHBORHOOD",
+                            "IMAGE",
                             file.type,
                           );
 
                           // Step 2: Upload to GCS
                           const uploadResponse = await fetch(presigned_url, {
                             method: 'PUT',
+                            headers: {
+                              'Content-Type': file.type,
+                            },
                             body: file,
                           });
 
@@ -1193,8 +1044,8 @@ export default function EditRoomListing() {
 
                           return {
                             index: startIndex + index,
-                            mediaId: confirmResponse.data.id,
-                            url: confirmResponse.data.url || confirmResponse.data.fullUrl || presigned_url
+                            mediaId: confirmResponse.id,
+                            url: confirmResponse.url || confirmResponse.fullUrl || presigned_url
                           };
                         });
 

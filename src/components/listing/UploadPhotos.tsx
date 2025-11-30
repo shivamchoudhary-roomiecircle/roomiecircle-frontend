@@ -2,11 +2,10 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
 import { apiClient } from "@/lib/api";
-import { convertFileToJpeg } from "@/lib/image-utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, Image as ImageIcon } from "lucide-react";
-import { SortablePhotoGrid } from "@/components/listing/SortablePhotoGrid";
+import { PhotoUploadGrid } from "@/components/listing/PhotoUploadGrid";
 
 interface MediaItem {
   id: number;
@@ -24,7 +23,6 @@ export default function UploadPhotosContent({ listingId, onFinish }: UploadPhoto
   const [loading, setLoading] = useState(false);
   const [propertyImages, setPropertyImages] = useState<MediaItem[]>([]);
   const [neighborhoodImages, setNeighborhoodImages] = useState<MediaItem[]>([]);
-  const [uploadingImages, setUploadingImages] = useState(false);
 
   // Load existing photos
   useEffect(() => {
@@ -85,150 +83,6 @@ export default function UploadPhotosContent({ listingId, onFinish }: UploadPhoto
     loadExistingPhotos();
   }, [listingId, navigate]);
 
-  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'property' | 'neighborhood') => {
-    const files = e.target.files;
-    if (!files || files.length === 0 || !listingId) return;
-
-    const currentImages = type === 'property' ? propertyImages : neighborhoodImages;
-    const setImages = type === 'property' ? setPropertyImages : setNeighborhoodImages;
-    const resourceType = type === 'property' ? "LISTING" : "NEIGHBORHOOD";
-
-    // Check limit
-    if (currentImages.length + files.length > 8) {
-      toast({
-        title: "Media limit exceeded",
-        description: `You can upload a maximum of 8 ${type} photos`,
-        variant: "destructive",
-      });
-      e.target.value = '';
-      return;
-    }
-
-    // Create local preview URLs
-    const fileArray = Array.from(files);
-    const previewItems = fileArray.map(file => ({ id: 0, url: URL.createObjectURL(file), isUploading: true }));
-    const startIndex = currentImages.length;
-
-    setImages(prev => [...prev, ...previewItems]);
-    setUploadingImages(true);
-
-    try {
-      const uploadPromises = fileArray.map(async (originalFile, index) => {
-        let file = originalFile;
-        try {
-          file = await convertFileToJpeg(originalFile);
-        } catch (error) {
-          console.error("Failed to convert image:", error);
-        }
-
-        // Step 1: Request upload URL
-        const { uploadId, presigned_url } = await apiClient.requestMediaUploadUrl(
-          listingId,
-          resourceType,
-          file.type,
-        );
-
-        // Step 2: Upload to GCS
-        const uploadResponse = await fetch(presigned_url, {
-          method: 'PUT',
-          body: file,
-        });
-
-        if (!uploadResponse.ok) {
-          throw new Error(`Failed to upload ${file.name}`);
-        }
-
-        // Step 3: Confirm upload
-        const confirmResponse = await apiClient.confirmMediaUpload(uploadId);
-
-        return {
-          index: startIndex + index,
-          mediaId: confirmResponse.data.id,
-          url: confirmResponse.data.url || confirmResponse.data.fullUrl || presigned_url
-        };
-      });
-
-      const results = await Promise.all(uploadPromises);
-
-      setImages(prev => {
-        const newImages = [...prev];
-        results.forEach(({ index, mediaId, url }) => {
-          // Revoke blob URL
-          if (newImages[index]) {
-            URL.revokeObjectURL(newImages[index].url);
-            newImages[index] = { id: mediaId, url: url, isUploading: false };
-          }
-        });
-        return newImages;
-      });
-
-      toast({
-        title: "Success",
-        description: `${results.length} photo(s) uploaded successfully`,
-      });
-
-    } catch (error: any) {
-      console.error("Upload error:", error);
-      toast({
-        title: "Error",
-        description: "Failed to upload photos",
-        variant: "destructive",
-      });
-      // Remove failed previews
-      setImages(prev => prev.slice(0, startIndex));
-    } finally {
-      setUploadingImages(false);
-      e.target.value = '';
-    }
-  };
-
-  const handleImagesChange = async (newImages: MediaItem[], type: 'property' | 'neighborhood') => {
-    const oldImages = type === 'property' ? propertyImages : neighborhoodImages;
-    const setImages = type === 'property' ? setPropertyImages : setNeighborhoodImages;
-    const resourceType = type === 'property' ? "LISTING" : "NEIGHBORHOOD";
-
-    // Check for deletions
-    const removedItems = oldImages.filter(img => !newImages.find(n => n.id === img.id));
-
-    // Optimistic update
-    setImages(newImages);
-
-    // Handle deletions
-    for (const item of removedItems) {
-      if (item.id !== 0) { // Don't try to delete previews/fakes
-        try {
-          await apiClient.deleteMedia(item.id);
-        } catch (error) {
-          console.error("Failed to delete media:", error);
-          toast({
-            title: "Error",
-            description: "Failed to delete image",
-            variant: "destructive",
-          });
-          // Revert? For now, just log.
-        }
-      }
-    }
-
-    // Handle reorder
-    // Only reorder if no deletions happened (or after deletions) and order changed
-    // But SortablePhotoGrid calls this for both reorder and delete (via filter).
-    // If we just deleted, the order might be fine.
-    // But we should sync the order of the remaining items.
-    if (listingId && newImages.length > 0) {
-      try {
-        await apiClient.reorderMedia(
-          listingId,
-          "IMAGE",
-          resourceType,
-          newImages.map(img => ({ id: img.id }))
-        );
-      } catch (error) {
-        console.error("Failed to reorder images:", error);
-      }
-    }
-  };
-
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -260,11 +114,11 @@ export default function UploadPhotosContent({ listingId, onFinish }: UploadPhoto
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <SortablePhotoGrid
+              <PhotoUploadGrid
+                listingId={listingId}
+                flow="listing"
                 images={propertyImages}
-                onImagesChange={(images) => handleImagesChange(images, 'property')}
-                onUpload={(e) => handleUpload(e, 'property')}
-                uploadId="property-upload"
+                onImagesChange={setPropertyImages}
               />
             </CardContent>
           </Card>
@@ -281,11 +135,11 @@ export default function UploadPhotosContent({ listingId, onFinish }: UploadPhoto
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <SortablePhotoGrid
+              <PhotoUploadGrid
+                listingId={listingId}
+                flow="neighborhood"
                 images={neighborhoodImages}
-                onImagesChange={(images) => handleImagesChange(images, 'neighborhood')}
-                onUpload={(e) => handleUpload(e, 'neighborhood')}
-                uploadId="neighborhood-upload"
+                onImagesChange={setNeighborhoodImages}
               />
             </CardContent>
           </Card>

@@ -345,11 +345,10 @@ export interface MediaLinkDTO {
 // Media-related enums
 export type MediaType = 'IMAGE' | 'VIDEO' | 'DOCUMENT';
 export type MediaStatus = 'PENDING' | 'ACTIVE' | 'DELETED';
-export type ResourceTag = 
-  | 'ROOM_PHOTO' 
-  | 'NEIGHBORHOOD_PHOTO' 
-  | 'PROFILE_PHOTO' 
-  | 'VERIFICATION_DOCUMENT';
+export type ResourceTag =
+  | 'LISTING'
+  | 'NEIGHBORHOOD'
+  | 'PROFILE';
 
 // ============================================================================
 // CONFIGURATION MODULE - Platform Configuration
@@ -420,7 +419,7 @@ export interface ListerSummaryDTO {
 
 /**
  * Complete API Endpoint Reference with Response Types
- * 
+ *
  * AUTH ENDPOINTS:
  * - POST   /api/v1/auth/signup/initiate-verification     -> ApiResponse<SignupInitiateResponse>
  * - POST   /api/v1/auth/signup/verify                    -> ApiResponse<AuthResponse>
@@ -430,13 +429,13 @@ export interface ListerSummaryDTO {
  * - POST   /api/v1/auth/signup/resend-verification       -> ApiResponse<ResendVerificationResponse>
  * - POST   /api/v1/auth/login/otp/initiate               -> ApiResponse<OtpLoginInitiateResponse>
  * - POST   /api/v1/auth/login/otp/verify                 -> ApiResponse<AuthResponse>
- * 
+ *
  * USER ENDPOINTS:
  * - GET    /api/v1/users/me                              -> ApiResponse<UserProfileDTO>
  * - PUT    /api/v1/users/me                              -> ApiResponse<UserProfileDTO>
  * - POST   /api/v1/users/me/photo                        -> ApiResponse<string>
  * - DELETE /api/v1/users/me                              -> ApiResponse<null>
- * 
+ *
  * ROOM LISTING ENDPOINTS:
  * - POST   /api/v1/listings/rooms                        -> ApiResponse<RoomListingDTO>
  * - GET    /api/v1/listings/rooms/{id}                   -> ApiResponse<RoomListingDTO>
@@ -444,24 +443,24 @@ export interface ListerSummaryDTO {
  * - DELETE /api/v1/listings/rooms/{id}                   -> ApiResponse<null>
  * - PATCH  /api/v1/listings/rooms/{id}/status            -> ApiResponse<RoomListingDTO>
  * - GET    /api/v1/listings/rooms/my                     -> ApiResponse<MyRoomsResponse>
- * 
+ *
  * ROOM SEARCH ENDPOINTS:
  * - GET    /api/v1/search/rooms/recent                   -> ApiResponse<PagedResponse<RoomSearchResultDTO>>
  * - GET    /api/v1/search/rooms/{id}                     -> ApiResponse<RoomListingDetailDTO>
  * - GET    /api/v1/search/rooms/location                 -> ApiResponse<PagedResponse<RoomSearchResultDTO>>
  * - GET    /api/v1/search/rooms/map                      -> ApiResponse<PagedResponse<RoomSearchResultDTO>>
- * 
+ *
  * PLACE ENDPOINTS:
  * - GET    /api/v1/places/autocomplete                   -> ApiResponse<PlaceAutocompleteResponse>
  * - GET    /api/v1/places/{placeId}                      -> ApiResponse<PlaceDetailsDTO>
- * 
+ *
  * MEDIA ENDPOINTS:
  * - POST   /api/v1/media/upload-url                      -> ApiResponse<UploadResponseDto>
  * - POST   /api/v1/media/confirm/{uploadId}              -> ApiResponse<MediaDto>
  * - DELETE /api/v1/media/{mediaId}                       -> ApiResponse<null>
  * - PUT    /api/v1/media/reorder                         -> ApiResponse<null>
  * - GET    /api/v1/media/resource/{resourceId}           -> ApiResponse<MediaDto[]>
- * 
+ *
  * CONFIGURATION ENDPOINTS:
  * - GET    /api/v1/configuration                         -> ApiResponse<ClientConfigResponse>
  */

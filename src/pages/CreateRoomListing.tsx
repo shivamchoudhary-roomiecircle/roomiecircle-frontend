@@ -144,12 +144,16 @@ export default function CreateRoomListing() {
         const { uploadId, presigned_url } = await apiClient.requestMediaUploadUrl(
           listingId,
           "LISTING",
+          "IMAGE",
           file.type,
         );
 
         // Step 2: Upload to GCS
         const uploadResponse = await fetch(presigned_url, {
           method: 'PUT',
+          headers: {
+            'Content-Type': file.type,
+          },
           body: file,
         });
 
@@ -331,7 +335,7 @@ export default function CreateRoomListing() {
       // Create new listing using POST
       const response = await apiClient.createRoom(payload);
       // Extract listing ID from response if available
-      const savedListingId = response?.id || response?.data?.id || null;
+      const savedListingId = response?.id || null;
       toast({
         title: "Success",
         description: "Your listing has been saved!",
@@ -1177,12 +1181,16 @@ export default function CreateRoomListing() {
                               const { uploadId, presigned_url } = await apiClient.requestMediaUploadUrl(
                                 listingId,
                                 "NEIGHBORHOOD",
+                                "IMAGE",
                                 file.type,
                               );
 
                               // Step 2: Upload to GCS
                               const uploadResponse = await fetch(presigned_url, {
                                 method: 'PUT',
+                                headers: {
+                                  'Content-Type': file.type,
+                                },
                                 body: file,
                               });
 

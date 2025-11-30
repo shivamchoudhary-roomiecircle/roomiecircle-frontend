@@ -77,12 +77,16 @@ export default function Profile() {
             const { uploadId, presigned_url } = await apiClient.requestMediaUploadUrl(
                 user.id.toString(),
                 "PROFILE",
+                "IMAGE",
                 file.type,
             );
 
             // 2. Upload to GCS
             const uploadResponse = await fetch(presigned_url, {
                 method: 'PUT',
+                headers: {
+                    'Content-Type': file.type,
+                },
                 body: file,
             });
 
@@ -93,8 +97,8 @@ export default function Profile() {
             // 3. Confirm upload
             const confirmResponse = await apiClient.confirmMediaUpload(uploadId);
 
-            if (confirmResponse.success && confirmResponse.data?.url) {
-                const newProfilePicUrl = confirmResponse.data.url;
+            if (confirmResponse && confirmResponse.url) {
+                const newProfilePicUrl = confirmResponse.url;
                 setProfileImage(newProfilePicUrl);
                 updateUser({ profilePicture: newProfilePicUrl });
                 toast({
