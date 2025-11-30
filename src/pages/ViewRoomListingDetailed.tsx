@@ -1,25 +1,25 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { apiClient } from "@/lib/api";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
+import { apiClient } from "@/lib/api.ts";
+import Navbar from "@/components/Navbar.tsx";
+import Footer from "@/components/Footer.tsx";
+import { Button } from "@/components/ui/button.tsx";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card.tsx";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar.tsx";
+import { Badge } from "@/components/ui/badge.tsx";
+import { Skeleton } from "@/components/ui/skeleton.tsx";
 import { toast } from "sonner";
-import { ListingPhotos } from "@/components/listing/ListingPhotos";
-import { ListingDetails } from "@/components/listing/ListingDetails";
-import { ListingMap } from "@/components/listing/ListingMap";
-import { ListingAmenities } from "@/components/listing/ListingAmenities";
-import { ListingNeighborhood } from "@/components/listing/ListingNeighborhood";
-import { ListedBy } from "@/components/listing/ListedBy";
+import { ListingPhotos } from "@/components/listing/ListingPhotos.tsx";
+import { ListingDetails } from "@/components/listing/ListingDetails.tsx";
+import { ListingMap } from "@/components/listing/ListingMap.tsx";
+import { ListingAmenities } from "@/components/listing/ListingAmenities.tsx";
+import { ListingNeighborhood } from "@/components/listing/ListingNeighborhood.tsx";
+import { ListedBy } from "@/components/listing/ListedBy.tsx";
 import { User } from "lucide-react";
-import { useConfig } from "@/contexts/ConfigContext";
-import { IconRenderer } from "@/lib/iconMapper";
+import { useConfig } from "@/contexts/ConfigContext.tsx";
+import { IconRenderer } from "@/lib/iconMapper.tsx";
 
-export default function ViewListing() {
+export default function ViewRoomListingDetailed() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { config } = useConfig();
