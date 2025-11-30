@@ -92,23 +92,27 @@ const MyListings = () => {
       monthlyRent: listing.monthlyRent || 0,
       address: listing.addressText || listing.address || "Address not provided",
       hasBrokerage: listing.hasBrokerage || false,
-      photos: listing.images || listing.photos || [],
-      lister: listing.lister || {
-        id: listing.listerId || 0,
-        name: "Unknown",
-        profilePicture: null,
-        verified: false,
-        verificationLevel: null,
-        profileScore: null,
+      photos: Array.isArray(listing.images)
+        ? listing.images.map((img: any) => typeof img === 'string' ? img : img.url)
+        : Array.isArray(listing.photos)
+          ? listing.photos
+          : [],
+      lister: {
+        id: (listing.lister && listing.lister.id) || 0,
+        name: (listing.lister && listing.lister.name) || "Unknown Lister",
+        profilePicture: (listing.lister && listing.lister.profilePicture) || null,
+        verified: (listing.lister && listing.lister.verified) || false,
+        verificationLevel: (listing.lister && listing.lister.verificationLevel) || null,
+        profileScore: (listing.lister && listing.lister.profileScore) || null,
       },
       roomType: listing.roomType || "",
       bhkType: listing.bhkType || "",
       layoutType: listing.layoutType || null,
       layoutTypeKey: listing.layoutTypeKey || null,
-      propertyTypes: Array.isArray(listing.propertyType) 
-        ? listing.propertyType 
-        : listing.propertyType 
-          ? [listing.propertyType] 
+      propertyTypes: Array.isArray(listing.propertyType)
+        ? listing.propertyType
+        : listing.propertyType
+          ? [listing.propertyType]
           : listing.propertyTypes || listing.propertyTypeKeys || [],
       propertyTypeKeys: listing.propertyTypeKeys || [],
       // Include all other fields
@@ -122,10 +126,10 @@ const MyListings = () => {
       deposit: listing.deposit,
       availableDate: listing.availableDate,
       listingType: listing.listingType,
-      propertyType: Array.isArray(listing.propertyType) 
-        ? listing.propertyType 
-        : listing.propertyType 
-          ? [listing.propertyType] 
+      propertyType: Array.isArray(listing.propertyType)
+        ? listing.propertyType
+        : listing.propertyType
+          ? [listing.propertyType]
           : [],
       hasBalcony: listing.hasBalcony,
       hasPrivateWashroom: listing.hasPrivateWashroom,
@@ -156,11 +160,11 @@ const MyListings = () => {
       setError(null);
       const data = await apiClient.getMyListings(status);
       console.log(`Fetched ${status} listings:`, data);
-      
-      const transformedListings = Array.isArray(data) 
+
+      const transformedListings = Array.isArray(data)
         ? data.map(transformListing)
         : [];
-      
+
       // Sort by updatedAt in descending order (most recently updated first)
       const sortedListings = [...transformedListings].sort((a, b) => {
         const dateA = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
@@ -170,13 +174,7 @@ const MyListings = () => {
         // Descending order: most recent first
         return dateB - dateA;
       });
-      
-      console.log(`Transformed ${status} listings (sorted by updatedAt):`, sortedListings.map(l => ({
-        id: l.id,
-        updatedAt: l.updatedAt,
-        date: l.updatedAt ? new Date(l.updatedAt).toISOString() : 'N/A'
-      })));
-      
+
       if (status === "ACTIVE") {
         setActiveListings(sortedListings);
       } else {
@@ -212,7 +210,7 @@ const MyListings = () => {
   const handleDelete = async (listingId: string) => {
     try {
       await apiClient.deleteRoomListing(listingId);
-      
+
       // Remove from UI and maintain sort order
       setActiveListings(prev => {
         const filtered = prev.filter(l => l.id !== listingId);
@@ -230,7 +228,7 @@ const MyListings = () => {
           return dateB - dateA;
         });
       });
-      
+
       toast({
         title: "Success",
         description: "Listing deleted successfully",
@@ -247,14 +245,14 @@ const MyListings = () => {
   const handleStatusChange = async (listingId: string, newStatus: string) => {
     try {
       await apiClient.updateListingStatus(listingId, newStatus);
-      
+
       // Refetch both lists to ensure accurate data (they will be sorted automatically)
       const promises = [fetchListings("ACTIVE")];
       if (inactiveLoaded) {
         promises.push(fetchListings("INACTIVE"));
       }
       await Promise.all(promises);
-      
+
       toast({
         title: "Success",
         description: `Listing ${newStatus === "ACTIVE" ? "activated" : "deactivated"} successfully`,
@@ -277,33 +275,31 @@ const MyListings = () => {
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
-      
+
       <main className="flex-1 container mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-6">
           <h1 className="text-3xl font-bold mb-2">
             {selectedTab === "active" ? "Active listings" : "Deactivated listings"}
           </h1>
-          
+
           {/* Tabs */}
           <div className="flex gap-4 mt-4 border-b border-border">
             <button
               onClick={() => handleTabChange("active")}
-              className={`pb-2 px-1 font-medium transition-colors ${
-                selectedTab === "active"
-                  ? "text-foreground border-b-2 border-primary"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
+              className={`pb-2 px-1 font-medium transition-colors ${selectedTab === "active"
+                ? "text-foreground border-b-2 border-primary"
+                : "text-muted-foreground hover:text-foreground"
+                }`}
             >
               ACTIVE {activeListings.length > 0 && `(${activeListings.length})`}
             </button>
             <button
               onClick={() => handleTabChange("inactive")}
-              className={`pb-2 px-1 font-medium transition-colors ${
-                selectedTab === "inactive"
-                  ? "text-foreground border-b-2 border-primary"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
+              className={`pb-2 px-1 font-medium transition-colors ${selectedTab === "inactive"
+                ? "text-foreground border-b-2 border-primary"
+                : "text-muted-foreground hover:text-foreground"
+                }`}
             >
               INACTIVE {inactiveListings.length > 0 && `(${inactiveListings.length})`}
             </button>

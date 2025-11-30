@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { LocationAutocomplete } from "./LocationAutocomplete";
 import { Button } from "@/components/ui/button";
@@ -6,7 +6,7 @@ import { useConfig } from "@/contexts/ConfigContext";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, IndianRupee, Clock, ArrowUpDown, Map as MapIcon, Grid3x3, Plus, Minus, ArrowLeft, List, Search } from "lucide-react";
+import { IndianRupee, ArrowUpDown, Map as MapIcon, Plus, Minus, ArrowLeft, List, Search } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
@@ -15,10 +15,11 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { GoogleMap } from "./GoogleMap";
 import { apiClient } from "@/lib/api";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useDebounce } from "@/hooks/useDebounce";
 import { PremiumSlider } from "@/components/ui/PremiumSlider";
-import { RoomCard } from "./RoomCard";
+import { RoomListingCard } from "@/components/search/RoomListingCard.tsx";
+import { useInfiniteQuery } from "@tanstack/react-query";
+import { Listing } from "@/types/listing";
 
 export const RoomsResults = () => {
   const navigate = useNavigate();
@@ -26,9 +27,6 @@ export const RoomsResults = () => {
   const [location, setLocation] = useState("");
   const [placeId, setPlaceId] = useState("");
   const [mapCenter, setMapCenter] = useState<{ lat: number; lng: number } | undefined>();
-  const [listings, setListings] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [totalElements, setTotalElements] = useState(0);
   const [viewMode, setViewMode] = useState<"list" | "map">("list");
   const [priceType, setPriceType] = useState("monthly");
   const [minPrice, setMinPrice] = useState("");
@@ -46,9 +44,6 @@ export const RoomsResults = () => {
   const [mapBounds, setMapBounds] = useState<{ minLat: number; maxLat: number; minLng: number; maxLng: number } | null>(null);
 
   const debouncedBounds = useDebounce(mapBounds, 300);
-
-  const [page, setPage] = useState(0);
-  const [hasMore, setHasMore] = useState(true);
   const observerTarget = useRef(null);
 
   const handleLocationChange = (value: string, id?: string) => {
@@ -60,31 +55,31 @@ export const RoomsResults = () => {
     }
   };
 
-  const adjustRadius = (delta: number) => {
-    setRadius(prev => Math.max(1, Math.min(100, prev + delta)));
-  };
+  const mappedRoomType = roomType === "private" ? "private_room" : roomType === "shared" ? "shared_room" : roomType === "entire" ? "entire_place" : undefined;
+  const mappedBhkType = layout === "studio" ? "RK" : layout === "1br" ? "1BHK" : layout === "2br" ? "2BHK" : layout === "3br+" ? "3BHK" : undefined;
 
-  const handleRadiusInput = (value: string) => {
-    const num = parseInt(value);
-    if (!isNaN(num)) {
-      setRadius(Math.max(1, Math.min(100, num)));
-    } else if (value === "") {
-      setRadius(1);
-    }
-  };
-
-  // Unified fetch logic for List View
-  const fetchListings = useCallback(async (pageParam: number, shouldAppend: boolean) => {
-    if (viewMode !== "list") return;
-
-    setLoading(true);
-    try {
-      if (placeId) {
-        // Search by location and filters
-        const mappedRoomType = roomType === "private" ? "private_room" : roomType === "shared" ? "shared_room" : roomType === "entire" ? "entire_place" : undefined;
-        const mappedBhkType = layout === "studio" ? "RK" : layout === "1br" ? "1BHK" : layout === "2br" ? "2BHK" : layout === "3br+" ? "3BHK" : undefined;
-
-        const data = await apiClient.searchPlaceListings(placeId, {
+  const {
+    data,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    status,
+    isLoading,
+  } = useInfiniteQuery({
+    queryKey: ['rooms', placeId, radius, minPrice, maxPrice, roomType, layout, amenities, viewMode, mapBounds],
+    queryFn: async ({ pageParam = 0 }) => {
+      if (viewMode === 'map' && mapBounds) {
+        return await apiClient.searchListingsByMap(mapBounds, {
+          rentMin: minPrice ? parseInt(minPrice) : undefined,
+          rentMax: maxPrice ? parseInt(maxPrice) : undefined,
+          roomTypes: mappedRoomType ? [mappedRoomType] : undefined,
+          bhkTypes: mappedBhkType ? [mappedBhkType] : undefined,
+          amenities: amenities,
+          page: pageParam,
+          size: 20
+        });
+      } else if (placeId) {
+        return await apiClient.searchPlaceListings(placeId, {
           radiusKm: radius || 5,
           rentMin: minPrice ? parseInt(minPrice) : undefined,
           rentMax: maxPrice ? parseInt(maxPrice) : undefined,
@@ -94,56 +89,37 @@ export const RoomsResults = () => {
           page: pageParam,
           size: 10
         });
-
-        if (shouldAppend) {
-          setListings(prev => [...prev, ...data.listings]);
-        } else {
-          setListings(data.listings || []);
-        }
-        setTotalElements(data.totalElements || 0);
-        setHasMore(data.listings.length === 10); // Assuming size is 10
       } else {
-        // Fallback to recent rooms if no location selected
-        const data = await apiClient.searchRecentRooms(pageParam, 20);
-        if (shouldAppend) {
-          setListings(prev => [...prev, ...data.content]);
-        } else {
-          setListings(data.content || []);
-        }
-        setTotalElements(data.totalElements || 0);
-        setHasMore(!data.last);
+        return await apiClient.searchRecentRooms(pageParam, 20);
       }
-    } catch (error) {
-      console.error("Error fetching listings:", error);
-      if (!shouldAppend) setListings([]);
-    } finally {
-      setLoading(false);
+    },
+    getNextPageParam: (lastPage) => {
+      return lastPage.last ? undefined : lastPage.page + 1;
+    },
+    initialPageParam: 0,
+    enabled: viewMode === 'list' || (viewMode === 'map' && !!mapBounds),
+  });
+
+  // Effect to resolve placeId to coordinates when switching to map view
+  useEffect(() => {
+    if (viewMode === 'map' && placeId && !mapCenter) {
+      const geocoder = new (window as any).google.maps.Geocoder();
+      geocoder.geocode({ placeId: placeId }, (results: any, status: any) => {
+        if (status === "OK" && results[0]) {
+          setMapCenter({
+            lat: results[0].geometry.location.lat(),
+            lng: results[0].geometry.location.lng(),
+          });
+        }
+      });
     }
-  }, [viewMode, placeId, radius, minPrice, maxPrice, roomType, layout, amenities]);
+  }, [viewMode, placeId]);
 
-  // Search/Reset Effect
-  useEffect(() => {
-    if (viewMode !== "list") return;
-
-    const timeoutId = setTimeout(() => {
-      setPage(0);
-      fetchListings(0, false);
-    }, 500);
-    return () => clearTimeout(timeoutId);
-  }, [fetchListings]);
-
-  // Load More Effect
-  useEffect(() => {
-    if (page === 0) return;
-    fetchListings(page, true);
-  }, [page, fetchListings]);
-
-  // Intersection Observer for Infinite Scroll
   useEffect(() => {
     const observer = new IntersectionObserver(
       entries => {
-        if (entries[0].isIntersecting && hasMore && !loading) {
-          setPage(prev => prev + 1);
+        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
+          fetchNextPage();
         }
       },
       { threshold: 0.1 }
@@ -154,7 +130,10 @@ export const RoomsResults = () => {
     }
 
     return () => observer.disconnect();
-  }, [hasMore, loading]);
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+
+  const listings = data?.pages.flatMap((page) => page.content) || [];
+  const totalElements = data?.pages[0]?.totalElements || 0;
 
   return (
     <>
@@ -220,14 +199,11 @@ export const RoomsResults = () => {
                   </PopoverContent>
                 </Popover>
 
-
-
                 <div className="w-[200px] px-2">
                   <PremiumSlider
                     value={radius}
                     onChange={setRadius}
                     onCommit={(val) => {
-                      // Trigger search with new radius
                       if (placeId) {
                         handleLocationChange(location, placeId);
                       }
@@ -393,7 +369,7 @@ export const RoomsResults = () => {
           <div className="container mx-auto px-4 py-4">
             <div className="flex items-center justify-between">
               <p className="text-sm text-muted-foreground">
-                {loading ? "Loading..." : `${totalElements} rooms`}
+                {isLoading ? "Loading..." : `${totalElements} rooms`}
               </p>
               <Button variant="ghost" size="sm">
                 Clear filters
@@ -403,7 +379,7 @@ export const RoomsResults = () => {
 
           {/* Results Grid */}
           <div className="container mx-auto px-4 pb-12">
-            {!loading && listings.length === 0 ? (
+            {!isLoading && listings.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 px-4">
                 <div className="w-32 h-32 mb-6 flex items-center justify-center">
                   <Search className="w-20 h-20 text-muted-foreground/40" strokeWidth={1} />
@@ -416,52 +392,36 @@ export const RoomsResults = () => {
             ) : (
               <>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                  {loading && page === 0 ? (
-                    Array.from({ length: 8 }).map((_, i) => (
-                      <div key={i} className="bg-card rounded-lg border border-border overflow-hidden">
+                  {listings.map((listing: Listing) => (
+                    <RoomListingCard
+                      key={listing.id}
+                      listing={listing}
+                      onClick={() => navigate(`/listings/${listing.id}`)}
+                    />
+                  ))}
+
+                  {/* Loading Skeletons */}
+                  {(isLoading || isFetchingNextPage) && (
+                    Array.from({ length: 4 }).map((_, i) => (
+                      <div key={`skeleton-${i}`} className="bg-card rounded-xl border border-border overflow-hidden">
                         <Skeleton className="aspect-[4/3]" />
                         <div className="p-4 space-y-3">
                           <div className="flex items-center gap-2">
-                            <Skeleton className="w-10 h-10 rounded-full" />
+                            <Skeleton className="w-8 h-8 rounded-full" />
                             <div className="space-y-1 flex-1">
-                              <Skeleton className="h-4 w-24" />
-                              <Skeleton className="h-3 w-32" />
+                              <Skeleton className="h-3 w-20" />
+                              <Skeleton className="h-2 w-16" />
                             </div>
                           </div>
-                          <Skeleton className="h-6 w-32" />
-                          <Skeleton className="h-4 w-full" />
-                          <Skeleton className="h-4 w-3/4" />
+                          <Skeleton className="h-5 w-24" />
+                          <Skeleton className="h-3 w-full" />
+                          <Skeleton className="h-3 w-3/4" />
                         </div>
                       </div>
-                    ))
-                  ) : (
-                    listings.map((listing) => (
-                      <RoomCard
-                        key={listing.id}
-                        listing={listing}
-                        onClick={() => navigate(`/listings/${listing.id}`)}
-                      />
                     ))
                   )}
-                  {/* Loading indicator for next page */}
-                  {loading && page > 0 && Array.from({ length: 4 }).map((_, i) => (
-                    <div key={`skeleton-${i}`} className="bg-card rounded-lg border border-border overflow-hidden">
-                      <Skeleton className="aspect-[4/3]" />
-                      <div className="p-4 space-y-3">
-                        <div className="flex items-center gap-2">
-                          <Skeleton className="w-10 h-10 rounded-full" />
-                          <div className="space-y-1 flex-1">
-                            <Skeleton className="h-4 w-24" />
-                            <Skeleton className="h-3 w-32" />
-                          </div>
-                        </div>
-                        <Skeleton className="h-6 w-32" />
-                        <Skeleton className="h-4 w-full" />
-                        <Skeleton className="h-4 w-3/4" />
-                      </div>
-                    </div>
-                  ))}
                 </div>
+
                 {/* Observer Target */}
                 <div ref={observerTarget} className="h-10 w-full" />
               </>

@@ -1,0 +1,107 @@
+                {/* Existing Roommates Section */}
+                <div>
+                  <div className="flex justify-between items-center mb-4">
+                    <h2 className="text-xl font-semibold">Current Roommates</h2>
+                    <Button variant="outline" size="sm" onClick={handleAddRoommate}>
+                      Add Roommate
+                    </Button>
+                  </div>
+                  <div className="space-y-4">
+                    {formData.roommates.map((roommate, index) => (
+                      <div key={index} className="bg-card rounded-lg border shadow-sm p-4 relative group">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive"
+                          onClick={() => handleRemoveRoommate(index)}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                          <div>
+                            <Label className="text-xs text-muted-foreground">Name</Label>
+                            <Input
+                              value={roommate.name}
+                              onChange={(e) => handleRoommateChange(index, "name", e.target.value)}
+                              onBlur={() => handleRoommateBlur(index)}
+                              className="mt-1"
+                              placeholder="Name"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-xs text-muted-foreground">Gender</Label>
+                            <Select
+                              value={roommate.gender}
+                              onValueChange={(v) => {
+                                handleRoommateChange(index, "gender", v);
+                                const newRoommates = formData.roommates.map((r, i) => i === index ? { ...r, gender: v } : r);
+                                updateListing({ roommates: newRoommates });
+                              }}
+                            >
+                              <SelectTrigger className="mt-1">
+                                <SelectValue placeholder="Select gender" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {config?.genders?.map(option => (
+                                  <SelectItem key={option.value} value={option.value}>
+                                    {option.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div>
+                            <Label className="text-xs text-muted-foreground">Age</Label>
+                            <Input
+                              type="number"
+                              value={roommate.age || ""}
+                              onChange={(e) => handleRoommateChange(index, "age", parseInt(e.target.value))}
+                              onBlur={() => handleRoommateBlur(index)}
+                              className="mt-1"
+                              placeholder="Age"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-xs text-muted-foreground">Profession</Label>
+                            <Select
+                              value={roommate.profession}
+                              onValueChange={(v) => {
+                                handleRoommateChange(index, "profession", v);
+                                const newRoommates = formData.roommates.map((r, i) => i === index ? { ...r, profession: v } : r);
+                                updateListing({ roommates: newRoommates });
+                              }}
+                            >
+                              <SelectTrigger className="mt-1">
+                                <SelectValue placeholder="Select profession" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {config?.professions?.map(prof => (
+                                  <SelectItem key={prof.value} value={prof.value}>
+                                    {prof.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                        <div>
+                          <Label className="text-xs text-muted-foreground">Bio</Label>
+                          <Textarea
+                            value={roommate.bio}
+                            onChange={(e) => handleRoommateChange(index, "bio", e.target.value)}
+                            onBlur={() => handleRoommateBlur(index)}
+                            className="mt-1"
+                            placeholder="Tell us about this roommate..."
+                            rows={2}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                    {formData.roommates.length === 0 && (
+                      <div className="text-center py-8 text-muted-foreground bg-muted/20 rounded-lg border border-dashed">
+                        No roommates added yet
+                      </div>
+                    )}
+                  </div>
+                </div>

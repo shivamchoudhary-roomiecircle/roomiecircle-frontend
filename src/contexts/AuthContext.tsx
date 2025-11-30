@@ -16,6 +16,7 @@ interface AuthContextType {
   isLoading: boolean;
   login: (accessToken: string, refreshToken: string, user: User) => void;
   logout: () => void;
+  updateUser: (updates: Partial<User>) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -42,17 +43,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(userData);
   }, []);
 
+  const updateUser = useCallback((updates: Partial<User>) => {
+    setUser((prevUser) => {
+      if (!prevUser) return null;
+      const newUser = { ...prevUser, ...updates };
+      localStorage.setItem('user', JSON.stringify(newUser));
+      return newUser;
+    });
+  }, []);
+
   useEffect(() => {
     const initAuth = async () => {
       const token = localStorage.getItem('accessToken');
       const refreshToken = localStorage.getItem('refreshToken');
-      
+
       if (token && refreshToken) {
         try {
           const decoded: any = jwtDecode(token);
           const now = Date.now();
           const expirationTime = decoded.exp * 1000;
-          
+
           // If token is expired, try to refresh
           if (expirationTime < now) {
             const refreshed = await refreshAccessToken();
@@ -106,7 +116,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // Check token expiration every minute
     const interval = setInterval(checkAndRefreshToken, 60 * 1000);
-    
+
     // Also check immediately
     checkAndRefreshToken();
 
@@ -121,6 +131,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isLoading,
         login,
         logout,
+        updateUser,
       }}
     >
       {children}

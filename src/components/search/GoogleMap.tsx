@@ -1,19 +1,8 @@
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useConfig } from "@/contexts/ConfigContext";
+import { Listing } from "@/types/listing";
 
 const GOOGLE_MAPS_API_KEY = "AIzaSyDf5tpCzEbN1_RHkAh0rUrbQFM9UQE-O6k";
-
-interface Listing {
-  id: string;
-  latitude: number;
-  longitude: number;
-  monthlyRent: number;
-  addressText: string;
-  description?: string;
-  listingType?: string;
-  propertyType?: string[];
-  images?: string[];
-}
 
 interface GoogleMapProps {
   center?: { lat: number; lng: number };
@@ -171,6 +160,8 @@ export const GoogleMap = ({ center, listings = [], onBoundsChange, fullscreenCon
     if (listings.length === 0) return;
 
     listings.forEach((listing) => {
+      if (!listing.latitude || !listing.longitude) return;
+
       // Create a DOM element for the marker content
       const markerContent = document.createElement('div');
       markerContent.innerHTML = `
@@ -190,7 +181,7 @@ export const GoogleMap = ({ center, listings = [], onBoundsChange, fullscreenCon
       const marker = new google.maps.marker.AdvancedMarkerElement({
         position: { lat: listing.latitude, lng: listing.longitude },
         map: mapInstanceRef.current!,
-        title: listing.addressText,
+        title: listing.address,
         content: markerContent,
       });
 
@@ -202,20 +193,20 @@ export const GoogleMap = ({ center, listings = [], onBoundsChange, fullscreenCon
       const infoWindow = new google.maps.InfoWindow({
         content: `
           <div style="width: 260px; font-family: 'Inter', system-ui, sans-serif; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.15); background: white;">
-            ${listing.images?.[0] ? `
+            ${listing.photos?.[0]?.url ? `
               <div style="position: relative; height: 150px; width: 100%;">
-                <img src="${listing.images[0]}" style="width: 100%; height: 100%; object-fit: cover;" alt="Listing" />
+                <img src="${listing.photos[0].url}" style="width: 100%; height: 100%; object-fit: cover;" alt="Listing" />
                 <div style="position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.6); color: white; padding: 4px 8px; border-radius: 4px; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
-                  ${listing.listingType === 'FULL_HOUSE' ? 'Full House' : 'Room'}
+                  ${listing.roomType === 'entire_place' ? 'Full House' : 'Room'}
                 </div>
               </div>
             ` : ''}
             <div style="padding: 16px;">
               <h3 style="margin: 0 0 4px 0; font-size: 15px; font-weight: 600; color: #111827; line-height: 1.4;">
-                ${listing.addressText ? listing.addressText.split(',')[0] : 'Location'}
+                ${listing.address ? listing.address.split(',')[0] : 'Location'}
               </h3>
               <p style="margin: 0 0 12px 0; font-size: 12px; color: #6B7280; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                ${listing.addressText || ''}
+                ${listing.address || ''}
               </p>
               
               <div style="display: flex; align-items: baseline; gap: 4px; margin-bottom: 12px;">
@@ -224,14 +215,14 @@ export const GoogleMap = ({ center, listings = [], onBoundsChange, fullscreenCon
               </div>
 
               <div style="display: flex; gap: 6px; flex-wrap: wrap;">
-                ${listing.propertyType?.[0] ? `
+                ${listing.propertyTypes?.[0] ? `
                   <span style="background: #F3F4F6; color: #374151; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 500;">
-                    ${getPropertyLabel(listing.propertyType[0])}
+                    ${listing.propertyTypes[0]}
                   </span>
                 ` : ''}
-                ${(listing as any).bhkType ? `
+                ${listing.bhkType ? `
                   <span style="background: #F3F4F6; color: #374151; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 500;">
-                    ${(listing as any).bhkType}
+                    ${listing.bhkType}
                   </span>
                 ` : ''}
               </div>
@@ -280,4 +271,3 @@ export const GoogleMap = ({ center, listings = [], onBoundsChange, fullscreenCon
     </div>
   );
 };
-

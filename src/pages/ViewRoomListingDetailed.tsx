@@ -18,6 +18,7 @@ import { ListedBy } from "@/components/listing/ListedBy.tsx";
 import { User } from "lucide-react";
 import { useConfig } from "@/contexts/ConfigContext.tsx";
 import { IconRenderer } from "@/lib/iconMapper.tsx";
+import SEO from "@/components/SEO.tsx";
 
 export default function ViewRoomListingDetailed() {
   const { id } = useParams<{ id: string }>();
@@ -74,6 +75,12 @@ export default function ViewRoomListingDetailed() {
 
   return (
     <div className="min-h-screen flex flex-col">
+      <SEO
+        title={`${listing.location.city} - ${listing.rent.amount}/mo`}
+        description={listing.description || `Check out this room in ${listing.location.city} for ${listing.rent.amount}.`}
+        image={listing.images?.[0]}
+        keywords={['room for rent', listing.location.city, 'shared apartment', 'roomiecircle']}
+      />
       <Navbar />
 
       <main className="flex-1 container mx-auto px-4 py-8">

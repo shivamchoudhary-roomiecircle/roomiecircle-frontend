@@ -1,3 +1,6 @@
+import JSONbig from "json-bigint";
+import { Listing, PageResponse } from "@/types/listing";
+
 const API_BASE_URL = "https://staging-api.roomiecircle.com";
 
 class ApiClient {
@@ -17,8 +20,9 @@ class ApiClient {
       },
     });
 
-    // Parse response to check for TOKEN_EXPIRED error
-    const responseData = await response.json().catch(() => null);
+    // Parse response using json-bigint to handle large numbers (like Snowflake IDs)
+    const text = await response.text();
+    const responseData = text ? JSONbig({ storeAsString: true }).parse(text) : null;
 
     // Check for TOKEN_EXPIRED error in response
     if (responseData && responseData.success === false && responseData.error === "TOKEN_EXPIRED") {
@@ -266,24 +270,12 @@ class ApiClient {
 
     const response = await this.request<{
       success: boolean;
-      data: {
-        content: any[];
-        totalElements: number;
-        totalPages: number;
-        page: number;
-        size: number;
-        last: boolean;
-        first: boolean;
-      };
+      data: PageResponse<Listing>;
     }>(`/api/v1/search/rooms/location?${params.toString()}`, {
       skipAuth: true,
     });
 
-    return {
-      listings: response.data.content || [],
-      totalElements: response.data.totalElements || 0,
-      place: null
-    };
+    return response.data;
   }
 
   async search(filters: any) {
@@ -305,15 +297,7 @@ class ApiClient {
     });
     const response = await this.request<{
       success: boolean;
-      data: {
-        content: any[];
-        page: number;
-        size: number;
-        totalElements: number;
-        totalPages: number;
-        last: boolean;
-        first: boolean;
-      };
+      data: PageResponse<Listing>;
     }>(`/api/v1/search/rooms/recent?${params.toString()}`, {
       skipAuth: true,
     });
@@ -348,13 +332,16 @@ class ApiClient {
     minLng: number;
     maxLng: number;
   }, filters: {
-    minRent?: number;
-    maxRent?: number;
-    availableAfter?: string;
-    propertyType?: string[];
-    layoutType?: string[];
+    rentMin?: number;
+    rentMax?: number;
+    urgency?: string;
+    roomTypes?: string[];
+    bhkTypes?: string[];
+    propertyTypes?: string[];
     amenities?: string[];
-    amenitiesMatch?: string;
+    floorMin?: number;
+    floorMax?: number;
+    gender?: string;
     page?: number;
     size?: number;
   } = {}) {
@@ -364,34 +351,32 @@ class ApiClient {
       minLng: bounds.minLng.toString(),
       maxLng: bounds.maxLng.toString(),
       page: (filters.page || 0).toString(),
-      size: (filters.size || 50).toString(),
+      size: (filters.size || 20).toString(),
     });
 
-    if (filters.minRent) params.append('minRent', filters.minRent.toString());
-    if (filters.maxRent) params.append('maxRent', filters.maxRent.toString());
-    if (filters.availableAfter) params.append('availableAfter', filters.availableAfter);
-    if (filters.propertyType?.length) {
-      filters.propertyType.forEach(type => params.append('propertyType', type));
+    if (filters.rentMin) params.append('rentMin', filters.rentMin.toString());
+    if (filters.rentMax) params.append('rentMax', filters.rentMax.toString());
+    if (filters.urgency) params.append('urgency', filters.urgency);
+    if (filters.floorMin) params.append('floorMin', filters.floorMin.toString());
+    if (filters.floorMax) params.append('floorMax', filters.floorMax.toString());
+    if (filters.gender) params.append('gender', filters.gender);
+
+    if (filters.roomTypes?.length) {
+      filters.roomTypes.forEach(type => params.append('roomTypes', type));
     }
-    if (filters.layoutType?.length) {
-      filters.layoutType.forEach(type => params.append('layoutType', type));
+    if (filters.bhkTypes?.length) {
+      filters.bhkTypes.forEach(type => params.append('bhkTypes', type));
+    }
+    if (filters.propertyTypes?.length) {
+      filters.propertyTypes.forEach(type => params.append('propertyTypes', type));
     }
     if (filters.amenities?.length) {
       filters.amenities.forEach(amenity => params.append('amenities', amenity));
     }
-    if (filters.amenitiesMatch) params.append('amenitiesMatch', filters.amenitiesMatch);
 
     const response = await this.request<{
       success: boolean;
-      data: {
-        content: any[];
-        page: number;
-        size: number;
-        totalElements: number;
-        totalPages: number;
-        last: boolean;
-        first: boolean;
-      };
+      data: PageResponse<Listing>;
     }>(`/api/v1/search/rooms/map?${params.toString()}`, {
       skipAuth: true,
     });
@@ -479,43 +464,84 @@ class ApiClient {
   }
 
   // Media Upload API - New 3-step flow
-  async requestMediaUploadUrl(resourceId: string, tag: "room" | "neighbourhood" | "selfie", mediaType: string, name: string) {
+  async requestMediaUploadUrl(resourceId: string, tag: "LISTING" | "NEIGHBORHOOD" | "selfie" | "PROFILE", mediaType: string, name: string) {
+    let backendMediaType = "OTHER";
+    if (mediaType.toLowerCase().startsWith("image")) {
+      backendMediaType = "IMAGE";
+    } else if (mediaType.toLowerCase().startsWith("video")) {
+      backendMediaType = "VIDEO";
+    } else if (mediaType.toLowerCase().startsWith("audio")) {
+      backendMediaType = "AUDIO";
+    } else if (mediaType.toLowerCase().startsWith("application") || mediaType.toLowerCase().startsWith("text")) {
+      backendMediaType = "DOCUMENT";
+    }
+
     const response = await this.request<{
-      status: string;
+      success: boolean;
+      message: string;
       data: {
-        id: number;
+        uploadId: string;
         presigned_url: string;
         tag: string;
-        media_type: string;
-        name: string;
+        mediaType: string;
       };
-      message: string;
     }>("/api/v1/media/upload-url", {
       method: "POST",
       body: JSON.stringify({
         resourceId: resourceId,
         tag,
-        mediaType: mediaType,
-        name,
+        mediaType: backendMediaType,
       }),
     });
     return response.data;
   }
 
-  async confirmMediaUpload(resourceId: string, fileKey: string) {
+  async confirmMediaUpload(uploadId: string) {
     const response = await this.request<{
-      status: string;
+      success: boolean;
       message: string;
-    }>(`/api/v1/resources/${resourceId}/media/confirm`, {
+      data: {
+        id: number;
+        url: string;
+        thumbnailUrl?: string;
+        mediumUrl?: string;
+        fullUrl?: string;
+        tag: string;
+        mediaType: string;
+        status: string;
+        createdAt: string;
+      };
+    }>(`/api/v1/media/confirm/${uploadId}`, {
       method: "POST",
+    });
+    return response;
+  }
+
+  async reorderMedia(resourceId: string, mediaType: string, tag: string, mediaOrder: { id: number }[]) {
+    let backendMediaType = "OTHER";
+    if (mediaType.toLowerCase().startsWith("image") || mediaType === "IMAGE") {
+      backendMediaType = "IMAGE";
+    } else if (mediaType.toLowerCase().startsWith("video") || mediaType === "VIDEO") {
+      backendMediaType = "VIDEO";
+    }
+
+    const response = await this.request<{
+      success: boolean;
+      message: string;
+      data: null;
+    }>("/api/v1/media/reorder", {
+      method: "PUT",
       body: JSON.stringify({
-        fileKey: fileKey,
+        resourceId,
+        mediaType: backendMediaType,
+        tag,
+        mediaOrder,
       }),
     });
     return response;
   }
 
-  async getResourceMedia(resourceId: string, tag?: "room" | "neighbourhood" | "selfie") {
+  async getResourceMedia(resourceId: string, tag?: "LISTING" | "NEIGHBORHOOD" | "selfie") {
     const params = tag ? `?tag=${tag}` : "";
     const response = await this.request<{
       status: string;
@@ -530,6 +556,33 @@ class ApiClient {
     }>(`/api/v1/resources/${resourceId}/media${params}`, {
       skipAuth: true,
     });
+    return response.data;
+  }
+
+  async fetchMediaForResource(resourceId: string, type: string, tag: string) {
+    const params = new URLSearchParams({
+      type,
+      tag
+    });
+
+    const response = await this.request<{
+      success: boolean;
+      data: Array<{
+        id: number;
+        url: string;
+        mediaType: string;
+        tag: string;
+        priority: number;
+        status: string;
+        originalName: string;
+        createdAt: string;
+        thumbnailUrl?: string;
+        mediumUrl?: string;
+        fullUrl?: string;
+      }>;
+      message: string;
+    }>(`/api/v1/media/resource/${resourceId}?${params.toString()}`);
+
     return response.data;
   }
 
@@ -562,6 +615,17 @@ class ApiClient {
       method: "DELETE",
     });
     return response.data;
+  }
+
+  async deleteAccount() {
+    const response = await this.request<{
+      success: boolean;
+      message: string;
+      timestamp: string;
+    }>("/api/v1/users/me", {
+      method: "DELETE",
+    });
+    return response;
   }
 }
 

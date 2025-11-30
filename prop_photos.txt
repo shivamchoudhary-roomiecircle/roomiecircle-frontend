@@ -1,0 +1,34 @@
+                <div>
+                  <div className="flex justify-between items-center mb-4">
+                    <h2 className="text-xl font-semibold">Property Photos</h2>
+                    <span className="text-sm text-muted-foreground">{formData.images.length}/8</span>
+                  </div>
+
+                  <SortablePhotoGrid
+                    images={formData.images}
+                    onImagesChange={async (newImages) => {
+                      setFormData(prev => ({ ...prev, images: newImages }));
+                      // Call reorder API
+                      if (listingId) {
+                        try {
+                          await apiClient.reorderMedia(
+                            listingId,
+                            "IMAGE",
+                            "LISTING",
+                            newImages.map(img => ({ id: img.id }))
+                          );
+                        } catch (error) {
+                          console.error("Failed to reorder images:", error);
+                          toast({
+                            title: "Error",
+                            description: "Failed to save image order",
+                            variant: "destructive",
+                          });
+                        }
+                      }
+                    }}
+                    onUpload={handlePhotoUpload}
+                    uploadingIndexes={uploadingImageIndexes}
+                    uploadId="property-photo-upload"
+                  />
+                </div>

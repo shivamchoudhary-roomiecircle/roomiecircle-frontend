@@ -9,7 +9,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { MoreVertical, Edit, Trash2 } from "lucide-react";
+import { MoreVertical, Edit, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
 import { useState } from "react";
 import "./ListingCard.css";
 
@@ -83,6 +83,24 @@ const ListingCard = ({ listing, onEdit, onDelete, onStatusChange }: ListingCardP
     onStatusChange(listing.id, newStatus);
   };
 
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
+  const nextImage = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (listing.photos && listing.photos.length > 1) {
+      setCurrentImageIndex((prev) => (prev + 1) % listing.photos.length);
+    }
+  };
+
+  const prevImage = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (listing.photos && listing.photos.length > 1) {
+      setCurrentImageIndex((prev) => (prev - 1 + listing.photos.length) % listing.photos.length);
+    }
+  };
+
   return (
     <>
       <Card className="overflow-hidden hover:shadow-elevated relative transition-all duration-300">
@@ -126,13 +144,44 @@ const ListingCard = ({ listing, onEdit, onDelete, onStatusChange }: ListingCardP
         </CardHeader>
 
         <CardContent className="space-y-4">
-          {/* Listing Image */}
-          <div className="aspect-video rounded-md overflow-hidden bg-muted">
+          {/* Listing Image Carousel */}
+          <div className="aspect-video rounded-md overflow-hidden bg-muted relative group">
             <img
-              src={listing.photos && listing.photos.length > 0 ? listing.photos[0] : defaultImage}
-              alt="Room listing"
+              src={listing.photos && listing.photos.length > 0 ? listing.photos[currentImageIndex] : defaultImage}
+              alt={`Room listing ${currentImageIndex + 1}`}
               className="w-full h-full object-cover"
             />
+
+            {/* Navigation Controls */}
+            {listing.photos && listing.photos.length > 1 && (
+              <>
+                <button
+                  onClick={prevImage}
+                  className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                  aria-label="Previous image"
+                >
+                  <ChevronLeft className="h-5 w-5" />
+                </button>
+                <button
+                  onClick={nextImage}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                  aria-label="Next image"
+                >
+                  <ChevronRight className="h-5 w-5" />
+                </button>
+
+                {/* Dots Indicator */}
+                <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
+                  {listing.photos.map((_, idx) => (
+                    <div
+                      key={idx}
+                      className={`w-1.5 h-1.5 rounded-full transition-colors ${idx === currentImageIndex ? "bg-white" : "bg-white/50"
+                        }`}
+                    />
+                  ))}
+                </div>
+              </>
+            )}
           </div>
 
           {/* Listing Details */}
@@ -155,24 +204,25 @@ const ListingCard = ({ listing, onEdit, onDelete, onStatusChange }: ListingCardP
             </div>
 
             {/* Lister Info */}
+            {/* Lister Info */}
             <div className="flex items-center gap-2 pt-2 border-t">
               <div className="flex items-center gap-2 flex-1">
-                {listing.lister.profilePicture ? (
+                {listing.lister?.profilePicture ? (
                   <img
                     src={listing.lister.profilePicture}
-                    alt={listing.lister.name}
+                    alt={listing.lister?.name || "Lister"}
                     className="w-8 h-8 rounded-full object-cover"
                   />
                 ) : (
                   <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                    <span className="text-xs font-medium">{listing.lister.name.charAt(0)}</span>
+                    <span className="text-xs font-medium">{(listing.lister?.name || "?").charAt(0)}</span>
                   </div>
                 )}
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">{listing.lister.name}</p>
+                  <p className="text-sm font-medium truncate">{listing.lister?.name || "Unknown Lister"}</p>
                 </div>
               </div>
-              {listing.lister.verified && (
+              {listing.lister?.verified && (
                 <span className="text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-200 font-medium whitespace-nowrap">
                   ✓ Verified
                 </span>

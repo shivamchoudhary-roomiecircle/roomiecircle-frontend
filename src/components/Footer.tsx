@@ -8,7 +8,8 @@ interface FooterProps {
 }
 
 const Footer = ({ className }: FooterProps) => {
-  return (
+  // @ts-ignore
+    return (
     <footer className={cn("bg-muted/30 border-t border-border mt-20", className)}>
       <div className="container mx-auto px-4 py-12">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">

@@ -1,0 +1,81 @@
+                {/* Neighborhood Photos Section */}
+                <div>
+                  <div className="flex justify-between items-center mb-4">
+                    <h2 className="text-xl font-semibold">Neighborhood Photos</h2>
+                    <span className="text-sm text-muted-foreground">{formData.neighborhoodImages.length}/8</span>
+                  </div>
+
+                  <SortablePhotoGrid
+                    images={formData.neighborhoodImages}
+                    onImagesChange={async (newImages) => {
+                      setFormData(prev => ({ ...prev, neighborhoodImages: newImages }));
+                      // Call reorder API
+                      if (listingId) {
+                        try {
+                          await apiClient.reorderMedia(
+                            listingId,
+                            "IMAGE",
+                            "NEIGHBORHOOD",
+                            newImages.map(img => ({ id: img.id }))
+                          );
+                        } catch (error) {
+                          console.error("Failed to reorder images:", error);
+                          toast({
+                            title: "Error",
+                            description: "Failed to save image order",
+                            variant: "destructive",
+                          });
+                        }
+                      }
+                    }}
+                    onUpload={async (e) => {
+                      const files = e.target.files;
+                      if (!files || files.length === 0 || !listingId) return;
+
+                      // Check limit (8 per tag)
+                      if (formData.neighborhoodImages.length + files.length > 8) {
+                        toast({
+                          title: "Media limit exceeded",
+                          description: "You can upload a maximum of 8 neighborhood photos",
+                          variant: "destructive",
+                        });
+                        e.target.value = '';
+                        return;
+                      }
+
+                      // Create local preview URLs immediately
+                      const fileArray = Array.from(files);
+                      const previewItems = fileArray.map(file => ({ id: 0, url: URL.createObjectURL(file) }));
+                      const startIndex = formData.neighborhoodImages.length;
+
+                      // Add preview URLs immediately for instant feedback
+                      setFormData(prev => ({
+                        ...prev,
+                        neighborhoodImages: [...prev.neighborhoodImages, ...previewItems]
+                      }));
+                      setUploadingNeighborhoodIndexes(new Set(Array.from({ length: previewItems.length }, (_, i) => startIndex + i)));
+
+                      setUploadingImages(true);
+                      try {
+                        const uploadPromises = fileArray.map(async (file, index) => {
+                          // Validate file type
+                          const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+                          if (!validTypes.includes(file.type)) {
+                            throw new Error(`Invalid file type: ${file.type}. Please upload JPEG, PNG, or WebP images.`);
+                          }
+
+                          // Step 1: Request upload URL
+                          const { uploadId, presigned_url } = await apiClient.requestMediaUploadUrl(
+                            listingId,
+                            "NEIGHBORHOOD",
+                            file.type,
+                            file.name
+                          );
+
+                          // Step 2: Upload to GCS
+                          const uploadResponse = await fetch(presigned_url, {
+                            method: 'PUT',
+                            body: file,
+                            headers: {
+                              'Content-Type': file.type,
+                            },

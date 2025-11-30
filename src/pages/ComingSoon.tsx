@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useTheme } from "next-themes";
+import SEO from "@/components/SEO";
 
 const ComingSoon = () => {
     const navigate = useNavigate();
@@ -55,6 +56,11 @@ const ComingSoon = () => {
 
     return (
         <div className="min-h-screen flex flex-col relative overflow-hidden">
+            <SEO
+                title="Roommates - Coming Soon"
+                description="Our roommate matching feature is coming soon. Find compatible roommates based on lifestyle habits."
+                keywords={['roommates', 'coming soon', 'match', 'lifestyle']}
+            />
             <div
                 className="absolute inset-0 z-0 transition-all duration-1000 ease-in-out"
                 style={{

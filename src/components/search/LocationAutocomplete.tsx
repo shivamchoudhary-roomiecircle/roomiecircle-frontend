@@ -11,11 +11,11 @@ interface LocationAutocompleteProps {
   className?: string;
 }
 
-export const LocationAutocomplete = ({ 
-  value, 
-  onChange, 
+export const LocationAutocomplete = ({
+  value,
+  onChange,
   placeholder = "Where are you looking?",
-  className 
+  className
 }: LocationAutocompleteProps) => {
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -35,10 +35,17 @@ export const LocationAutocomplete = ({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  const inputRef = useRef<HTMLInputElement>(null);
+
   useEffect(() => {
     const searchPlaces = async () => {
       // Skip search if this value was just selected from dropdown
       if (value === lastSelectedRef.current) {
+        return;
+      }
+
+      // Skip search if input is not focused (prevents search on initial load)
+      if (document.activeElement !== inputRef.current) {
         return;
       }
 
@@ -77,6 +84,7 @@ export const LocationAutocomplete = ({
       <div className="relative">
         <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
         <Input
+          ref={inputRef}
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
