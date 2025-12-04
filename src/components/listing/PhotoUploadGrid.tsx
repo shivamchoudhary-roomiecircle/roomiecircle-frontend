@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { toast } from "@/hooks/use-toast";
-import { apiClient } from "@/lib/api";
+import { mediaApi } from "@/lib/api";
 import { convertFileToJpeg } from "@/lib/image-utils";
 import { SortablePhotoGrid } from "@/components/listing/SortablePhotoGrid";
 import { ResourceTag } from "@/types/api.types";
@@ -65,7 +65,7 @@ export function PhotoUploadGrid({
                 }
 
                 // Step 1: Request upload URL
-                const { uploadId, presigned_url } = await apiClient.requestMediaUploadUrl(
+                const { uploadId, presigned_url } = await mediaApi.requestMediaUploadUrl(
                     listingId,
                     resourceType,
                     "IMAGE",
@@ -86,7 +86,7 @@ export function PhotoUploadGrid({
                 }
 
                 // Step 3: Confirm upload
-                const confirmResponse = await apiClient.confirmMediaUpload(uploadId);
+                const confirmResponse = await mediaApi.confirmMediaUpload(uploadId);
                 // confirmMediaUpload returns MediaDto directly (unwrapped from ApiResponse in apiClient)
                 // But wait, looking at apiClient.confirmMediaUpload:
                 // return response.data!;
@@ -149,7 +149,7 @@ export function PhotoUploadGrid({
         for (const item of removedItems) {
             if (item.id !== 0) { // Don't try to delete previews/fakes
                 try {
-                    await apiClient.deleteMedia(item.id);
+                    await mediaApi.deleteMedia(item.id);
                 } catch (error) {
                     console.error("Failed to delete media:", error);
                     toast({
@@ -171,7 +171,7 @@ export function PhotoUploadGrid({
 
             if (currentIds !== newIds) {
                 try {
-                    await apiClient.reorderMedia(
+                    await mediaApi.reorderMedia(
                         listingId,
                         "IMAGE",
                         resourceType,

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { apiClient } from "@/lib/api.ts";
+import { searchApi } from "@/lib/api";
 import Navbar from "@/components/Navbar.tsx";
 import Footer from "@/components/Footer.tsx";
 import { Button } from "@/components/ui/button.tsx";
@@ -32,9 +32,8 @@ export default function ViewRoomListingDetailed() {
       if (!id) return;
       try {
         setLoading(true);
-        const response = await apiClient.getRoomDetailsForSearch(id);
-        const listingData = response.data || response;
-        setListing(listingData);
+        const response = await searchApi.getRoomDetailsForSearch(id);
+        setListing(response);
       } catch (error) {
         console.error("Error fetching listing:", error);
         toast.error("Failed to load listing details");

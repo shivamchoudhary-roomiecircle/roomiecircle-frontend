@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
-import { apiClient } from "@/lib/api";
+import { listingsApi, mediaApi } from "@/lib/api";
+import { getImageUrl } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, Image as ImageIcon } from "lucide-react";
@@ -39,30 +40,30 @@ export default function UploadPhotosContent({ listingId, onFinish }: UploadPhoto
 
       try {
         setLoading(true);
-        const listing = await apiClient.getRoomDetails(listingId);
+        const listing = await listingsApi.getRoomDetails(listingId);
 
         // Fetch actual media objects to get IDs
         try {
-          const roomMedia = await apiClient.fetchMediaForResource(listingId, "IMAGE", "LISTING");
-          const neighborhoodMedia = await apiClient.fetchMediaForResource(listingId, "IMAGE", "NEIGHBORHOOD");
+          const roomMedia = await mediaApi.fetchMediaForResource(listingId, "IMAGE", "LISTING");
+          const neighborhoodMedia = await mediaApi.fetchMediaForResource(listingId, "IMAGE", "NEIGHBORHOOD");
 
-          setPropertyImages(roomMedia ? roomMedia.map((item: any) => ({ id: item.id, url: item.url })) : []);
-          setNeighborhoodImages(neighborhoodMedia ? neighborhoodMedia.map((item: any) => ({ id: item.id, url: item.url })) : []);
+          setPropertyImages(roomMedia ? roomMedia.map((item: any) => ({ id: item.id, url: getImageUrl(item.url) })) : []);
+          setNeighborhoodImages(neighborhoodMedia ? neighborhoodMedia.map((item: any) => ({ id: item.id, url: getImageUrl(item.url) })) : []);
 
         } catch (mediaError) {
           console.warn("Failed to fetch detailed media, falling back to listing images", mediaError);
           if (listing) {
-            const listingData = listing.data || listing;
+            const listingData = listing;
 
             const newPropertyImages = (listingData.images || []).map((url: string, index: number) => ({
               id: index, // Fake ID, might cause issues with delete/reorder if not real
-              url
+              url: getImageUrl(url)
             }));
             setPropertyImages(newPropertyImages);
 
             const newNeighborhoodImages = (listingData.neighborhoodImages || []).map((url: string, index: number) => ({
               id: index + 100,
-              url
+              url: getImageUrl(url)
             }));
             setNeighborhoodImages(newNeighborhoodImages);
           }

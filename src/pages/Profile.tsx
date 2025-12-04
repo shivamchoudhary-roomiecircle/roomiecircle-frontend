@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Loader2, Upload, Camera, User as UserIcon, Mail, ShieldCheck, BadgeCheck } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
-import { apiClient } from "@/lib/api";
+import { mediaApi, authApi } from "@/lib/api";
 import { convertFileToJpeg } from "@/lib/image-utils";
 import "./Profile.css";
 
@@ -25,7 +25,7 @@ export default function Profile() {
 
             if (user?.id) {
                 try {
-                    const mediaList = await apiClient.fetchMediaForResource(user.id.toString(), 'IMAGE', 'PROFILE');
+                    const mediaList = await mediaApi.fetchMediaForResource(user.id.toString(), 'IMAGE', 'PROFILE');
                     if (mediaList && mediaList.length > 0) {
                         // Use the most recent or highest priority image
                         setProfileImage(mediaList[0].url);
@@ -74,7 +74,7 @@ export default function Profile() {
             }
 
             // 1. Get upload URL
-            const { uploadId, presigned_url } = await apiClient.requestMediaUploadUrl(
+            const { uploadId, presigned_url } = await mediaApi.requestMediaUploadUrl(
                 user.id.toString(),
                 "PROFILE",
                 "IMAGE",
@@ -95,7 +95,7 @@ export default function Profile() {
             }
 
             // 3. Confirm upload
-            const confirmResponse = await apiClient.confirmMediaUpload(uploadId);
+            const confirmResponse = await mediaApi.confirmMediaUpload(uploadId);
 
             if (confirmResponse && confirmResponse.url) {
                 const newProfilePicUrl = confirmResponse.url;
@@ -125,7 +125,7 @@ export default function Profile() {
 
     const handleDeleteAccount = async () => {
         try {
-            await apiClient.deleteAccount();
+            await authApi.deleteAccount();
             toast({
                 title: "Account Deleted",
                 description: "Your account has been scheduled for deletion.",

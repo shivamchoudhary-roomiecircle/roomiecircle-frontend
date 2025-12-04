@@ -1,43 +1,35 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
-import { apiClient } from "@/lib/api";
+import { useNavigate, useSearchParams, useParams } from "react-router-dom";
+import { listingsApi } from "@/lib/api";
 import { useConfig } from "@/contexts/ConfigContext";
 import { toast } from "@/hooks/use-toast";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Home, DollarSign, MapPin, Bed, Users, Image as ImageIcon, Star, X } from "lucide-react";
-import { LocationAutocomplete } from "@/components/search/LocationAutocomplete";
-import { IconRenderer } from "@/lib/iconMapper";
-import { convertFileToJpeg } from "@/lib/image-utils";
-import UploadPhotosContent from "../components/listing/UploadPhotos";
+import { WizardLayout } from "@/components/create-listing/WizardLayout";
+import { DesktopWizardLayout } from "@/components/create-listing/DesktopWizardLayout";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { StepPropertyType } from "@/components/create-listing/steps/StepPropertyType";
+import { StepLocation } from "@/components/create-listing/steps/StepLocation";
+import { StepBasics } from "@/components/create-listing/steps/StepBasics";
+import { StepAmenities } from "@/components/create-listing/steps/StepAmenities";
+import { StepPricing } from "@/components/create-listing/steps/StepPricing";
+import { StepPreferences } from "@/components/create-listing/steps/StepPreferences";
+import { StepPhotos } from "@/components/create-listing/steps/StepPhotos";
 
-interface RoommateData {
-  name: string;
-  gender: string;
-  age: number;
-  profession: string;
-  bio: string;
+interface MediaItem {
+  id: number;
+  url: string;
+  isUploading?: boolean;
 }
 
 export default function CreateRoomListing() {
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const listingId = searchParams.get("id");
-  const { config, loading: configLoading } = useConfig();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { config } = useConfig();
+  const isMobile = useIsMobile();
+  const [listingId, setListingId] = useState<string | null>(id || null);
 
+  const [currentStep, setCurrentStep] = useState(0);
   const [saving, setSaving] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [uploadingImages, setUploadingImages] = useState(false);
-  const [uploadingImageIndexes, setUploadingImageIndexes] = useState<Set<number>>(new Set());
-  const [uploadingNeighborhoodIndexes, setUploadingNeighborhoodIndexes] = useState<Set<number>>(new Set());
-  const [step, setStep] = useState<'details' | 'photos'>('details');
 
   const [formData, setFormData] = useState({
     description: "",
@@ -58,249 +50,109 @@ export default function CreateRoomListing() {
     hasPrivateWashroom: false,
     hasFurniture: false,
     amenities: [] as string[],
-    images: [] as string[],
+    images: [] as MediaItem[],
     minAge: "",
     maxAge: "",
     gender: "",
     profession: "",
     lifestyle: [] as string[],
-    roommates: [] as RoommateData[],
+    // Keeping these for compatibility but not using in wizard yet
+    roommates: [] as any[],
     neighborhoodReview: "",
     neighborhoodRatings: {
       safety: 0,
       connectivity: 0,
       amenities: 0,
     },
-    neighborhoodImages: [] as string[],
+    neighborhoodImages: [] as any[],
   });
-
-  // Fetch listing data when editing - REMOVED for Create component
-  useEffect(() => {
-    // This component is now only for creating listings.
-    // Edit logic has been moved to EditRoomListing.tsx
-  }, []);
-
-  // Helper function to extract file key from presigned URL
-  const extractFileKey = (presignedUrl: string): string => {
-    try {
-      const url = new URL(presignedUrl);
-      // Remove leading slash and bucket name, get object key
-      const pathname = url.pathname.substring(1);
-      // Split on first slash after bucket name
-      const parts = pathname.split('/');
-      // Return everything after the bucket name
-      return parts.slice(1).join('/');
-    } catch (error) {
-      console.error("Error extracting file key:", error);
-      throw new Error("Failed to extract file key from URL");
-    }
-  };
-
-  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0 || !listingId) return;
-
-    // Check limit (8 per tag)
-    if (formData.images.length + files.length > 8) {
-      toast({
-        title: "Media limit exceeded",
-        description: "You can upload a maximum of 8 room photos",
-        variant: "destructive",
-      });
-      e.target.value = '';
-      return;
-    }
-
-    // Create local preview URLs immediately
-    const fileArray = Array.from(files);
-    const previewUrls = fileArray.map(file => URL.createObjectURL(file));
-    const startIndex = formData.images.length;
-
-    // Add preview URLs immediately for instant feedback
-    setFormData(prev => ({
-      ...prev,
-      images: [...prev.images, ...previewUrls]
-    }));
-    setUploadingImageIndexes(new Set(Array.from({ length: previewUrls.length }, (_, i) => startIndex + i)));
-
-    setUploadingImages(true);
-    try {
-      const uploadPromises = fileArray.map(async (originalFile, index) => {
-        // Convert to JPEG
-        let file = originalFile;
-        try {
-          file = await convertFileToJpeg(originalFile);
-        } catch (error) {
-          console.error("Failed to convert image:", error);
-        }
-
-        // Validate file type
-        const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
-        if (!validTypes.includes(file.type)) {
-          // throw new Error(`Invalid file type: ${file.type}. Please upload JPEG, PNG, or WebP images.`);
-        }
-
-        // Step 1: Request upload URL
-        const { uploadId, presigned_url } = await apiClient.requestMediaUploadUrl(
-          listingId,
-          "LISTING",
-          "IMAGE",
-          file.type,
-        );
-
-        // Step 2: Upload to GCS
-        const uploadResponse = await fetch(presigned_url, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': file.type,
-          },
-          body: file,
-        });
-
-        if (!uploadResponse.ok) {
-          throw new Error(`Failed to upload ${file.name}`);
-        }
-
-        // Step 3: Confirm upload
-        await apiClient.confirmMediaUpload(uploadId);
-
-        // Return the media URL (will be from CDN once processed)
-        return { index: startIndex + index, mediaId: uploadId, presigned_url };
-      });
-
-      const results = await Promise.all(uploadPromises);
-
-      console.log("Uploaded media:", results);
-
-      // For now, store the presigned URLs - these will be replaced by CDN URLs once processed
-      // In production, you might want to fetch the media list to get CDN URLs
-      setFormData(prev => {
-        const newImages = [...prev.images];
-        results.forEach(({ index, presigned_url }) => {
-          // Revoke the blob URL to free memory
-          URL.revokeObjectURL(newImages[index]);
-          // Extract base URL without query params for cleaner storage
-          const url = new URL(presigned_url);
-          newImages[index] = `${url.origin}${url.pathname}`;
-        });
-        console.log("Updated images array:", newImages);
-        return {
-          ...prev,
-          images: newImages
-        };
-      });
-
-      setUploadingImageIndexes(new Set());
-      toast({
-        title: "Success",
-        description: `${results.length} photo(s) uploaded successfully`,
-      });
-    } catch (error: any) {
-      // Check for media limit error
-      if (error?.message?.includes("Media limit exceeded")) {
-        toast({
-          title: "Upload limit reached",
-          description: "Maximum 8 photos per room listing",
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "Error",
-          description: error?.message || "Failed to upload photos. Please try again.",
-          variant: "destructive",
-        });
-      }
-
-      // Remove failed previews
-      setFormData(prev => {
-        const newImages = prev.images.slice(0, startIndex);
-        previewUrls.forEach(url => URL.revokeObjectURL(url));
-        return {
-          ...prev,
-          images: newImages
-        };
-      });
-      setUploadingImageIndexes(new Set());
-    } finally {
-      setUploadingImages(false);
-      // Reset input
-      e.target.value = '';
-    }
-  };
 
   const handleFieldChange = (field: string, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleNestedFieldChange = (parent: string, field: string, value: any) => {
+  const handleLocationSelect = (address: string, placeId: string) => {
     setFormData(prev => ({
       ...prev,
-      [parent]: { ...(prev[parent as keyof typeof prev] as any), [field]: value }
+      addressText: address,
+      placeId: placeId,
     }));
   };
 
-  const handleAmenityToggle = (amenity: string) => {
-    setFormData(prev => ({
-      ...prev,
-      amenities: prev.amenities.includes(amenity)
-        ? prev.amenities.filter(a => a !== amenity)
-        : [...prev.amenities, amenity]
-    }));
+  const handleStepClick = (index: number) => {
+    // Only allow navigating to previous steps or the current step
+    if (index <= currentStep) {
+      setCurrentStep(index);
+    }
   };
 
-  const handlePropertyTypeToggle = (propertyType: string) => {
-    setFormData(prev => ({
-      ...prev,
-      propertyType: prev.propertyType.includes(propertyType)
-        ? prev.propertyType.filter(p => p !== propertyType)
-        : [...prev.propertyType, propertyType]
-    }));
+  const steps = [
+    {
+      id: 'property',
+      title: 'Property Details',
+      description: 'What kind of place are you listing?',
+      component: <StepPropertyType formData={formData} onChange={handleFieldChange} />
+    },
+    {
+      id: 'location',
+      title: 'Location',
+      description: 'Where is your property located?',
+      component: <StepLocation formData={formData} onChange={handleFieldChange} onLocationSelect={handleLocationSelect} />
+    },
+    {
+      id: 'basics',
+      title: 'The Basics',
+      description: 'Tell us a bit more about the space.',
+      component: <StepBasics formData={formData} onChange={handleFieldChange} />
+    },
+    {
+      id: 'amenities',
+      title: 'Amenities',
+      description: 'Select all the amenities available.',
+      component: <StepAmenities formData={formData} onChange={handleFieldChange} />
+    },
+    {
+      id: 'pricing',
+      title: 'Pricing',
+      description: 'Set your monthly rent and deposit.',
+      component: <StepPricing formData={formData} onChange={handleFieldChange} />
+    },
+    {
+      id: 'preferences',
+      title: 'Roommate Preferences',
+      description: 'Who would be your ideal roommate?',
+      component: <StepPreferences formData={formData} onChange={handleFieldChange} />
+    },
+    {
+      id: 'photos',
+      title: 'Photos',
+      description: 'Add some photos of the room.',
+      component: <StepPhotos listingId={listingId} images={formData.images} onChange={(imgs) => handleFieldChange("images", imgs)} />
+    }
+  ];
+
+  const isStepValid = () => {
+    const step = steps[currentStep];
+    switch (step.id) {
+      case 'property':
+        return formData.roomType && formData.bhkType && formData.propertyType.length > 0;
+      case 'location':
+        return formData.addressText && formData.addressText.length > 5; // Basic check
+      case 'basics':
+        return formData.floor !== "" && formData.description.length > 10;
+      case 'pricing':
+        return formData.monthlyRent && formData.deposit;
+      default:
+        return true;
+    }
   };
 
-  const handleLifestyleToggle = (lifestyle: string) => {
-    setFormData(prev => ({
-      ...prev,
-      lifestyle: prev.lifestyle.includes(lifestyle)
-        ? prev.lifestyle.filter(l => l !== lifestyle)
-        : [...prev.lifestyle, lifestyle]
-    }));
-  };
-
-  const handleAddRoommate = () => {
-    setFormData(prev => ({
-      ...prev,
-      roommates: [...prev.roommates, { name: "", gender: "", age: 0, profession: "", bio: "" }]
-    }));
-  };
-
-  const handleRoommateChange = (index: number, field: keyof RoommateData, value: any) => {
-    setFormData(prev => ({
-      ...prev,
-      roommates: prev.roommates.map((r, i) => i === index ? { ...r, [field]: value } : r)
-    }));
-  };
-
-  const handleRemoveRoommate = (index: number) => {
-    setFormData(prev => ({
-      ...prev,
-      roommates: prev.roommates.filter((_, i) => i !== index)
-    }));
-  };
-
-  const handleLocationChange = (value: string, placeId?: string) => {
-    setFormData(prev => ({
-      ...prev,
-      addressText: value,
-      placeId: placeId || "",
-    }));
-  };
-
-  const handleSave = async () => {
+  const saveListing = async () => {
     setSaving(true);
     try {
       const payload: any = {};
 
-      // Only include non-empty fields
+      // Map formData to API payload
       if (formData.description) payload.description = formData.description;
       if (formData.monthlyRent) payload.monthlyRent = parseInt(formData.monthlyRent);
       if (formData.maintenance) payload.maintenance = parseInt(formData.maintenance);
@@ -319,996 +171,97 @@ export default function CreateRoomListing() {
       payload.hasPrivateWashroom = formData.hasPrivateWashroom;
       payload.hasFurniture = formData.hasFurniture;
       if (formData.amenities.length > 0) payload.amenities = formData.amenities;
-      if (formData.images.length > 0) payload.images = formData.images;
-      if (formData.minAge) payload.minAge = parseInt(formData.minAge);
-      if (formData.maxAge) payload.maxAge = parseInt(formData.maxAge);
-      if (formData.gender) payload.gender = formData.gender;
-      if (formData.profession) payload.profession = formData.profession;
-      if (formData.lifestyle.length > 0) payload.lifestyle = formData.lifestyle;
-      if (formData.roommates.length > 0) payload.roommates = formData.roommates;
-      if (formData.neighborhoodReview) payload.neighborhoodReview = formData.neighborhoodReview;
-      if (Object.values(formData.neighborhoodRatings).some(v => v > 0)) {
-        payload.neighborhoodRatings = formData.neighborhoodRatings;
+
+      // Note: Images are handled separately via PhotoUploadGrid/API
+
+      // Roommate Preferences
+      const roommatePreferences: any = {};
+      if (formData.minAge) roommatePreferences.minAge = parseInt(formData.minAge);
+      if (formData.maxAge) roommatePreferences.maxAge = parseInt(formData.maxAge);
+      if (formData.gender) roommatePreferences.gender = formData.gender;
+      if (formData.profession) roommatePreferences.profession = formData.profession;
+      if (formData.lifestyle.length > 0) roommatePreferences.lifestyle = formData.lifestyle;
+
+      if (Object.keys(roommatePreferences).length > 0) {
+        payload.roommatePreferences = roommatePreferences;
       }
-      if (formData.neighborhoodImages.length > 0) payload.neighborhoodImages = formData.neighborhoodImages;
 
-      // Create new listing using POST
-      const response = await apiClient.createRoom(payload);
-      // Extract listing ID from response if available
-      const savedListingId = response?.id || null;
-      toast({
-        title: "Success",
-        description: "Your listing has been saved!",
-      });
-
-      // Navigate to upload photos page for new listings
-      if (savedListingId) {
-        // navigate(`/upload-photos?id=${savedListingId}`, {
-        //   state: {
-        //     skipListingFetch: true,
-        //   },
-        // });
-        setStep('photos');
-        // Update URL to include ID so refresh works? 
-        // Or just keep it clean. If we refresh, we might lose state if we don't update URL.
-        // But the user asked for "no unique route". 
-        // If we update URL to ?id=..., we can resume editing.
-        // Let's update the URL silently or just set the ID in state.
-        // The component uses `listingId` from searchParams in `useEffect` to fetch data.
-        // We should probably update the URL so if they refresh they stay on the listing (but maybe back to details mode though).
-        // If we want to stay on photos step after refresh, we'd need to persist step in URL or state.
-        // For now, just switching state is enough for the flow.
-        // We should update the search param so `listingId` is available if they refresh (it will go to details mode though).
-        navigate(`?id=${savedListingId}`, { replace: true });
+      let response;
+      if (listingId) {
+        // Update existing
+        response = await listingsApi.updateRoom(listingId, payload);
       } else {
-        navigate("/my-listings");
+        // Create new
+        response = await listingsApi.createRoom(payload);
       }
+
+      const savedId = response?.id || listingId;
+
+      if (savedId && !listingId) {
+        setListingId(savedId.toString());
+        setSearchParams({ id: savedId.toString() });
+      }
+
+      return savedId;
     } catch (error: any) {
+      console.error("Failed to save listing:", error);
       toast({
         title: "Error",
-        description: error?.message || "Failed to save listing. Please try again.",
+        description: error?.message || "Failed to save listing.",
         variant: "destructive",
       });
+      return null;
     } finally {
       setSaving(false);
     }
   };
 
+  const handleNext = async () => {
+    if (currentStep === steps.length - 1) {
+      // Final step (Photos) - Finish
+      navigate('/my-listings');
+      return;
+    }
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
-    );
-  }
+    // If moving to Photos step (last step), save first
+    if (steps[currentStep + 1].id === 'photos') {
+      const id = await saveListing();
+      if (id) {
+        setCurrentStep(prev => prev + 1);
+      }
+    } else {
+      setCurrentStep(prev => prev + 1);
+    }
+  };
+
+  const handleBack = () => {
+    if (currentStep > 0) {
+      setCurrentStep(prev => prev - 1);
+    } else {
+      navigate(-1);
+    }
+  };
+
+  const handleSkip = () => {
+    if (currentStep < steps.length - 1) {
+      setCurrentStep(prev => prev + 1);
+    }
+  };
 
   return (
-    <div className="min-h-screen">
-      <Navbar />
-
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
-        {step === 'details' ? (
-          <>
-            <div className="mb-6">
-              <h1 className="text-3xl font-bold">List Your Room</h1>
-            </div>
-
-            {/* Basic Details */}
-            <Card className="mb-6">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Home className="h-5 w-5" />
-                  Basic Details
-                </CardTitle>
-                <CardDescription>Tell us about your room</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <Label htmlFor="description">Description</Label>
-                  <Textarea
-                    id="description"
-                    placeholder="Describe your room..."
-                    value={formData.description}
-                    onChange={(e) => handleFieldChange("description", e.target.value)}
-                    rows={4}
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="roomType">Room Type</Label>
-                    <Select value={formData.roomType} onValueChange={(v) => handleFieldChange("roomType", v)} disabled={!config?.roomTypes || config.roomTypes.length === 0}>
-                      <SelectTrigger>
-                        <SelectValue placeholder={config?.roomTypes && config.roomTypes.length > 0 ? "Select room type" : "Loading..."} />
-                      </SelectTrigger>
-                      {config?.roomTypes && config.roomTypes.length > 0 && (
-                        <SelectContent>
-                          {config.roomTypes.map(type => (
-                            <SelectItem key={type.value} value={type.value}>
-                              <div className="flex items-center gap-2">
-                                <IconRenderer symbol={type.symbol} />
-                                <span>{type.label}</span>
-                              </div>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      )}
-                    </Select>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="bhkType">BHK Type</Label>
-                    <Select value={formData.bhkType} onValueChange={(v) => handleFieldChange("bhkType", v)} disabled={!config?.bhkTypes || config.bhkTypes.length === 0}>
-                      <SelectTrigger>
-                        <SelectValue placeholder={config?.bhkTypes && config.bhkTypes.length > 0 ? "Select BHK type" : "Loading..."} />
-                      </SelectTrigger>
-                      {config?.bhkTypes && config.bhkTypes.length > 0 && (
-                        <SelectContent>
-                          {config.bhkTypes.map(type => (
-                            <SelectItem key={type.value} value={type.value}>
-                              <div className="flex items-center gap-2">
-                                <IconRenderer symbol={type.symbol} />
-                                <span>{type.label}</span>
-                              </div>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      )}
-                    </Select>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="floor">Floor</Label>
-                    <Input
-                      id="floor"
-                      type="number"
-                      placeholder="e.g., 2, 3, 0 (Ground)"
-                      value={formData.floor}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        // Only allow integers (including negative for basement floors)
-                        if (value === '' || /^-?\d+$/.test(value)) {
-                          handleFieldChange("floor", value);
-                        }
-                      }}
-                      min="0"
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="availableDate">Available From</Label>
-                    <Input
-                      id="availableDate"
-                      type="date"
-                      value={formData.availableDate}
-                      onChange={(e) => handleFieldChange("availableDate", e.target.value)}
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <Label>Property Type</Label>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-2">
-                    {config?.propertyTypes && config.propertyTypes.length > 0 ? (
-                      config.propertyTypes.map(type => (
-                        <div key={type.value} className="flex items-center space-x-2">
-                          <Checkbox
-                            id={`property-${type.value}`}
-                            checked={formData.propertyType.includes(type.value)}
-                            onCheckedChange={() => handlePropertyTypeToggle(type.value)}
-                          />
-                          <Label htmlFor={`property-${type.value}`} className="flex items-center gap-2 cursor-pointer">
-                            <IconRenderer symbol={type.symbol} />
-                            <span>{type.label}</span>
-                          </Label>
-                        </div>
-                      ))
-                    ) : (
-                      <p className="text-sm text-muted-foreground">Loading property types...</p>
-                    )}
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="hasBalcony"
-                      checked={formData.hasBalcony}
-                      onCheckedChange={(checked) => handleFieldChange("hasBalcony", checked)}
-                    />
-                    <Label htmlFor="hasBalcony">Has Balcony</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="hasPrivateWashroom"
-                      checked={formData.hasPrivateWashroom}
-                      onCheckedChange={(checked) => handleFieldChange("hasPrivateWashroom", checked)}
-                    />
-                    <Label htmlFor="hasPrivateWashroom">Has Private Washroom</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="hasFurniture"
-                      checked={formData.hasFurniture}
-                      onCheckedChange={(checked) => handleFieldChange("hasFurniture", checked)}
-                    />
-                    <Label htmlFor="hasFurniture">Furnished</Label>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Pricing */}
-            <Card className="mb-6">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <DollarSign className="h-5 w-5" />
-                  Pricing
-                </CardTitle>
-                <CardDescription>Set your rent and deposit</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="monthlyRent">Monthly Rent (₹)</Label>
-                    <Input
-                      id="monthlyRent"
-                      type="number"
-                      placeholder="15000"
-                      value={formData.monthlyRent}
-                      onChange={(e) => handleFieldChange("monthlyRent", e.target.value)}
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="deposit">Security Deposit (₹)</Label>
-                    <Input
-                      id="deposit"
-                      type="number"
-                      placeholder="45000"
-                      value={formData.deposit}
-                      onChange={(e) => handleFieldChange("deposit", e.target.value)}
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="maintenance">Maintenance (₹)</Label>
-                    <Input
-                      id="maintenance"
-                      type="number"
-                      placeholder="2000"
-                      value={formData.maintenance}
-                      onChange={(e) => handleFieldChange("maintenance", e.target.value)}
-                    />
-                  </div>
-
-                  <div className="flex items-end">
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="maintenanceIncluded"
-                        checked={formData.maintenanceIncluded}
-                        onCheckedChange={(checked) => handleFieldChange("maintenanceIncluded", checked)}
-                      />
-                      <Label htmlFor="maintenanceIncluded">Maintenance Included in Rent</Label>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Location */}
-            <Card className="mb-6">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <MapPin className="h-5 w-5" />
-                  Location
-                </CardTitle>
-                <CardDescription>Where is your property located?</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Label htmlFor="location">Address</Label>
-                <LocationAutocomplete
-                  value={formData.addressText}
-                  onChange={handleLocationChange}
-                  placeholder="Search for your address..."
-                />
-                {formData.addressText && (
-                  <p className="text-sm text-muted-foreground mt-2">{formData.addressText}</p>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Amenities */}
-            <Card className="mb-6">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Bed className="h-5 w-5" />
-                  Amenities
-                </CardTitle>
-                <CardDescription>What amenities does your property offer?</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {config?.amenities && (
-                  <>
-                    <div>
-                      <h3 className="font-semibold mb-3">In Home</h3>
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                        {config.amenities.in_home.map(amenity => (
-                          <div key={amenity.value} className="flex items-center space-x-2">
-                            <Checkbox
-                              id={amenity.value}
-                              checked={formData.amenities.includes(amenity.value)}
-                              onCheckedChange={() => handleAmenityToggle(amenity.value)}
-                            />
-                            <Label htmlFor={amenity.value} className="flex items-center gap-2 cursor-pointer">
-                              <IconRenderer symbol={amenity.symbol} />
-                              <span>{amenity.label}</span>
-                            </Label>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div>
-                      <h3 className="font-semibold mb-3">On Property</h3>
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                        {config.amenities.on_property.map(amenity => (
-                          <div key={amenity.value} className="flex items-center space-x-2">
-                            <Checkbox
-                              id={amenity.value}
-                              checked={formData.amenities.includes(amenity.value)}
-                              onCheckedChange={() => handleAmenityToggle(amenity.value)}
-                            />
-                            <Label htmlFor={amenity.value} className="flex items-center gap-2 cursor-pointer">
-                              <IconRenderer symbol={amenity.symbol} />
-                              <span>{amenity.label}</span>
-                            </Label>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div>
-                      <h3 className="font-semibold mb-3">Safety</h3>
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                        {config.amenities.safety.map(amenity => (
-                          <div key={amenity.value} className="flex items-center space-x-2">
-                            <Checkbox
-                              id={amenity.value}
-                              checked={formData.amenities.includes(amenity.value)}
-                              onCheckedChange={() => handleAmenityToggle(amenity.value)}
-                            />
-                            <Label htmlFor={amenity.value} className="flex items-center gap-2 cursor-pointer">
-                              <IconRenderer symbol={amenity.symbol} />
-                              <span>{amenity.label}</span>
-                            </Label>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Roommate Preferences */}
-            <Card className="mb-6">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Users className="h-5 w-5" />
-                  Roommate Preferences
-                </CardTitle>
-                <CardDescription>Who are you looking for?</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="minAge">Min Age</Label>
-                    <Input
-                      id="minAge"
-                      type="number"
-                      placeholder="22"
-                      value={formData.minAge}
-                      onChange={(e) => handleFieldChange("minAge", e.target.value)}
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="maxAge">Max Age</Label>
-                    <Input
-                      id="maxAge"
-                      type="number"
-                      placeholder="35"
-                      value={formData.maxAge}
-                      onChange={(e) => handleFieldChange("maxAge", e.target.value)}
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="gender">Preferred Gender</Label>
-                    <Select value={formData.gender} onValueChange={(v) => handleFieldChange("gender", v)} disabled={!config?.genders || config.genders.length === 0}>
-                      <SelectTrigger>
-                        <SelectValue placeholder={config?.genders && config.genders.length > 0 ? "Select gender" : "No options available"} />
-                      </SelectTrigger>
-                      {config?.genders && config.genders.length > 0 && (
-                        <SelectContent>
-                          {config.genders.map(option => (
-                            <SelectItem key={option.value} value={option.value}>
-                              <div className="flex items-center gap-2">
-                                <IconRenderer symbol={option.symbol} />
-                                <span>{option.label}</span>
-                              </div>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      )}
-                    </Select>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="profession">Preferred Profession</Label>
-                    <Select value={formData.profession} onValueChange={(v) => handleFieldChange("profession", v)} disabled={!config?.professions || config.professions.length === 0}>
-                      <SelectTrigger>
-                        <SelectValue placeholder={config?.professions && config.professions.length > 0 ? "Select profession" : "No options available"} />
-                      </SelectTrigger>
-                      {config?.professions && config.professions.length > 0 && (
-                        <SelectContent>
-                          {config.professions.map(prof => (
-                            <SelectItem key={prof.value} value={prof.value}>
-                              <div className="flex items-center gap-2">
-                                <IconRenderer symbol={prof.symbol} />
-                                <span>{prof.label}</span>
-                              </div>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      )}
-                    </Select>
-                  </div>
-                </div>
-
-                <div>
-                  <Label>Lifestyle Preferences</Label>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-2">
-                    {config?.lifestylePreferences && config.lifestylePreferences.length > 0 ? (
-                      config.lifestylePreferences.map(lifestyle => (
-                        <div key={lifestyle.value} className="flex items-center space-x-2">
-                          <Checkbox
-                            id={`lifestyle-${lifestyle.value}`}
-                            checked={formData.lifestyle.includes(lifestyle.value)}
-                            onCheckedChange={() => handleLifestyleToggle(lifestyle.value)}
-                          />
-                          <Label htmlFor={`lifestyle-${lifestyle.value}`} className="flex items-center gap-2 cursor-pointer">
-                            <IconRenderer symbol={lifestyle.symbol} />
-                            <span>{lifestyle.label}</span>
-                          </Label>
-                        </div>
-                      ))
-                    ) : (
-                      <p className="text-sm text-muted-foreground">No lifestyle preferences available</p>
-                    )}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Existing Roommates */}
-            <Card className="mb-6">
-              <CardHeader>
-                <CardTitle>Current Roommates</CardTitle>
-                <CardDescription>Tell potential roommates about who they'll be living with</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {formData.roommates.map((roommate, index) => (
-                  <div key={index} className="border rounded-lg p-4 space-y-3">
-                    <div className="flex justify-between items-center">
-                      <h4 className="font-semibold">Roommate {index + 1}</h4>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleRemoveRoommate(index)}
-                      >
-                        Remove
-                      </Button>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      <Input
-                        placeholder="Name"
-                        value={roommate.name}
-                        onChange={(e) => handleRoommateChange(index, "name", e.target.value)}
-                      />
-                      <Select
-                        value={roommate.gender}
-                        onValueChange={(v) => handleRoommateChange(index, "gender", v)}
-                        disabled={!config?.genders || config.genders.length === 0}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder={config?.genders && config.genders.length > 0 ? "Gender" : "Loading..."} />
-                        </SelectTrigger>
-                        {config?.genders && config.genders.length > 0 && (
-                          <SelectContent>
-                            {config.genders.map(option => (
-                              <SelectItem key={option.value} value={option.value}>
-                                <div className="flex items-center gap-2">
-                                  <IconRenderer symbol={option.symbol} />
-                                  <span>{option.label}</span>
-                                </div>
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        )}
-                      </Select>
-                      <Input
-                        type="number"
-                        placeholder="Age"
-                        value={roommate.age || ""}
-                        onChange={(e) => handleRoommateChange(index, "age", parseInt(e.target.value))}
-                      />
-                      <Select
-                        value={roommate.profession}
-                        onValueChange={(v) => handleRoommateChange(index, "profession", v)}
-                        disabled={!config?.professions || config.professions.length === 0}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder={config?.professions && config.professions.length > 0 ? "Profession" : "Loading..."} />
-                        </SelectTrigger>
-                        {config?.professions && config.professions.length > 0 && (
-                          <SelectContent>
-                            {config.professions.map(prof => (
-                              <SelectItem key={prof.value} value={prof.value}>
-                                <div className="flex items-center gap-2">
-                                  <IconRenderer symbol={prof.symbol} />
-                                  <span>{prof.label}</span>
-                                </div>
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        )}
-                      </Select>
-                    </div>
-                    <Textarea
-                      placeholder="Bio"
-                      value={roommate.bio}
-                      onChange={(e) => handleRoommateChange(index, "bio", e.target.value)}
-                      rows={2}
-                    />
-                  </div>
-                ))}
-                <Button variant="outline" onClick={handleAddRoommate} className="w-full">
-                  Add Roommate
-                </Button>
-              </CardContent>
-            </Card>
-
-            {/* Neighborhood */}
-            <Card className="mb-6">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Star className="h-5 w-5" />
-                  Neighborhood
-                </CardTitle>
-                <CardDescription>Share your neighborhood experience</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <Label htmlFor="neighborhoodReview">Neighborhood Review</Label>
-                  <Textarea
-                    id="neighborhoodReview"
-                    placeholder="Tell us about the neighborhood..."
-                    value={formData.neighborhoodReview}
-                    onChange={(e) => handleFieldChange("neighborhoodReview", e.target.value)}
-                    rows={3}
-                  />
-                </div>
-
-                <div className="space-y-4">
-                  <div>
-                    <Label className="mb-2 block">Safety</Label>
-                    <div className="flex items-center gap-1">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <button
-                          key={star}
-                          type="button"
-                          onClick={() => handleNestedFieldChange("neighborhoodRatings", "safety", star)}
-                          className="focus:outline-none focus:ring-2 focus:ring-primary rounded"
-                          aria-label={`Rate ${star} out of 5 stars for safety`}
-                        >
-                          <Star
-                            className={`h-6 w-6 transition-colors ${star <= formData.neighborhoodRatings.safety
-                              ? "fill-yellow-400 text-yellow-400"
-                              : "fill-none text-muted-foreground"
-                              }`}
-                          />
-                        </button>
-                      ))}
-                      <span className="ml-2 text-sm text-muted-foreground">
-                        {formData.neighborhoodRatings.safety > 0 ? `${formData.neighborhoodRatings.safety}/5` : "Not rated"}
-                      </span>
-                    </div>
-                  </div>
-                  <div>
-                    <Label className="mb-2 block">Connectivity</Label>
-                    <div className="flex items-center gap-1">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <button
-                          key={star}
-                          type="button"
-                          onClick={() => handleNestedFieldChange("neighborhoodRatings", "connectivity", star)}
-                          className="focus:outline-none focus:ring-2 focus:ring-primary rounded"
-                          aria-label={`Rate ${star} out of 5 stars for connectivity`}
-                        >
-                          <Star
-                            className={`h-6 w-6 transition-colors ${star <= formData.neighborhoodRatings.connectivity
-                              ? "fill-yellow-400 text-yellow-400"
-                              : "fill-none text-muted-foreground"
-                              }`}
-                          />
-                        </button>
-                      ))}
-                      <span className="ml-2 text-sm text-muted-foreground">
-                        {formData.neighborhoodRatings.connectivity > 0 ? `${formData.neighborhoodRatings.connectivity}/5` : "Not rated"}
-                      </span>
-                    </div>
-                  </div>
-                  <div>
-                    <Label className="mb-2 block">Amenities</Label>
-                    <div className="flex items-center gap-1">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <button
-                          key={star}
-                          type="button"
-                          onClick={() => handleNestedFieldChange("neighborhoodRatings", "amenities", star)}
-                          className="focus:outline-none focus:ring-2 focus:ring-primary rounded"
-                          aria-label={`Rate ${star} out of 5 stars for amenities`}
-                        >
-                          <Star
-                            className={`h-6 w-6 transition-colors ${star <= formData.neighborhoodRatings.amenities
-                              ? "fill-yellow-400 text-yellow-400"
-                              : "fill-none text-muted-foreground"
-                              }`}
-                          />
-                        </button>
-                      ))}
-                      <span className="ml-2 text-sm text-muted-foreground">
-                        {formData.neighborhoodRatings.amenities > 0 ? `${formData.neighborhoodRatings.amenities}/5` : "Not rated"}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Property Photos - Only show after listing is saved */}
-            {listingId && (
-              <Card className="mb-6">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <ImageIcon className="h-5 w-5" />
-                    Property Photos
-                  </CardTitle>
-                  <CardDescription>Upload 3-8 photos of your property (Minimum 3 required)</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {/* Image Preview Grid */}
-                    {formData.images.length > 0 && (
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                        {formData.images.map((imageUrl, index) => (
-                          <div key={index} className="relative group">
-                            <div className="w-full h-48 rounded-lg overflow-hidden bg-muted relative">
-                              {uploadingImageIndexes.has(index) && (
-                                <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-10">
-                                  <Loader2 className="h-6 w-6 animate-spin text-white" />
-                                </div>
-                              )}
-                              <img
-                                src={imageUrl}
-                                alt={`Property photo ${index + 1}`}
-                                className="w-full h-full object-cover"
-                                onError={(e) => {
-                                  console.error("Failed to load image:", imageUrl);
-                                  e.currentTarget.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Crect fill='%23ddd' width='100' height='100'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' fill='%23999'%3EImage%3C/text%3E%3C/svg%3E";
-                                }}
-                              />
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const imageUrlToRemove = formData.images[index];
-                                // Revoke blob URL if it's a blob URL
-                                if (imageUrlToRemove && imageUrlToRemove.startsWith('blob:')) {
-                                  URL.revokeObjectURL(imageUrlToRemove);
-                                }
-                                setFormData(prev => ({
-                                  ...prev,
-                                  images: prev.images.filter((_, i) => i !== index)
-                                }));
-                              }}
-                              className="absolute top-2 right-2 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity z-10"
-                              aria-label="Remove photo"
-                              disabled={uploadingImageIndexes.has(index)}
-                            >
-                              <X className="h-4 w-4" />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* Upload Button */}
-                    <div>
-                      <input
-                        type="file"
-                        id="property-photo-upload"
-                        accept="image/jpeg,image/jpg,image/png,image/webp"
-                        capture="environment"
-                        multiple
-                        className="hidden"
-                        onChange={handlePhotoUpload}
-                        disabled={uploadingImages || formData.images.length >= 8}
-                      />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => document.getElementById("property-photo-upload")?.click()}
-                        disabled={uploadingImages || formData.images.length >= 8}
-                      >
-                        {uploadingImages ? (
-                          <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Uploading...
-                          </>
-                        ) : (
-                          <>
-                            <ImageIcon className="mr-2 h-4 w-4" />
-                            {formData.images.length > 0 ? "Add More Photos" : "Upload Photos"}
-                          </>
-                        )}
-                      </Button>
-                      <p className="text-sm text-muted-foreground mt-2">
-                        {formData.images.length}/8 photos uploaded {formData.images.length < 3 && `(${3 - formData.images.length} more required)`}
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Neighborhood Photos - Only show after listing is saved */}
-            {listingId && (
-              <Card className="mb-6">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <MapPin className="h-5 w-5" />
-                    Neighborhood Photos
-                  </CardTitle>
-                  <CardDescription>Upload 3-8 photos of the neighborhood (Minimum 3 required)</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {/* Image Preview Grid */}
-                    {formData.neighborhoodImages.length > 0 && (
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                        {formData.neighborhoodImages.map((imageUrl, index) => (
-                          <div key={index} className="relative group">
-                            <div className="w-full h-48 rounded-lg overflow-hidden bg-muted relative">
-                              {uploadingNeighborhoodIndexes.has(index) && (
-                                <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-10">
-                                  <Loader2 className="h-6 w-6 animate-spin text-white" />
-                                </div>
-                              )}
-                              <img
-                                src={imageUrl}
-                                alt={`Neighborhood photo ${index + 1}`}
-                                className="w-full h-full object-cover"
-                                onError={(e) => {
-                                  console.error("Failed to load image:", imageUrl);
-                                  e.currentTarget.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Crect fill='%23ddd' width='100' height='100'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' fill='%23999'%3EImage%3C/text%3E%3C/svg%3E";
-                                }}
-                              />
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const imageUrlToRemove = formData.neighborhoodImages[index];
-                                // Revoke blob URL if it's a blob URL
-                                if (imageUrlToRemove && imageUrlToRemove.startsWith('blob:')) {
-                                  URL.revokeObjectURL(imageUrlToRemove);
-                                }
-                                setFormData(prev => ({
-                                  ...prev,
-                                  neighborhoodImages: prev.neighborhoodImages.filter((_, i) => i !== index)
-                                }));
-                              }}
-                              className="absolute top-2 right-2 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity z-10"
-                              aria-label="Remove photo"
-                              disabled={uploadingNeighborhoodIndexes.has(index)}
-                            >
-                              <X className="h-4 w-4" />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* Upload Button */}
-                    <div>
-                      <input
-                        type="file"
-                        id="neighborhood-photo-upload"
-                        accept="image/jpeg,image/jpg,image/png,image/webp"
-                        capture="environment"
-                        multiple
-                        className="hidden"
-                        onChange={async (e) => {
-                          const files = e.target.files;
-                          if (!files || files.length === 0 || !listingId) return;
-
-                          // Check limit (8 per tag)
-                          if (formData.neighborhoodImages.length + files.length > 8) {
-                            toast({
-                              title: "Media limit exceeded",
-                              description: "You can upload a maximum of 8 neighborhood photos",
-                              variant: "destructive",
-                            });
-                            e.target.value = '';
-                            return;
-                          }
-
-                          // Create local preview URLs immediately
-                          const fileArray = Array.from(files);
-                          const previewUrls = fileArray.map(file => URL.createObjectURL(file));
-                          const startIndex = formData.neighborhoodImages.length;
-
-                          // Add preview URLs immediately for instant feedback
-                          setFormData(prev => ({
-                            ...prev,
-                            neighborhoodImages: [...prev.neighborhoodImages, ...previewUrls]
-                          }));
-                          setUploadingNeighborhoodIndexes(new Set(Array.from({ length: previewUrls.length }, (_, i) => startIndex + i)));
-
-                          setUploadingImages(true);
-                          try {
-                            const uploadPromises = fileArray.map(async (file, index) => {
-                              // Validate file type
-                              const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
-                              if (!validTypes.includes(file.type)) {
-                                throw new Error(`Invalid file type: ${file.type}. Please upload JPEG, PNG, or WebP images.`);
-                              }
-
-                              // Step 1: Request upload URL
-                              const { uploadId, presigned_url } = await apiClient.requestMediaUploadUrl(
-                                listingId,
-                                "NEIGHBORHOOD",
-                                "IMAGE",
-                                file.type,
-                              );
-
-                              // Step 2: Upload to GCS
-                              const uploadResponse = await fetch(presigned_url, {
-                                method: 'PUT',
-                                headers: {
-                                  'Content-Type': file.type,
-                                },
-                                body: file,
-                              });
-
-                              if (!uploadResponse.ok) {
-                                throw new Error(`Failed to upload ${file.name}`);
-                              }
-
-                              // Step 3: Confirm upload
-                              await apiClient.confirmMediaUpload(uploadId);
-
-                              return { index: startIndex + index, mediaId: uploadId, presigned_url };
-                            });
-
-                            const results = await Promise.all(uploadPromises);
-                            console.log("Uploaded neighborhood media:", results);
-
-                            // Replace preview URLs with actual URLs
-                            setFormData(prev => {
-                              const newImages = [...prev.neighborhoodImages];
-                              results.forEach(({ index, presigned_url }) => {
-                                URL.revokeObjectURL(newImages[index]);
-                                const url = new URL(presigned_url);
-                                newImages[index] = `${url.origin}${url.pathname}`;
-                              });
-                              return {
-                                ...prev,
-                                neighborhoodImages: newImages
-                              };
-                            });
-
-                            setUploadingNeighborhoodIndexes(new Set());
-                            toast({
-                              title: "Success",
-                              description: `${results.length} photo(s) uploaded successfully`,
-                            });
-                          } catch (error: any) {
-                            // Check for media limit error
-                            if (error?.message?.includes("Media limit exceeded")) {
-                              toast({
-                                title: "Upload limit reached",
-                                description: "Maximum 8 photos per neighborhood listing",
-                                variant: "destructive",
-                              });
-                            } else {
-                              toast({
-                                title: "Error",
-                                description: error?.message || "Failed to upload photos. Please try again.",
-                                variant: "destructive",
-                              });
-                            }
-
-                            // Remove failed previews
-                            setFormData(prev => {
-                              const newImages = prev.neighborhoodImages.slice(0, startIndex);
-                              previewUrls.forEach(url => URL.revokeObjectURL(url));
-                              return {
-                                ...prev,
-                                neighborhoodImages: newImages
-                              };
-                            });
-                            setUploadingNeighborhoodIndexes(new Set());
-                          } finally {
-                            setUploadingImages(false);
-                            e.target.value = '';
-                          }
-                        }}
-                        disabled={uploadingImages || formData.neighborhoodImages.length >= 8}
-                      />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => document.getElementById("neighborhood-photo-upload")?.click()}
-                        disabled={uploadingImages || formData.neighborhoodImages.length >= 8}
-                      >
-                        {uploadingImages ? (
-                          <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Uploading...
-                          </>
-                        ) : (
-                          <>
-                            <ImageIcon className="mr-2 h-4 w-4" />
-                            {formData.neighborhoodImages.length > 0 ? "Add More Photos" : "Upload Photos"}
-                          </>
-                        )}
-                      </Button>
-                      <p className="text-sm text-muted-foreground mt-2">
-                        {formData.neighborhoodImages.length}/8 photos uploaded {formData.neighborhoodImages.length < 3 && `(${3 - formData.neighborhoodImages.length} more required)`}
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Save/Update Button at Bottom */}
-            <div className="flex justify-end gap-4 mt-8">
-              <Button
-                variant="outline"
-                onClick={() => navigate("/my-listings")}
-                disabled={saving}
-              >
-                Cancel
-              </Button>
-              <Button onClick={handleSave} disabled={saving}>
-                {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {listingId ? "Update Listing" : "Save & Continue"}
-              </Button>
-            </div>
-          </>
-        ) : (
-          <UploadPhotosContent
-            listingId={listingId!}
-            onFinish={() => navigate("/my-listings?tab=inactive")}
-          />
-        )}
-      </div>
-      <Footer />
-    </div>
+    <WizardLayout
+      currentStep={currentStep}
+      totalSteps={steps.length}
+      title={steps[currentStep].title}
+      description={steps[currentStep].description}
+      onNext={handleNext}
+      onBack={handleBack}
+      onSkip={handleSkip}
+      isNextDisabled={!isStepValid() || saving}
+      showCloseButton={true}
+      showSkipButton={true}
+    >
+      {steps[currentStep].component}
+    </WizardLayout>
   );
 }

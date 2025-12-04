@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { getImageUrl } from "@/lib/utils";
 import {
     DndContext,
     closestCenter,
@@ -57,7 +58,7 @@ const SortablePhoto = ({ id, url, onRemove, isUploading }: SortablePhotoProps) =
                     </div>
                 )}
                 <img
-                    src={url}
+                    src={getImageUrl(url)}
                     alt="Listing photo"
                     className="w-full h-full object-cover"
                     onError={(e) => {

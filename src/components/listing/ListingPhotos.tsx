@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Home, X, ChevronLeft, ChevronRight, Grid } from "lucide-react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { cn, getImageUrl } from "@/lib/utils";
 
 interface ListingPhotosProps {
     images?: string[];
@@ -57,56 +58,84 @@ export function ListingPhotos({ images, description }: ListingPhotosProps) {
         );
     }
 
+    const imageCount = images.length;
+
     return (
         <>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-2 h-[300px] md:h-[400px] rounded-xl overflow-hidden">
-                {/* Main Image - Takes up 2 columns on desktop */}
+            <div className={cn(
+                "grid grid-cols-1 md:grid-cols-4 gap-2 rounded-xl overflow-hidden",
+                imageCount === 1 ? "h-auto min-h-[300px]" : "h-[300px] md:h-[400px]"
+            )}>
+                {/* Main Image */}
                 <div
-                    className="md:col-span-2 h-full relative group cursor-pointer"
+                    className={cn(
+                        "h-full relative group cursor-pointer",
+                        imageCount === 1 ? "md:col-span-4" : "md:col-span-2"
+                    )}
                     onClick={() => openLightbox(0)}
                 >
                     <img
-                        src={images[0]}
+                        src={getImageUrl(images[0])}
                         alt={description || "Listing main image"}
-                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        className={cn(
+                            "w-full h-full transition-transform duration-500 group-hover:scale-105",
+                            imageCount === 1 ? "object-contain max-h-[600px] bg-black/5" : "object-cover"
+                        )}
                     />
                     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
-                </div>
 
-                {/* Secondary Images Grid - Takes up 2 columns */}
-                <div className="hidden md:grid grid-cols-2 gap-2 md:col-span-2 h-full">
-                    {images.slice(1, 5).map((img, idx) => (
-                        <div
-                            key={idx}
-                            className="relative h-full overflow-hidden group cursor-pointer"
-                            onClick={() => openLightbox(idx + 1)}
-                        >
-                            <img
-                                src={img}
-                                alt={`Listing image ${idx + 2}`}
-                                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                            />
-                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
-
-                            {/* Show "Show all photos" on the last visible image if there are more */}
-                            {idx === 3 && images.length > 5 && (
-                                <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                                    <Button variant="secondary" size="sm" className="gap-2 pointer-events-none">
-                                        <Grid className="h-4 w-4" />
-                                        Show all photos
-                                    </Button>
-                                </div>
-                            )}
+                    {/* View Full Screen Button for Single Image */}
+                    {imageCount === 1 && (
+                        <div className="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Button variant="secondary" size="sm" className="gap-2 pointer-events-none shadow-lg">
+                                <Grid className="h-4 w-4" />
+                                View Full Screen
+                            </Button>
                         </div>
-                    ))}
+                    )}
                 </div>
+
+                {/* Secondary Images Grid */}
+                {imageCount > 1 && (
+                    <div className={cn(
+                        "hidden md:grid gap-2 md:col-span-2 h-full",
+                        imageCount === 2 ? "grid-cols-1" : "grid-cols-2"
+                    )}>
+                        {images.slice(1, 5).map((img, idx) => (
+                            <div
+                                key={idx}
+                                className="relative h-full overflow-hidden group cursor-pointer"
+                                onClick={() => openLightbox(idx + 1)}
+                            >
+                                <img
+                                    src={getImageUrl(img)}
+                                    alt={`Listing image ${idx + 2}`}
+                                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                />
+                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
+
+                                {/* Show "Show all photos" on the last visible image if there are more */}
+                                {idx === 3 && images.length > 5 && (
+                                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                                        <Button variant="secondary" size="sm" className="gap-2 pointer-events-none">
+                                            <Grid className="h-4 w-4" />
+                                            Show all photos
+                                        </Button>
+                                    </div>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                )}
 
                 {/* Mobile "Show all" button */}
-                <div className="md:hidden absolute bottom-4 right-4">
-                    <Button variant="secondary" size="sm" onClick={() => openLightbox(0)}>
-                        Show all {images.length} photos
-                    </Button>
-                </div>
+                {imageCount > 1 && (
+                    <div className="md:hidden absolute bottom-4 right-4">
+                        <Button variant="secondary" size="sm" onClick={() => openLightbox(0)}>
+                            Show all {images.length} photos
+                        </Button>
+                    </div>
+                )}
             </div>
 
             {/* Lightbox */}
@@ -114,7 +143,7 @@ export function ListingPhotos({ images, description }: ListingPhotosProps) {
                 <DialogContent className="max-w-[95vw] h-[90vh] p-0 bg-black/95 border-none shadow-none flex flex-col items-center justify-center [&>button]:hidden">
                     <div className="relative w-full h-full flex items-center justify-center">
                         <img
-                            src={images[activeImageIndex]}
+                            src={getImageUrl(images[activeImageIndex])}
                             alt={`Listing image ${activeImageIndex + 1}`}
                             className="max-w-full max-h-full object-contain"
                         />

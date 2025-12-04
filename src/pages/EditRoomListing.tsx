@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
-import { apiClient } from "@/lib/api";
+import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
+import { listingsApi, mediaApi } from "@/lib/api";
 import { useConfig } from "@/contexts/ConfigContext";
 import { toast } from "@/hooks/use-toast";
 import Navbar from "@/components/Navbar";
@@ -174,14 +174,105 @@ export default function EditRoomListing() {
     neighborhoodImages: [] as { id: number; url: string; isUploading?: boolean }[],
   });
 
+  const location = useLocation();
+
+  // Helper to transform listing data to form data
+  const transformListingToFormData = (listing: any) => {
+    return {
+      description: listing.description || "",
+      monthlyRent: listing.monthlyRent ? listing.monthlyRent.toString() : "",
+      maintenance: listing.maintenance ? listing.maintenance.toString() : "",
+      maintenanceIncluded: listing.maintenanceIncluded || false,
+      deposit: listing.deposit ? listing.deposit.toString() : "",
+      availableDate: listing.availableDate || "",
+      addressText: listing.addressText || "",
+      placeId: listing.placeId || "",
+      latitude: listing.latitude || 0,
+      longitude: listing.longitude || 0,
+      roomType: listing.roomType || "",
+      propertyType: Array.isArray(listing.propertyType)
+        ? listing.propertyType
+        : listing.propertyType
+          ? [listing.propertyType]
+          : [],
+      bhkType: listing.bhkType || "",
+      floor: listing.floor ? listing.floor.toString() : "",
+      hasBalcony: listing.hasBalcony || false,
+      hasPrivateWashroom: listing.hasPrivateWashroom || false,
+      hasFurniture: listing.hasFurniture || false,
+      amenities: (() => {
+        // Handle different amenities formats
+        if (Array.isArray(listing.amenities)) {
+          return listing.amenities;
+        }
+        if (listing.amenities && typeof listing.amenities === 'object') {
+          // Extract amenity keys from nested structure like { in_home: [{ key: "air_conditioning" }], on_property: [...] }
+          const amenityKeys: string[] = [];
+          Object.values(listing.amenities).forEach((category: any) => {
+            if (Array.isArray(category)) {
+              category.forEach((item: any) => {
+                // Handle both { key: "air_conditioning" } and direct string formats
+                if (typeof item === 'string') {
+                  amenityKeys.push(item);
+                } else if (item && item.key) {
+                  amenityKeys.push(item.key);
+                } else if (item && typeof item === 'object') {
+                  // If it's an object without 'key', try to use the value directly
+                  amenityKeys.push(item);
+                }
+              });
+            }
+          });
+          return amenityKeys;
+        }
+        return [];
+      })(),
+      images: Array.isArray(listing.images)
+        ? listing.images.map((img: any) => typeof img === 'string' ? { id: 0, url: img } : { id: img.id, url: img.url })
+        : [],
+      minAge: listing.roommatePreferences?.minAge ? listing.roommatePreferences.minAge.toString() : "",
+      maxAge: listing.roommatePreferences?.maxAge ? listing.roommatePreferences.maxAge.toString() : "",
+      gender: listing.roommatePreferences?.gender || "",
+      profession: listing.roommatePreferences?.profession || "",
+      lifestyle: listing.roommatePreferences?.lifestyle || [],
+      roommates: (listing.existingRoommates || []).map((r: any) => ({
+        name: r.name,
+        gender: r.gender || "",
+        age: r.age || 0,
+        profession: r.profession || "",
+        bio: r.bio || ""
+      })),
+      neighborhoodReview: listing.neighborhoodReview || "",
+      neighborhoodRatings: {
+        safety: listing.neighborhoodRatings?.safety || 0,
+        connectivity: listing.neighborhoodRatings?.connectivity || 0,
+        amenities: listing.neighborhoodRatings?.amenities || 0,
+      },
+      neighborhoodImages: Array.isArray(listing.neighborhoodImages)
+        ? listing.neighborhoodImages.map((img: any) => typeof img === 'string' ? { id: 0, url: img } : { id: img.id, url: img.url })
+        : [],
+    };
+  };
+
   // Fetch listing data when editing
   useEffect(() => {
     const fetchListingData = async () => {
       if (!listingId) return;
 
+      // Check if we have listing data in location state
+      if (location.state?.listing) {
+        console.log("Using listing data from navigation state");
+        const listing = location.state.listing;
+        if (listing.status) {
+          setListingStatus(listing.status as "ACTIVE" | "INACTIVE");
+        }
+        setFormData(transformListingToFormData(listing));
+        return;
+      }
+
       try {
         setLoading(true);
-        const response = await apiClient.getRoomDetails(listingId);
+        const response = await listingsApi.getRoomDetails(listingId);
         // Handle response structure - could be response.data or response directly
         const listing = response;
 
@@ -190,80 +281,7 @@ export default function EditRoomListing() {
         }
 
         // Transform and prefill form data
-        setFormData({
-          description: listing.description || "",
-          monthlyRent: listing.monthlyRent ? listing.monthlyRent.toString() : "",
-          maintenance: listing.maintenance ? listing.maintenance.toString() : "",
-          maintenanceIncluded: listing.maintenanceIncluded || false,
-          deposit: listing.deposit ? listing.deposit.toString() : "",
-          availableDate: listing.availableDate || "",
-          addressText: listing.addressText || "",
-          placeId: listing.placeId || "",
-          latitude: listing.latitude || 0,
-          longitude: listing.longitude || 0,
-          roomType: listing.roomType || "",
-          propertyType: Array.isArray(listing.propertyType)
-            ? listing.propertyType
-            : listing.propertyType
-              ? [listing.propertyType]
-              : [],
-          bhkType: listing.bhkType || "",
-          floor: listing.floor ? listing.floor.toString() : "",
-          hasBalcony: listing.hasBalcony || false,
-          hasPrivateWashroom: listing.hasPrivateWashroom || false,
-          hasFurniture: listing.hasFurniture || false,
-          amenities: (() => {
-            // Handle different amenities formats
-            if (Array.isArray(listing.amenities)) {
-              return listing.amenities;
-            }
-            if (listing.amenities && typeof listing.amenities === 'object') {
-              // Extract amenity keys from nested structure like { in_home: [{ key: "air_conditioning" }], on_property: [...] }
-              const amenityKeys: string[] = [];
-              Object.values(listing.amenities).forEach((category: any) => {
-                if (Array.isArray(category)) {
-                  category.forEach((item: any) => {
-                    // Handle both { key: "air_conditioning" } and direct string formats
-                    if (typeof item === 'string') {
-                      amenityKeys.push(item);
-                    } else if (item && item.key) {
-                      amenityKeys.push(item.key);
-                    } else if (item && typeof item === 'object') {
-                      // If it's an object without 'key', try to use the value directly
-                      amenityKeys.push(item);
-                    }
-                  });
-                }
-              });
-              return amenityKeys;
-            }
-            return [];
-          })(),
-          images: Array.isArray(listing.images)
-            ? listing.images.map((img: any) => typeof img === 'string' ? { id: 0, url: img } : { id: img.id, url: img.url })
-            : [],
-          minAge: listing.roommatePreferences?.minAge ? listing.roommatePreferences.minAge.toString() : "",
-          maxAge: listing.roommatePreferences?.maxAge ? listing.roommatePreferences.maxAge.toString() : "",
-          gender: listing.roommatePreferences?.gender || "",
-          profession: listing.roommatePreferences?.profession || "",
-          lifestyle: listing.roommatePreferences?.lifestyle || [],
-          roommates: (listing.existingRoommates || []).map((r: any) => ({
-            name: r.name,
-            gender: r.gender || "",
-            age: r.age || 0,
-            profession: r.profession || "",
-            bio: r.bio || ""
-          })),
-          neighborhoodReview: listing.neighborhoodReview || "",
-          neighborhoodRatings: {
-            safety: listing.neighborhoodRatings?.safety || 0,
-            connectivity: listing.neighborhoodRatings?.connectivity || 0,
-            amenities: listing.neighborhoodRatings?.amenities || 0,
-          },
-          neighborhoodImages: Array.isArray(listing.neighborhoodImages)
-            ? listing.neighborhoodImages.map((img: any) => typeof img === 'string' ? { id: 0, url: img } : { id: img.id, url: img.url })
-            : [],
-        });
+        setFormData(transformListingToFormData(listing));
       } catch (error: any) {
         toast({
           title: "Error",
@@ -277,14 +295,14 @@ export default function EditRoomListing() {
     };
 
     fetchListingData();
-  }, [listingId, navigate]);
+  }, [listingId, navigate, location.state]);
 
   // Helper function to update listing
   const updateListing = async (updates: any) => {
     if (!listingId) return;
 
     try {
-      await apiClient.updateRoom(listingId, updates);
+      await listingsApi.updateRoom(listingId, updates);
       toast({
         title: "Saved",
         description: "Changes saved successfully",
@@ -310,7 +328,20 @@ export default function EditRoomListing() {
     }
 
     setFormData(prev => ({ ...prev, [field]: parsedValue }));
-    updateListing({ [field]: parsedValue });
+
+    // Handle nested roommate preferences
+    if (['minAge', 'maxAge', 'gender', 'profession'].includes(field)) {
+      const currentPreferences = {
+        minAge: field === 'minAge' ? parsedValue : (formData.minAge ? parseInt(formData.minAge) : undefined),
+        maxAge: field === 'maxAge' ? parsedValue : (formData.maxAge ? parseInt(formData.maxAge) : undefined),
+        gender: field === 'gender' ? parsedValue : formData.gender,
+        profession: field === 'profession' ? parsedValue : formData.profession,
+        lifestyle: formData.lifestyle
+      };
+      updateListing({ roommatePreferences: currentPreferences });
+    } else {
+      updateListing({ [field]: parsedValue });
+    }
   };
 
   const handleNestedFieldChange = (parent: string, field: string, value: any) => {
@@ -349,7 +380,17 @@ export default function EditRoomListing() {
       const newLifestyle = prev.lifestyle.includes(lifestyle)
         ? prev.lifestyle.filter(l => l !== lifestyle)
         : [...prev.lifestyle, lifestyle];
-      updateListing({ lifestyle: newLifestyle });
+
+      // Update with nested structure
+      const currentPreferences = {
+        minAge: prev.minAge ? parseInt(prev.minAge) : undefined,
+        maxAge: prev.maxAge ? parseInt(prev.maxAge) : undefined,
+        gender: prev.gender,
+        profession: prev.profession,
+        lifestyle: newLifestyle
+      };
+      updateListing({ roommatePreferences: currentPreferences });
+
       return { ...prev, lifestyle: newLifestyle };
     });
   };
@@ -967,7 +1008,7 @@ export default function EditRoomListing() {
                       // Call reorder API
                       if (listingId) {
                         try {
-                          await apiClient.reorderMedia(
+                          await mediaApi.reorderMedia(
                             listingId,
                             "IMAGE",
                             "NEIGHBORHOOD",
@@ -1019,7 +1060,7 @@ export default function EditRoomListing() {
                           }
 
                           // Step 1: Request upload URL
-                          const { uploadId, presigned_url } = await apiClient.requestMediaUploadUrl(
+                          const { uploadId, presigned_url } = await mediaApi.requestMediaUploadUrl(
                             listingId,
                             "NEIGHBORHOOD",
                             "IMAGE",
@@ -1040,7 +1081,7 @@ export default function EditRoomListing() {
                           }
 
                           // Step 3: Confirm upload
-                          const confirmResponse = await apiClient.confirmMediaUpload(uploadId);
+                          const confirmResponse = await mediaApi.confirmMediaUpload(uploadId);
 
                           return {
                             index: startIndex + index,

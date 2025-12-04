@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import { ShieldCheck, MapPin } from "lucide-react";
 import { RoomSearchResultDTO } from "@/types/api.types";
-import { cn } from "@/lib/utils";
+import { cn, getImageUrl } from "@/lib/utils";
 
 interface ListingCardProps {
     listing: RoomSearchResultDTO;
@@ -66,7 +66,7 @@ export const ListingCard = ({ listing, onClick, className }: ListingCardProps) =
                                 <CarouselItem key={index}>
                                     <div className="aspect-[4/3] relative w-full h-full">
                                         <img
-                                            src={photo.url}
+                                            src={getImageUrl(photo.url)}
                                             alt={`Room photo ${index + 1}`}
                                             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                                             loading="lazy"
@@ -119,7 +119,7 @@ export const ListingCard = ({ listing, onClick, className }: ListingCardProps) =
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2.5">
                         <Avatar className="h-8 w-8 border border-border ring-2 ring-background">
-                            <AvatarImage src={lister?.profilePicture || undefined} alt={lister?.name} />
+                            <AvatarImage src={getImageUrl(lister?.profilePicture) || undefined} alt={lister?.name} />
                             <AvatarFallback className="bg-primary/5 text-primary text-xs font-medium">
                                 {lister?.name ? getInitials(lister.name) : "U"}
                             </AvatarFallback>

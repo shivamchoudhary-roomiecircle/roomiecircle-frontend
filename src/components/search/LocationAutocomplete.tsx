@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Input } from "@/components/ui/input";
-import { MapPin, Loader2 } from "lucide-react";
-import { apiClient } from "@/lib/api";
+import { MapPin, Loader2, LocateFixed, Navigation } from "lucide-react";
+import { searchApi } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 interface LocationAutocompleteProps {
@@ -9,13 +9,15 @@ interface LocationAutocompleteProps {
   onChange: (value: string, placeId?: string) => void;
   placeholder?: string;
   className?: string;
+  dropdownDirection?: 'up' | 'down';
 }
 
 export const LocationAutocomplete = ({
   value,
   onChange,
   placeholder = "Where are you looking?",
-  className
+  className,
+  dropdownDirection = 'down'
 }: LocationAutocompleteProps) => {
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -57,7 +59,7 @@ export const LocationAutocomplete = ({
 
       setIsLoading(true);
       try {
-        const results = await apiClient.searchPlacesStartingWith(value, sessionToken);
+        const results = await searchApi.searchPlacesStartingWith(value, sessionToken);
         setSuggestions(results);
         setShowDropdown(true);
       } catch (error) {
@@ -80,24 +82,60 @@ export const LocationAutocomplete = ({
   };
 
   return (
-    <div className="relative" ref={dropdownRef}>
-      <div className="relative">
-        <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+    <div className="relative w-full" ref={dropdownRef}>
+      <div className="relative w-full">
         <Input
           ref={inputRef}
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
-          className={cn("pl-10 h-12 text-base", className)}
+          className={cn("h-12 text-base", className, "pr-14")}
           onFocus={() => suggestions.length > 0 && setShowDropdown(true)}
         />
-        {isLoading && (
+        {isLoading ? (
           <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 animate-spin text-muted-foreground" />
+        ) : (
+          <button
+            type="button"
+            onClick={() => {
+              if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                  (position) => {
+                    const { latitude, longitude } = position.coords;
+                    const geocoder = new (window as any).google.maps.Geocoder();
+                    geocoder.geocode(
+                      { location: { lat: latitude, lng: longitude } },
+                      (results: any, status: any) => {
+                        if (status === "OK" && results[0]) {
+                          onChange(results[0].formatted_address, results[0].place_id);
+                        }
+                      }
+                    );
+                  },
+                  (error) => {
+                    console.error("Error getting location:", error);
+                    if (error.code === error.PERMISSION_DENIED) {
+                      // Fallback to current view (do nothing)
+                      // Optionally show a toast or alert
+                      alert("Please allow location access to use this feature.");
+                    }
+                  }
+                );
+              }
+            }}
+            className="absolute right-3 top-1/2 -translate-y-1/2 p-2 bg-transparent rounded-full transition-all duration-200 group"
+            title="Show your location"
+          >
+            <Navigation className="h-5 w-5 text-blue-500 group-hover:text-blue-600 fill-current" />
+          </button>
         )}
       </div>
 
       {showDropdown && suggestions.length > 0 && (
-        <div className="absolute z-50 w-full mt-1 bg-background border border-border rounded-lg shadow-lg max-h-80 overflow-y-auto">
+        <div className={cn(
+          "absolute z-50 w-full bg-background border border-border rounded-lg shadow-lg max-h-80 overflow-y-auto",
+          dropdownDirection === 'up' ? "bottom-full mb-1" : "mt-1"
+        )}>
           {suggestions.map((place) => (
             <button
               key={place.placeId}

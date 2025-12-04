@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { jwtDecode } from 'jwt-decode';
-import { apiClient } from '@/lib/api';
+import { authApi } from '@/lib/api';
 
 interface User {
   id: number;
@@ -33,7 +33,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const refreshAccessToken = useCallback(async (): Promise<boolean> => {
-    return await apiClient.refreshToken();
+    return await authApi.refreshToken();
   }, []);
 
   const login = useCallback((accessToken: string, refreshToken: string, userData: User) => {
@@ -51,6 +51,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return newUser;
     });
   }, []);
+
+  useEffect(() => {
+    const handleUnauthorized = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      if (customEvent.detail?.message) {
+        sessionStorage.setItem("tokenExpiredMessage", customEvent.detail.message);
+      }
+      logout();
+      window.location.href = "/auth/login";
+    };
+
+    window.addEventListener('auth:unauthorized', handleUnauthorized);
+    return () => {
+      window.removeEventListener('auth:unauthorized', handleUnauthorized);
+    };
+  }, [logout]);
 
   useEffect(() => {
     const initAuth = async () => {

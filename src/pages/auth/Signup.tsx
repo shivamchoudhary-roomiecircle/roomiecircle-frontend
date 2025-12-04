@@ -4,18 +4,30 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { apiClient } from '@/lib/api';
+import { authApi, ValidationError } from '@/lib/api';
 import { GoogleLogin } from '@react-oauth/google';
 import { useAuth } from '@/contexts/AuthContext';
 import { Home as HomeIcon, ArrowLeft } from 'lucide-react';
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod';
+
+const signupSchema = z.object({
+  name: z.string().min(2, 'Name must be at least 2 characters'),
+  email: z.string().email('Invalid email address'),
+  password: z.string().min(8, 'Password must be at least 8 characters'),
+});
+
+const verifySchema = z.object({
+  otp: z.string().length(6, 'OTP must be 6 digits'),
+});
+
+type SignupFormValues = z.infer<typeof signupSchema>;
+type VerifyFormValues = z.infer<typeof verifySchema>;
 
 const Signup = () => {
   const [step, setStep] = useState<'email' | 'verify'>('email');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [name, setName] = useState('');
   const [tempId, setTempId] = useState('');
-  const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -23,12 +35,19 @@ const Signup = () => {
   const redirectPath = searchParams.get('redirect') || '/';
   const { login } = useAuth();
 
-  const handleInitiateSignup = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const signupForm = useForm<SignupFormValues>({
+    resolver: zodResolver(signupSchema),
+  });
+
+  const verifyForm = useForm<VerifyFormValues>({
+    resolver: zodResolver(verifySchema),
+  });
+
+  const handleInitiateSignup = async (data: SignupFormValues) => {
     setLoading(true);
 
     try {
-      const response = await apiClient.initiateSignup(email, password, name);
+      const response = await authApi.initiateSignup(data.email, data.password, data.name);
       setTempId(response.tempId);
       setStep('verify');
       toast({
@@ -36,23 +55,28 @@ const Signup = () => {
         description: 'Please check your email for the verification code.',
       });
     } catch (error: any) {
-      toast({
-        title: 'Error',
-        description: error.message || 'Failed to send verification code',
-        variant: 'destructive',
-      });
+      if (error instanceof ValidationError) {
+        Object.entries(error.fieldErrors).forEach(([field, message]) => {
+          signupForm.setError(field as keyof SignupFormValues, { message });
+        });
+      } else {
+        toast({
+          title: 'Error',
+          description: error.message || 'Failed to send verification code',
+          variant: 'destructive',
+        });
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  const handleVerifySignup = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleVerifySignup = async (data: VerifyFormValues) => {
     setLoading(true);
 
     try {
-      const response = await apiClient.verifySignup(tempId, otp);
-      login(response.accessToken, response.refreshToken, response.user);
+      const response = await authApi.verifySignup(tempId, data.otp);
+      login(response.accessToken, response.refreshToken, response.user as any);
       toast({
         title: 'Success',
         description: 'Account created successfully!',
@@ -72,7 +96,7 @@ const Signup = () => {
   const handleResendCode = async () => {
     setLoading(true);
     try {
-      await apiClient.resendVerification(tempId);
+      await authApi.resendVerification(tempId);
       toast({
         title: 'Code resent',
         description: 'A new verification code has been sent to your email.',
@@ -91,8 +115,8 @@ const Signup = () => {
   const handleGoogleSuccess = async (credentialResponse: any) => {
     setLoading(true);
     try {
-      const response = await apiClient.googleSignup(credentialResponse.credential);
-      login(response.accessToken, response.refreshToken, response.user);
+      const response = await authApi.googleSignup(credentialResponse.credential);
+      login(response.accessToken, response.refreshToken, response.user as any);
       toast({
         title: 'Success',
         description: 'Signed up with Google successfully!',
@@ -142,39 +166,45 @@ const Signup = () => {
 
           {step === 'email' ? (
             <>
-              <form onSubmit={handleInitiateSignup} className="space-y-4 mb-6">
+              <form onSubmit={signupForm.handleSubmit(handleInitiateSignup)} className="space-y-4 mb-6">
                 <div>
                   <Label htmlFor="name">Full Name</Label>
                   <Input
                     id="name"
                     type="text"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
                     placeholder="John Doe"
-                    required
+                    {...signupForm.register('name')}
+                    className={signupForm.formState.errors.name ? 'border-destructive' : ''}
                   />
+                  {signupForm.formState.errors.name && (
+                    <p className="text-sm text-destructive mt-1">{signupForm.formState.errors.name.message}</p>
+                  )}
                 </div>
                 <div>
                   <Label htmlFor="email">Email</Label>
                   <Input
                     id="email"
                     type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
                     placeholder="you@example.com"
-                    required
+                    {...signupForm.register('email')}
+                    className={signupForm.formState.errors.email ? 'border-destructive' : ''}
                   />
+                  {signupForm.formState.errors.email && (
+                    <p className="text-sm text-destructive mt-1">{signupForm.formState.errors.email.message}</p>
+                  )}
                 </div>
                 <div>
                   <Label htmlFor="password">Password</Label>
                   <Input
                     id="password"
                     type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
-                    required
+                    {...signupForm.register('password')}
+                    className={signupForm.formState.errors.password ? 'border-destructive' : ''}
                   />
+                  {signupForm.formState.errors.password && (
+                    <p className="text-sm text-destructive mt-1">{signupForm.formState.errors.password.message}</p>
+                  )}
                 </div>
                 <Button type="submit" className="w-full" disabled={loading}>
                   {loading ? 'Sending...' : 'Continue'}
@@ -192,6 +222,7 @@ const Signup = () => {
 
               <div className="flex justify-center">
                 <GoogleLogin
+                  text="signup_with"
                   onSuccess={handleGoogleSuccess}
                   onError={() => {
                     toast({
@@ -214,18 +245,20 @@ const Signup = () => {
               </p>
             </>
           ) : (
-            <form onSubmit={handleVerifySignup} className="space-y-4">
+            <form onSubmit={verifyForm.handleSubmit(handleVerifySignup)} className="space-y-4">
               <div>
                 <Label htmlFor="otp">Verification Code</Label>
                 <Input
                   id="otp"
                   type="text"
-                  value={otp}
-                  onChange={(e) => setOtp(e.target.value)}
                   placeholder="Enter 6-digit code"
                   maxLength={6}
-                  required
+                  {...verifyForm.register('otp')}
+                  className={verifyForm.formState.errors.otp ? 'border-destructive' : ''}
                 />
+                {verifyForm.formState.errors.otp && (
+                  <p className="text-sm text-destructive mt-1">{verifyForm.formState.errors.otp.message}</p>
+                )}
               </div>
               <Button type="submit" className="w-full" disabled={loading}>
                 {loading ? 'Verifying...' : 'Verify & Create Account'}

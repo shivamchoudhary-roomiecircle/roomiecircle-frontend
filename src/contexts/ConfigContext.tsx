@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, useRef, ReactNode } from "react";
-import { apiClient } from "@/lib/api";
+import { configApi } from "@/lib/api";
 
 interface ConfigValue {
   value: string;
@@ -12,11 +12,9 @@ interface ConfigData {
   roomTypes: ConfigValue[];
   propertyTypes: ConfigValue[];
   bhkTypes: ConfigValue[];
-  amenities: {
-    in_home: ConfigValue[];
-    on_property: ConfigValue[];
-    safety: ConfigValue[];
-  };
+  roomStatuses: ConfigValue[];
+  amenityCategories: ConfigValue[];
+  amenities: Record<string, ConfigValue[]>;
   professions: ConfigValue[];
   genders: ConfigValue[];
   lifestylePreferences: ConfigValue[];
@@ -40,11 +38,9 @@ const createEmptyConfig = (): ConfigData => ({
   roomTypes: [],
   propertyTypes: [],
   bhkTypes: [],
-  amenities: {
-    in_home: [],
-    on_property: [],
-    safety: [],
-  },
+  roomStatuses: [],
+  amenityCategories: [],
+  amenities: {},
   professions: [],
   genders: [],
   lifestylePreferences: [],
@@ -56,9 +52,9 @@ const hasConfigValues = (cfg: ConfigData | null): boolean => {
     cfg.roomTypes.length > 0 ||
     cfg.propertyTypes.length > 0 ||
     cfg.bhkTypes.length > 0 ||
-    cfg.amenities.in_home.length > 0 ||
-    cfg.amenities.on_property.length > 0 ||
-    cfg.amenities.safety.length > 0 ||
+    cfg.roomStatuses.length > 0 ||
+    cfg.amenityCategories.length > 0 ||
+    Object.keys(cfg.amenities).length > 0 ||
     cfg.professions.length > 0 ||
     cfg.genders.length > 0 ||
     cfg.lifestylePreferences.length > 0
@@ -97,18 +93,24 @@ export const ConfigProvider = ({ children }: { children: ReactNode }) => {
       fetchAttemptsRef.current += 1;
 
       try {
-        const data = await apiClient.getConfiguration();
+        const data = await configApi.getConfiguration();
         if (!isMounted) return;
+
+        // Map amenities dynamically from API response
+        const amenitiesRecord: Record<string, ConfigValue[]> = {};
+        if (data.amenities) {
+          Object.entries(data.amenities).forEach(([key, values]) => {
+            amenitiesRecord[key] = values as ConfigValue[];
+          });
+        }
 
         const mappedConfig: ConfigData = {
           roomTypes: data.roomTypes || [],
           propertyTypes: data.propertyTypes || [],
           bhkTypes: data.bhkTypes || [],
-          amenities: {
-            in_home: data.amenities?.in_home || [],
-            on_property: data.amenities?.on_property || [],
-            safety: data.amenities?.safety || [],
-          },
+          roomStatuses: data.roomStatuses || [],
+          amenityCategories: data.amenityCategories || [],
+          amenities: amenitiesRecord,
           professions: data.professions || [],
           genders: data.genders || [],
           lifestylePreferences: data.lifestylePreferences || [],

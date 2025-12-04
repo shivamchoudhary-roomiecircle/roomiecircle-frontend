@@ -2,7 +2,7 @@ import { Card } from "@/components/ui/card.tsx";
 import { Badge } from "@/components/ui/badge.tsx";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel.tsx";
 import { MapPin, Home, Bed, Building2 } from "lucide-react";
-import { RoomSearchResultDTO } from "@/types/api.types";
+import { RoomSearchResultDTO, RoomType, BhkType, PropertyType } from "@/types/api.types";
 import { cn } from "@/lib/utils.ts";
 
 interface RoomSearchCardProps {
@@ -30,13 +30,26 @@ export const RoomSearchCard = ({ room, onClick, className }: RoomSearchCardProps
         }).format(price);
     };
 
-    const formatRoomType = (type: string) => {
+    const formatRoomType = (type: RoomType) => {
         switch (type) {
-            case "private_room": return "Private Room";
-            case "shared_room": return "Shared Room";
-            case "entire_place": return "Entire Place";
-            default: return type.replace(/_/g, ' ');
+            case RoomType.PRIVATE_ROOM: return "Private Room";
+            case RoomType.SHARED_ROOM: return "Shared Room";
+            default: return (type as string)?.replace(/_/g, ' ') || type;
         }
+    };
+
+    const formatBhkType = (type: BhkType) => {
+        switch (type) {
+            case BhkType.RK: return "RK";
+            case BhkType.ONE_BHK: return "1 BHK";
+            case BhkType.TWO_BHK: return "2 BHK";
+            case BhkType.THREE_BHK: return "3 BHK";
+            default: return (type as string)?.replace(/_/g, ' ') || type;
+        }
+    };
+
+    const formatPropertyType = (type: PropertyType) => {
+        return type?.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase()) || type;
     };
 
     const formatFloor = (floorNum?: number) => {
@@ -48,11 +61,10 @@ export const RoomSearchCard = ({ room, onClick, className }: RoomSearchCardProps
         return `${floorNum}th Floor`;
     };
 
-    const getRoomTypeIcon = (type: string) => {
+    const getRoomTypeIcon = (type: RoomType) => {
         switch (type) {
-            case "private_room": return "🚪";
-            case "shared_room": return "👥";
-            case "entire_place": return "🏡";
+            case RoomType.PRIVATE_ROOM: return "🚪";
+            case RoomType.SHARED_ROOM: return "👥";
             default: return "🏠";
         }
     };
@@ -142,7 +154,7 @@ export const RoomSearchCard = ({ room, onClick, className }: RoomSearchCardProps
                         className="bg-green-50 text-green-700 hover:bg-green-100 border-green-200 px-2.5 py-1 text-xs font-semibold transition-all hover:scale-105"
                     >
                         <Bed className="w-3 h-3 mr-1.5" />
-                        {bhkType}
+                        {formatBhkType(bhkType)}
                     </Badge>
 
                     {/* Floor Badge */}
@@ -177,7 +189,7 @@ export const RoomSearchCard = ({ room, onClick, className }: RoomSearchCardProps
                                 key={index}
                                 className="inline-flex items-center px-2 py-0.5 rounded-md border border-border bg-background/50 text-[11px] font-medium text-foreground/70 hover:bg-accent transition-colors"
                             >
-                                {type}
+                                {formatPropertyType(type)}
                             </span>
                         ))}
                         {propertyTypes.length > 3 && (

@@ -10,6 +10,13 @@
 // ============================================================================
 
 /**
+ * Validation errors with field-specific messages
+ */
+export interface ValidationErrors {
+  [field: string]: string;
+}
+
+/**
  * Base API response wrapper - all endpoints return this structure
  */
 export interface ApiResponse<T> {
@@ -90,6 +97,7 @@ export interface ResendVerificationResponse {
  */
 export interface OtpLoginInitiateResponse {
   message: string;
+  tempId: string;
 }
 
 // ============================================================================
@@ -159,9 +167,9 @@ export interface RoomListingDTO {
   maintenanceIncluded?: boolean;
   deposit?: number;
   availableDate?: string; // LocalDate format: YYYY-MM-DD
-  roomType?: string; // 'private_room' | 'shared_room'
-  propertyType?: string[];
-  bhkType?: string; // 'rk' | '1bhk' | '2bhk' | '3bhk'
+  roomType?: RoomType; // 'private_room' | 'shared_room'
+  propertyType?: PropertyType[];
+  bhkType?: BhkType; // 'rk' | '1bhk' | '2bhk' | '3bhk'
   floor?: number;
   hasBalcony?: boolean;
   hasPrivateWashroom?: boolean;
@@ -207,18 +215,118 @@ export type DeleteRoomResponse = null;
  * GET /api/v1/search/rooms/map
  * Simplified room data for search results
  */
-export interface RoomSearchResultDTO {
-  id: number;
-  monthlyRent?: number;
-  address?: string;
+export const Urgency = {
+  IMMEDIATE: 'IMMEDIATE',
+  WITHIN_1_WEEK: 'WITHIN_1_WEEK',
+  WITHIN_1_MONTH: 'WITHIN_1_MONTH',
+  FLEXIBLE: 'FLEXIBLE'
+} as const;
+
+export type Urgency = typeof Urgency[keyof typeof Urgency];
+
+export const PropertyType = {
+  INDEPENDENT_HOUSE: 'INDEPENDENT_HOUSE',
+  GATED_SOCIETY: 'GATED_SOCIETY',
+  PENTHOUSE: 'PENTHOUSE',
+  DUPLEX: 'DUPLEX',
+  VILLA: 'VILLA'
+} as const;
+
+export type PropertyType = typeof PropertyType[keyof typeof PropertyType];
+
+export const RoomType = {
+  PRIVATE_ROOM: 'PRIVATE_ROOM',
+  SHARED_ROOM: 'SHARED_ROOM'
+} as const;
+
+export type RoomType = typeof RoomType[keyof typeof RoomType];
+
+export const BhkType = {
+  RK: 'RK',
+  ONE_BHK: 'ONE_BHK',
+  TWO_BHK: 'TWO_BHK',
+  THREE_BHK: 'THREE_BHK'
+} as const;
+
+export type BhkType = typeof BhkType[keyof typeof BhkType];
+
+export const Amenity = {
+  // IN_HOME
+  WIFI_INCLUDED: 'WIFI_INCLUDED',
+  IN_UNIT_LAUNDRY: 'IN_UNIT_LAUNDRY',
+  PRIVATE_BATH: 'PRIVATE_BATH',
+  FURNISHED: 'FURNISHED',
+  AIR_CONDITIONING: 'AIR_CONDITIONING',
+  // ON_PROPERTY
+  ELEVATOR: 'ELEVATOR',
+  DOORMAN: 'DOORMAN',
+  SWIMMING_POOL: 'SWIMMING_POOL',
+  FREE_PARKING: 'FREE_PARKING',
+  // SAFETY
+  SMOKE_ALARM: 'SMOKE_ALARM',
+  SECURITY_SYSTEM: 'SECURITY_SYSTEM'
+} as const;
+
+export type Amenity = typeof Amenity[keyof typeof Amenity];
+
+export interface RoomSearchFilterRequest {
+  placeId?: string;
+  radiusKm?: number;
+  minRent?: number;
+  maxRent?: number;
+  urgency?: Urgency;
+  propertyType?: PropertyType[];
+  bhkType?: BhkType[];
+  amenities?: Amenity[];
+  roomType?: RoomType[];
+  page?: number;
+  size?: number;
+}
+
+export interface RoomSearchFilterOnMapRequest {
+  // add map bounds in a google map view
+  // bounds: {
+  //   ne: {
+  //     lat: number;
+  //     lng: number;
+  //   };
+  //   sw: {
+  //     lat: number;
+  //     lng: number;
+  //   };
+  // }
+
+  placeId?: string;
   latitude?: number;
   longitude?: number;
-  photos?: MediaLinkDTO[];
-  lister?: ListerSummaryDTO;
-  roomType?: string;
-  bhkType?: string;
+  radiusKm?: number;
+  minRent?: number;
+  maxRent?: number;
+  urgency?: Urgency;
+  propertyType?: PropertyType[];
+  bhkType?: BhkType[];
+  amenities?: Amenity[];
+  roomType?: RoomType[];
+}
+
+/**
+ * GET /api/v1/search/rooms/recent
+ * GET /api/v1/search/rooms/location
+ * GET /api/v1/search/rooms/map
+ * Simplified room data for search results
+ */
+export interface RoomSearchResultDTO {
+  id: number;
+  monthlyRent: number;
+  address: string;
+  latitude?: number;
+  longitude?: number;
+  photos: MediaLinkDTO[];
+  lister: ListerSummaryDTO;
+  roomType?: RoomType;
+  bhkType?: BhkType;
   floor?: number;
-  propertyTypes?: string[];
+  propertyTypes?: PropertyType[];
 }
 
 /**

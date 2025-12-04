@@ -4,18 +4,35 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { apiClient } from '@/lib/api';
+import { authApi, ValidationError } from '@/lib/api';
 import { GoogleLogin } from '@react-oauth/google';
 import { useAuth } from '@/contexts/AuthContext';
 import { Home as HomeIcon, ArrowLeft } from 'lucide-react';
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod';
+
+const loginSchema = z.object({
+  email: z.string().email('Invalid email address'),
+  password: z.string().min(1, 'Password is required'),
+});
+
+const otpSchema = z.object({
+  email: z.string().email('Invalid email address'),
+});
+
+const verifyOtpSchema = z.object({
+  otp: z.string().length(6, 'OTP must be 6 digits'),
+});
+
+type LoginFormValues = z.infer<typeof loginSchema>;
+type OtpFormValues = z.infer<typeof otpSchema>;
+type VerifyOtpFormValues = z.infer<typeof verifyOtpSchema>;
 
 const Login = () => {
   const [loginMethod, setLoginMethod] = useState<'password' | 'otp'>('password');
   const [step, setStep] = useState<'credentials' | 'verify'>('credentials');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [tempId, setTempId] = useState('');
-  const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
   const [highlightSignup, setHighlightSignup] = useState(false);
   const { toast } = useToast();
@@ -23,6 +40,18 @@ const Login = () => {
   const [searchParams] = useSearchParams();
   const redirectPath = searchParams.get('redirect') || '/';
   const { login } = useAuth();
+
+  const loginForm = useForm<LoginFormValues>({
+    resolver: zodResolver(loginSchema),
+  });
+
+  const otpForm = useForm<OtpFormValues>({
+    resolver: zodResolver(otpSchema),
+  });
+
+  const verifyOtpForm = useForm<VerifyOtpFormValues>({
+    resolver: zodResolver(verifyOtpSchema),
+  });
 
   // Check for token expiration message on mount
   useEffect(() => {
@@ -38,53 +67,54 @@ const Login = () => {
     }
   }, [toast]);
 
-  const handlePasswordLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handlePasswordLogin = async (data: LoginFormValues) => {
     setLoading(true);
     setHighlightSignup(false);
 
     try {
-      const response = await apiClient.login(email, password);
-      login(response.accessToken, response.refreshToken, response.user);
+      const response = await authApi.login(data.email, data.password);
+      login(response.accessToken, response.refreshToken, response.user as any);
       toast({
         title: 'Success',
         description: 'Logged in successfully!',
       });
       navigate(redirectPath);
     } catch (error: any) {
-      const errorMessage = error.message || 'Failed to login';
-      const shouldHighlight = errorMessage.toLowerCase().includes('sign up') ||
-        errorMessage.toLowerCase().includes('signup') ||
-        errorMessage.toLowerCase().includes('register');
+      if (error instanceof ValidationError) {
+        Object.entries(error.fieldErrors).forEach(([field, message]) => {
+          loginForm.setError(field as keyof LoginFormValues, { message });
+        });
+      } else {
+        const errorMessage = error.message || 'Failed to login';
+        const shouldHighlight = errorMessage.toLowerCase().includes('sign up') ||
+          errorMessage.toLowerCase().includes('signup') ||
+          errorMessage.toLowerCase().includes('register');
 
-      // Show toast for 2 seconds
-      toast({
-        title: 'Error',
-        description: errorMessage,
-        variant: 'destructive',
-        duration: 2000, // 2 seconds
-      });
+        toast({
+          title: 'Error',
+          description: errorMessage,
+          variant: 'destructive',
+          duration: 2000,
+        });
 
-      // Show highlight after 2 seconds (when toast dismisses) for 3 seconds
-      if (shouldHighlight) {
-        setTimeout(() => {
-          setHighlightSignup(true);
-          // Auto-remove highlight after 3 seconds
-          setTimeout(() => setHighlightSignup(false), 3000);
-        }, 2000);
+        if (shouldHighlight) {
+          setTimeout(() => {
+            setHighlightSignup(true);
+            setTimeout(() => setHighlightSignup(false), 3000);
+          }, 2000);
+        }
       }
     } finally {
       setLoading(false);
     }
   };
 
-  const handleInitiateOtpLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleInitiateOtpLogin = async (data: OtpFormValues) => {
     setLoading(true);
     setHighlightSignup(false);
 
     try {
-      const response = await apiClient.initiateOtpLogin(email);
+      const response = await authApi.initiateOtpLogin(data.email);
       setTempId(response.tempId);
       setStep('verify');
       toast({
@@ -92,39 +122,41 @@ const Login = () => {
         description: 'Please check your email for the verification code.',
       });
     } catch (error: any) {
-      const errorMessage = error.message || 'Failed to send OTP';
-      const shouldHighlight = errorMessage.toLowerCase().includes('sign up') ||
-        errorMessage.toLowerCase().includes('signup') ||
-        errorMessage.toLowerCase().includes('register');
+      if (error instanceof ValidationError) {
+        Object.entries(error.fieldErrors).forEach(([field, message]) => {
+          otpForm.setError(field as keyof OtpFormValues, { message });
+        });
+      } else {
+        const errorMessage = error.message || 'Failed to send OTP';
+        const shouldHighlight = errorMessage.toLowerCase().includes('sign up') ||
+          errorMessage.toLowerCase().includes('signup') ||
+          errorMessage.toLowerCase().includes('register');
 
-      // Show toast for 2 seconds
-      toast({
-        title: 'Error',
-        description: errorMessage,
-        variant: 'destructive',
-        duration: 2000, // 2 seconds
-      });
+        toast({
+          title: 'Error',
+          description: errorMessage,
+          variant: 'destructive',
+          duration: 2000,
+        });
 
-      // Show highlight after 2 seconds (when toast dismisses) for 3 seconds
-      if (shouldHighlight) {
-        setTimeout(() => {
-          setHighlightSignup(true);
-          // Auto-remove highlight after 3 seconds
-          setTimeout(() => setHighlightSignup(false), 3000);
-        }, 2000);
+        if (shouldHighlight) {
+          setTimeout(() => {
+            setHighlightSignup(true);
+            setTimeout(() => setHighlightSignup(false), 3000);
+          }, 2000);
+        }
       }
     } finally {
       setLoading(false);
     }
   };
 
-  const handleVerifyOtp = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleVerifyOtp = async (data: VerifyOtpFormValues) => {
     setLoading(true);
 
     try {
-      const response = await apiClient.verifyOtpLogin(tempId, otp);
-      login(response.accessToken, response.refreshToken, response.user);
+      const response = await authApi.verifyOtpLogin(tempId, data.otp);
+      login(response.accessToken, response.refreshToken, response.user as any);
       toast({
         title: 'Success',
         description: 'Logged in successfully!',
@@ -145,8 +177,8 @@ const Login = () => {
     setLoading(true);
     setHighlightSignup(false);
     try {
-      const response = await apiClient.googleLogin(credentialResponse.credential);
-      login(response.accessToken, response.refreshToken, response.user);
+      const response = await authApi.googleLogin(credentialResponse.credential);
+      login(response.accessToken, response.refreshToken, response.user as any);
       toast({
         title: 'Success',
         description: 'Logged in with Google successfully!',
@@ -158,19 +190,16 @@ const Login = () => {
         errorMessage.toLowerCase().includes('signup') ||
         errorMessage.toLowerCase().includes('register');
 
-      // Show toast for 2 seconds
       toast({
         title: 'Error',
         description: errorMessage,
         variant: 'destructive',
-        duration: 2000, // 2 seconds
+        duration: 2000,
       });
 
-      // Show highlight after 2 seconds (when toast dismisses) for 3 seconds
       if (shouldHighlight) {
         setTimeout(() => {
           setHighlightSignup(true);
-          // Auto-remove highlight after 3 seconds
           setTimeout(() => setHighlightSignup(false), 3000);
         }, 2000);
       }
@@ -232,45 +261,51 @@ const Login = () => {
               </div>
 
               {loginMethod === 'password' ? (
-                <form onSubmit={handlePasswordLogin} className="space-y-4 mb-6">
+                <form onSubmit={loginForm.handleSubmit(handlePasswordLogin)} className="space-y-4 mb-6">
                   <div>
                     <Label htmlFor="email">Email</Label>
                     <Input
                       id="email"
                       type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
                       placeholder="you@example.com"
-                      required
+                      {...loginForm.register('email')}
+                      className={loginForm.formState.errors.email ? 'border-destructive' : ''}
                     />
+                    {loginForm.formState.errors.email && (
+                      <p className="text-sm text-destructive mt-1">{loginForm.formState.errors.email.message}</p>
+                    )}
                   </div>
                   <div>
                     <Label htmlFor="password">Password</Label>
                     <Input
                       id="password"
                       type="password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
                       placeholder="••••••••"
-                      required
+                      {...loginForm.register('password')}
+                      className={loginForm.formState.errors.password ? 'border-destructive' : ''}
                     />
+                    {loginForm.formState.errors.password && (
+                      <p className="text-sm text-destructive mt-1">{loginForm.formState.errors.password.message}</p>
+                    )}
                   </div>
                   <Button type="submit" className="w-full" disabled={loading}>
                     {loading ? 'Signing in...' : 'Sign In'}
                   </Button>
                 </form>
               ) : (
-                <form onSubmit={handleInitiateOtpLogin} className="space-y-4 mb-6">
+                <form onSubmit={otpForm.handleSubmit(handleInitiateOtpLogin)} className="space-y-4 mb-6">
                   <div>
                     <Label htmlFor="email-otp">Email</Label>
                     <Input
                       id="email-otp"
                       type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
                       placeholder="you@example.com"
-                      required
+                      {...otpForm.register('email')}
+                      className={otpForm.formState.errors.email ? 'border-destructive' : ''}
                     />
+                    {otpForm.formState.errors.email && (
+                      <p className="text-sm text-destructive mt-1">{otpForm.formState.errors.email.message}</p>
+                    )}
                   </div>
                   <Button type="submit" className="w-full" disabled={loading}>
                     {loading ? 'Sending OTP...' : 'Send OTP'}
@@ -279,18 +314,20 @@ const Login = () => {
               )}
             </>
           ) : (
-            <form onSubmit={handleVerifyOtp} className="space-y-4 mb-6">
+            <form onSubmit={verifyOtpForm.handleSubmit(handleVerifyOtp)} className="space-y-4 mb-6">
               <div>
                 <Label htmlFor="otp">Verification Code</Label>
                 <Input
                   id="otp"
                   type="text"
-                  value={otp}
-                  onChange={(e) => setOtp(e.target.value)}
                   placeholder="Enter 6-digit code"
                   maxLength={6}
-                  required
+                  {...verifyOtpForm.register('otp')}
+                  className={verifyOtpForm.formState.errors.otp ? 'border-destructive' : ''}
                 />
+                {verifyOtpForm.formState.errors.otp && (
+                  <p className="text-sm text-destructive mt-1">{verifyOtpForm.formState.errors.otp.message}</p>
+                )}
               </div>
               <Button type="submit" className="w-full" disabled={loading}>
                 {loading ? 'Verifying...' : 'Verify & Login'}

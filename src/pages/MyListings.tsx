@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { apiClient } from "@/lib/api";
+import { listingsApi } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import Navbar from "@/components/Navbar";
@@ -73,7 +73,7 @@ const MyListings = () => {
     try {
       setIsLoading(true);
       setError(null);
-      const data = await apiClient.getMyRooms(status);
+      const data = await listingsApi.getMyRooms(status);
       console.log(`Fetched ${status} listings:`, data);
 
       const transformedListings = Array.isArray(data)
@@ -141,7 +141,7 @@ const MyListings = () => {
 
   const handleDelete = async (listingId: number) => {
     try {
-      await apiClient.deleteRoom(listingId.toString());
+      await listingsApi.deleteRoom(listingId.toString());
 
       // Remove from UI and maintain sort order
       setActiveListings(prev => {
@@ -176,7 +176,7 @@ const MyListings = () => {
 
   const handleStatusChange = async (listingId: number, newStatus: string) => {
     try {
-      await apiClient.updateRoomStatus(listingId.toString(), newStatus);
+      await listingsApi.updateRoomStatus(listingId.toString(), newStatus);
 
       // Refetch both lists to ensure accurate data (they will be sorted automatically)
       const promises = [fetchListings("ACTIVE")];
@@ -199,7 +199,8 @@ const MyListings = () => {
   };
 
   const handleEdit = (listingId: number) => {
-    navigate(`/edit-listing?id=${listingId}`);
+    const listingToEdit = activeListings.find(l => l.id === listingId) || inactiveListings.find(l => l.id === listingId);
+    navigate(`/edit-listing?id=${listingId}`, { state: { listing: listingToEdit } });
   };
 
   const currentListings = selectedTab === "active" ? activeListings : inactiveListings;
