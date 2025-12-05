@@ -22,7 +22,7 @@ export function ListingMap({ listing }: ListingMapProps) {
         <Card className="border border-border/50 shadow-md bg-card overflow-hidden">
             <CardContent className="p-0">
                 <Dialog open={isOpen} onOpenChange={setIsOpen}>
-                    <div className="relative w-full h-[250px] group">
+                    <div className="relative w-full h-[180px] group">
                         {/* Preview Map - Static or Non-interactive if possible, but GoogleMap component might be interactive.
                             We'll overlay a div to capture clicks for the "More Map" action if desired, 
                             or just let the button handle it. 

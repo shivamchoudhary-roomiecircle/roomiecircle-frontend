@@ -105,9 +105,9 @@ export function StepLocation({ formData, onChange, onLocationSelect }: StepLocat
     };
 
     return (
-        <div className="relative w-full h-full flex flex-col">
-            {/* Map Container */}
-            <div className="flex-1 relative">
+        <div className="w-full h-full flex flex-col">
+            {/* Map Container - fills available space */}
+            <div className="flex-1 relative rounded-xl overflow-hidden border border-border min-h-0">
                 <GoogleMap
                     center={mapCenter}
                     showMovablePin={true}
@@ -117,17 +117,17 @@ export function StepLocation({ formData, onChange, onLocationSelect }: StepLocat
                 />
 
                 {/* Search Bar Overlay at Bottom */}
-                <div className="absolute bottom-6 left-4 right-4 z-10">
-                    <div className="bg-background/95 backdrop-blur-sm rounded-xl shadow-2xl border-2 border-border p-4">
-                        <div className="space-y-2">
-                            <label className="text-sm font-semibold text-foreground">
+                <div className="absolute bottom-3 left-3 right-3 z-10">
+                    <div className="bg-background/95 backdrop-blur-sm rounded-xl shadow-2xl border-2 border-border p-3">
+                        <div className="space-y-1.5">
+                            <label className="text-xs font-semibold text-foreground">
                                 Search for location
                             </label>
                             <LocationAutocomplete
                                 value={searchValue}
                                 onChange={handleSearchChange}
                                 placeholder="Search for your property's location..."
-                                className="h-12 text-base"
+                                className="h-10 text-sm"
                                 dropdownDirection="up"
                             />
                             <p className="text-xs text-muted-foreground">

@@ -135,14 +135,19 @@ export default function CreateRoomListing() {
     const step = steps[currentStep];
     switch (step.id) {
       case 'property':
-        // Property type is optional, so don't require it
+        // Property type is optional, roomType and bhkType are required
         return formData.roomType && formData.bhkType !== "" && formData.bhkType !== null;
       case 'location':
-        return formData.addressText && formData.addressText.length > 5; // Basic check
+        // Require both address text and placeId for valid location
+        return formData.addressText && formData.addressText.length > 5 && formData.placeId;
       case 'basics':
-        return formData.floor !== "" && formData.description.length > 10;
+        // Floor can be 0 (ground floor) which is valid
+        return formData.floor !== "" && formData.floor !== null && formData.description.length > 10;
       case 'pricing':
-        return formData.monthlyRent && formData.deposit;
+        // Rent and deposit must be positive numbers
+        const rent = parseInt(formData.monthlyRent);
+        const deposit = parseInt(formData.deposit);
+        return !isNaN(rent) && rent > 0 && !isNaN(deposit) && deposit > 0;
       default:
         return true;
     }
@@ -166,8 +171,8 @@ export default function CreateRoomListing() {
       if (formData.longitude) payload.longitude = formData.longitude;
       if (formData.roomType) payload.roomType = formData.roomType;
       if (formData.propertyType.length > 0) payload.propertyType = formData.propertyType;
-      if (formData.bhkType) payload.bhkType = formData.bhkType;
-      if (formData.floor) payload.floor = formData.floor;
+      if (formData.bhkType !== "" && formData.bhkType !== null) payload.bhkType = parseInt(formData.bhkType);
+      if (formData.floor !== "" && formData.floor !== null) payload.floor = parseInt(formData.floor);
       payload.hasBalcony = formData.hasBalcony;
       payload.hasPrivateWashroom = formData.hasPrivateWashroom;
       payload.hasFurniture = formData.hasFurniture;
@@ -260,7 +265,7 @@ export default function CreateRoomListing() {
       onSkip={handleSkip}
       isNextDisabled={!isStepValid() || saving}
       showCloseButton={true}
-      showSkipButton={true}
+      showSkipButton={steps[currentStep].id !== 'photos'}
     >
       {steps[currentStep].component}
     </WizardLayout>

@@ -1,7 +1,7 @@
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
-import { MapPin, MoreVertical, Edit, Trash, Eye, EyeOff, Calendar, Home, BedDouble, Bath, Armchair } from "lucide-react";
+import { MapPin, MoreVertical, Edit, Eye, EyeOff, Calendar, Home, BedDouble, Bath, Armchair, Archive } from "lucide-react";
 import { RoomListingDTO } from "@/types/api.types";
 import { cn, getImageUrl } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -9,20 +9,25 @@ import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
-    DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { format } from "date-fns";
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface MyListingCardProps {
     listing: RoomListingDTO;
     onEdit?: (listingId: number) => void;
-    onDelete?: (listingId: number) => void;
     onStatusChange?: (listingId: number, newStatus: string) => void;
+    onArchive?: (listingId: number) => void;
     className?: string;
 }
 
-export const MyListingCard = ({ listing, onEdit, onDelete, onStatusChange, className }: MyListingCardProps) => {
+export const MyListingCard = ({ listing, onEdit, onStatusChange, onArchive, className }: MyListingCardProps) => {
     const {
         id,
         monthlyRent,
@@ -57,7 +62,30 @@ export const MyListingCard = ({ listing, onEdit, onDelete, onStatusChange, class
         }
     };
 
-    const isActive = status === "ACTIVE";
+    const formatBhkType = (type: number | string | undefined) => {
+        if (type === undefined || type === null) return '';
+        // Handle numeric type (new API format)
+        if (typeof type === 'number') {
+            switch (type) {
+                case 0: return "RK";
+                case 1: return "1 BHK";
+                case 2: return "2 BHK";
+                case 3: return "3 BHK";
+                case 4: return "4 BHK";
+                default: return `${type} BHK`;
+            }
+        }
+        // Handle string type (legacy format)
+        switch (type) {
+            case 'RK': return "RK";
+            case 'ONE_BHK': return "1 BHK";
+            case 'TWO_BHK': return "2 BHK";
+            case 'THREE_BHK': return "3 BHK";
+            default: return type.replace(/_/g, ' ');
+        }
+    };
+
+    const isActive = status?.toUpperCase() === "ACTIVE";
 
     return (
         <Card
@@ -147,38 +175,88 @@ export const MyListingCard = ({ listing, onEdit, onDelete, onStatusChange, class
                             {addressText?.split(',')[0] || "Untitled Listing"}
                         </h3>
 
-                        {/* Actions Menu */}
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-8 w-8 -mr-2 -mt-1 text-muted-foreground hover:text-foreground">
-                                    <MoreVertical className="h-4 w-4" />
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-48">
+                        {/* Action Icons */}
+                        <TooltipProvider delayDuration={300}>
+                            <div className="flex items-center gap-1 -mr-2 -mt-1">
+                                {/* Edit Icon */}
                                 {onEdit && (
-                                    <DropdownMenuItem onClick={() => onEdit(id)} className="cursor-pointer">
-                                        <Edit className="h-4 w-4 mr-2" />
-                                        Edit Listing
-                                    </DropdownMenuItem>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-primary/10"
+                                                onClick={() => onEdit(id)}
+                                            >
+                                                <Edit className="h-4 w-4" />
+                                            </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            <p>Edit Listing</p>
+                                        </TooltipContent>
+                                    </Tooltip>
                                 )}
+
+                                {/* Activate/Deactivate Icon */}
                                 {onStatusChange && (
-                                    <DropdownMenuItem
-                                        onClick={() => onStatusChange(id, isActive ? "INACTIVE" : "ACTIVE")}
-                                        className="cursor-pointer"
-                                    >
-                                        {isActive ? <EyeOff className="h-4 w-4 mr-2" /> : <Eye className="h-4 w-4 mr-2" />}
-                                        {isActive ? "Deactivate" : "Activate"}
-                                    </DropdownMenuItem>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className={cn(
+                                                    "h-8 w-8",
+                                                    isActive
+                                                        ? "text-muted-foreground hover:text-orange-500 hover:bg-orange-500/10"
+                                                        : "text-muted-foreground hover:text-green-500 hover:bg-green-500/10"
+                                                )}
+                                                onClick={() => onStatusChange(id, isActive ? "INACTIVE" : "ACTIVE")}
+                                            >
+                                                {isActive ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                            </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            <p>{isActive ? "Deactivate" : "Activate"}</p>
+                                        </TooltipContent>
+                                    </Tooltip>
                                 )}
-                                <DropdownMenuSeparator />
-                                {onDelete && (
-                                    <DropdownMenuItem onClick={() => onDelete(id)} className="text-destructive cursor-pointer focus:text-destructive">
-                                        <Trash className="h-4 w-4 mr-2" />
-                                        Delete Listing
-                                    </DropdownMenuItem>
-                                )}
-                            </DropdownMenuContent>
-                        </DropdownMenu>
+
+                                {/* Three Dots Menu (Archive only) */}
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
+                                            <MoreVertical className="h-4 w-4" />
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end" className="w-48">
+                                        {onEdit && (
+                                            <DropdownMenuItem onClick={() => onEdit(id)} className="cursor-pointer">
+                                                <Edit className="h-4 w-4 mr-2" />
+                                                Edit Listing
+                                            </DropdownMenuItem>
+                                        )}
+                                        {onStatusChange && (
+                                            <DropdownMenuItem
+                                                onClick={() => onStatusChange(id, isActive ? "INACTIVE" : "ACTIVE")}
+                                                className="cursor-pointer"
+                                            >
+                                                {isActive ? <EyeOff className="h-4 w-4 mr-2" /> : <Eye className="h-4 w-4 mr-2" />}
+                                                {isActive ? "Deactivate" : "Activate"}
+                                            </DropdownMenuItem>
+                                        )}
+                                        {onArchive && (
+                                            <DropdownMenuItem
+                                                onClick={() => onArchive(id)}
+                                                className="cursor-pointer text-amber-600 focus:text-amber-600"
+                                            >
+                                                <Archive className="h-4 w-4 mr-2" />
+                                                Archive Listing
+                                            </DropdownMenuItem>
+                                        )}
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            </div>
+                        </TooltipProvider>
                     </div>
 
                     <div className="flex items-center gap-1.5 text-muted-foreground">
@@ -195,10 +273,10 @@ export const MyListingCard = ({ listing, onEdit, onDelete, onStatusChange, class
                         <Home className="w-4 h-4 shrink-0 text-primary/70" />
                         <span className="truncate">{formatRoomType(roomType)}</span>
                     </div>
-                    {bhkType && (
+                    {bhkType !== undefined && bhkType !== null && (
                         <div className="flex items-center gap-2 text-muted-foreground">
                             <BedDouble className="w-4 h-4 shrink-0 text-primary/70" />
-                            <span className="truncate uppercase">{bhkType}</span>
+                            <span className="truncate">{formatBhkType(bhkType)}</span>
                         </div>
                     )}
                     {hasPrivateWashroom && (
@@ -222,17 +300,6 @@ export const MyListingCard = ({ listing, onEdit, onDelete, onStatusChange, class
                             {availableDate ? `Available: ${format(new Date(availableDate), 'MMM d, yyyy')}` : "Available Now"}
                         </span>
                     </div>
-
-                    {onEdit && (
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-8 text-xs font-medium hover:bg-primary hover:text-primary-foreground transition-colors"
-                            onClick={() => onEdit(id)}
-                        >
-                            Manage
-                        </Button>
-                    )}
                 </div>
             </div>
         </Card>

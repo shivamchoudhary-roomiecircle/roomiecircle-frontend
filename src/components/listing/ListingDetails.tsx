@@ -30,11 +30,20 @@ interface ListingDetailsProps {
 export function ListingDetails({ listing }: ListingDetailsProps) {
     const { config } = useConfig();
 
-
+    const formatBhkType = (type: number) => {
+        switch (type) {
+            case 0: return "RK";
+            case 1: return "1 BHK";
+            case 2: return "2 BHK";
+            case 3: return "3 BHK";
+            case 4: return "4 BHK";
+            default: return `${type} BHK`;
+        }
+    };
 
     return (
         <Card className="border border-border/50 shadow-md bg-card">
-            <CardContent className="p-6 space-y-8">
+            <CardContent className="p-4 space-y-4">
                 {/* Header Section */}
                 <div className="space-y-4">
                     <div className="flex justify-between items-start gap-4">
@@ -55,8 +64,8 @@ export function ListingDetails({ listing }: ListingDetailsProps) {
                                 )}
                             </div>
 
-                            <h1 className="text-xl md:text-2xl font-bold text-foreground mb-2">
-                                {listing.bhkType ? `${listing.bhkType.toUpperCase()} ` : ''}
+                            <h1 className="text-lg md:text-xl font-bold text-foreground mb-1">
+                                {listing.bhkType !== undefined && listing.bhkType !== null ? `${formatBhkType(listing.bhkType)} ` : ''}
                                 {listing.propertyType?.[0] ? config?.propertyTypes?.find((t: any) => t.value === listing.propertyType[0])?.label : 'Property'}
                                 {' '}in {listing.addressText?.split(',')[0]}
                             </h1>
@@ -84,31 +93,31 @@ export function ListingDetails({ listing }: ListingDetailsProps) {
 
                 {/* Key Financials */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div className="p-4 rounded-xl bg-background/50 border border-border/50 space-y-1">
+                    <div className="p-3 rounded-lg bg-background/50 border border-border/50 space-y-0.5">
                         <div className="flex items-center gap-2 text-muted-foreground mb-1">
                             <IndianRupee className="h-4 w-4" />
                             <span className="text-xs font-medium uppercase tracking-wider">Rent</span>
                         </div>
-                        <p className="text-xl font-bold">₹{listing.monthlyRent?.toLocaleString()}</p>
+                        <p className="text-lg font-bold">₹{listing.monthlyRent?.toLocaleString()}</p>
                         <p className="text-xs text-muted-foreground">per month</p>
                     </div>
 
-                    <div className="p-4 rounded-xl bg-background/50 border border-border/50 space-y-1">
+                    <div className="p-3 rounded-lg bg-background/50 border border-border/50 space-y-0.5">
                         <div className="flex items-center gap-2 text-muted-foreground mb-1">
                             <Shield className="h-4 w-4" />
                             <span className="text-xs font-medium uppercase tracking-wider">Deposit</span>
                         </div>
-                        <p className="text-xl font-bold">₹{listing.deposit?.toLocaleString()}</p>
+                        <p className="text-lg font-bold">₹{listing.deposit?.toLocaleString()}</p>
                         <p className="text-xs text-muted-foreground">refundable</p>
                     </div>
 
                     {listing.maintenance !== undefined && (
-                        <div className="p-4 rounded-xl bg-background/50 border border-border/50 space-y-1">
+                        <div className="p-3 rounded-lg bg-background/50 border border-border/50 space-y-0.5">
                             <div className="flex items-center gap-2 text-muted-foreground mb-1">
                                 <Info className="h-4 w-4" />
                                 <span className="text-xs font-medium uppercase tracking-wider">Maintenance</span>
                             </div>
-                            <p className="text-xl font-bold">
+                            <p className="text-lg font-bold">
                                 {listing.maintenance > 0 ? `₹${listing.maintenance.toLocaleString()}` : 'Zero'}
                             </p>
                             <p className="text-xs text-muted-foreground">
@@ -117,12 +126,12 @@ export function ListingDetails({ listing }: ListingDetailsProps) {
                         </div>
                     )}
 
-                    <div className="p-4 rounded-xl bg-background/50 border border-border/50 space-y-1">
+                    <div className="p-3 rounded-lg bg-background/50 border border-border/50 space-y-0.5">
                         <div className="flex items-center gap-2 text-muted-foreground mb-1">
                             <Calendar className="h-4 w-4" />
                             <span className="text-xs font-medium uppercase tracking-wider">Available</span>
                         </div>
-                        <p className="text-xl font-bold">
+                        <p className="text-lg font-bold">
                             {listing.availableDate
                                 ? new Date(listing.availableDate).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })
                                 : 'Now'}
@@ -132,13 +141,13 @@ export function ListingDetails({ listing }: ListingDetailsProps) {
                 </div>
 
                 {/* Property Features */}
-                <div className="flex flex-wrap gap-3">
-                    <Badge variant="outline" className="px-3 py-1.5 text-sm font-normal gap-2 h-auto">
+                <div className="flex flex-wrap gap-2">
+                    <Badge variant="outline" className="px-2 py-1 text-xs font-normal gap-1.5 h-auto">
                         <Maximize className="h-4 w-4 text-muted-foreground" />
                         Floor: {listing.floor ?? 'N/A'}
                     </Badge>
                     {listing.hasBalcony && (
-                        <Badge variant="outline" className="px-3 py-1.5 text-sm font-normal gap-2 h-auto">
+                        <Badge variant="outline" className="px-2 py-1 text-xs font-normal gap-1.5 h-auto">
                             <Wind className="h-4 w-4 text-muted-foreground" />
                             Balcony
                         </Badge>
@@ -161,7 +170,7 @@ export function ListingDetails({ listing }: ListingDetailsProps) {
 
                 {/* Description */}
                 <div>
-                    <h3 className="text-lg font-semibold mb-3">About this place</h3>
+                    <h3 className="text-base font-semibold mb-2">About this place</h3>
                     <p className="text-muted-foreground leading-relaxed whitespace-pre-line">
                         {listing.description || "No description provided."}
                     </p>
@@ -174,22 +183,22 @@ export function ListingDetails({ listing }: ListingDetailsProps) {
                     <>
                         <Separator />
                         <div>
-                            <h3 className="text-lg font-semibold mb-4">Ideal Roommate</h3>
-                            <div className="bg-muted/30 p-5 rounded-xl border border-border/50">
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                                    <div className="space-y-4">
-                                        <div className="flex items-center gap-3">
-                                            <div className="h-9 w-9 rounded-lg bg-background flex items-center justify-center shadow-sm">
-                                                <User className="h-5 w-5 text-muted-foreground" />
+                            <h3 className="text-base font-semibold mb-3">Ideal Roommate</h3>
+                            <div className="bg-muted/30 p-3 rounded-lg border border-border/50">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div className="space-y-3">
+                                        <div className="flex items-center gap-2">
+                                            <div className="h-7 w-7 rounded-md bg-background flex items-center justify-center shadow-sm">
+                                                <User className="h-4 w-4 text-muted-foreground" />
                                             </div>
                                             <div>
                                                 <p className="text-xs text-muted-foreground uppercase tracking-wide">Gender</p>
                                                 <p className="font-medium capitalize">{listing.roommatePreferences.gender?.toLowerCase() || 'Any'}</p>
                                             </div>
                                         </div>
-                                        <div className="flex items-center gap-3">
-                                            <div className="h-9 w-9 rounded-lg bg-background flex items-center justify-center shadow-sm">
-                                                <Users className="h-5 w-5 text-muted-foreground" />
+                                        <div className="flex items-center gap-2">
+                                            <div className="h-7 w-7 rounded-md bg-background flex items-center justify-center shadow-sm">
+                                                <Users className="h-4 w-4 text-muted-foreground" />
                                             </div>
                                             <div>
                                                 <p className="text-xs text-muted-foreground uppercase tracking-wide">Age Range</p>
@@ -201,10 +210,10 @@ export function ListingDetails({ listing }: ListingDetailsProps) {
                                             </div>
                                         </div>
                                     </div>
-                                    <div className="space-y-4">
-                                        <div className="flex items-center gap-3">
-                                            <div className="h-9 w-9 rounded-lg bg-background flex items-center justify-center shadow-sm">
-                                                <Briefcase className="h-5 w-5 text-muted-foreground" />
+                                    <div className="space-y-3">
+                                        <div className="flex items-center gap-2">
+                                            <div className="h-7 w-7 rounded-md bg-background flex items-center justify-center shadow-sm">
+                                                <Briefcase className="h-4 w-4 text-muted-foreground" />
                                             </div>
                                             <div>
                                                 <p className="text-xs text-muted-foreground uppercase tracking-wide">Profession</p>
@@ -218,9 +227,9 @@ export function ListingDetails({ listing }: ListingDetailsProps) {
                                             </div>
                                         </div>
                                         {listing.roommatePreferences.lifestyle && listing.roommatePreferences.lifestyle.length > 0 && (
-                                            <div className="flex items-start gap-3">
-                                                <div className="h-9 w-9 rounded-lg bg-background flex items-center justify-center shadow-sm mt-0.5">
-                                                    <Star className="h-5 w-5 text-muted-foreground" />
+                                            <div className="flex items-start gap-2">
+                                                <div className="h-7 w-7 rounded-md bg-background flex items-center justify-center shadow-sm mt-0.5">
+                                                    <Star className="h-4 w-4 text-muted-foreground" />
                                                 </div>
                                                 <div>
                                                     <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Lifestyle</p>

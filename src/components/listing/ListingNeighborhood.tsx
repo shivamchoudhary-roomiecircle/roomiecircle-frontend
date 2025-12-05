@@ -25,10 +25,10 @@ export function ListingNeighborhood({ review, ratings, images }: ListingNeighbor
 
     return (
         <Card className="border border-border/50 shadow-md bg-card">
-            <CardHeader>
-                <CardTitle className="text-lg">Neighborhood</CardTitle>
+            <CardHeader className="pb-2">
+                <CardTitle className="text-base">Neighborhood</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-6">
+            <CardContent className="space-y-4">
                 {/* Review */}
                 {review && (
                     <div>
@@ -38,9 +38,9 @@ export function ListingNeighborhood({ review, ratings, images }: ListingNeighbor
 
                 {/* Ratings */}
                 {hasRatings && (
-                    <div className="space-y-4">
+                    <div className="space-y-3">
                         {ratings.safety !== undefined && (
-                            <div className="space-y-2">
+                            <div className="space-y-1">
                                 <div className="flex items-center justify-between text-sm">
                                     <div className="flex items-center gap-2">
                                         <Shield className="h-4 w-4 text-muted-foreground" />
@@ -52,7 +52,7 @@ export function ListingNeighborhood({ review, ratings, images }: ListingNeighbor
                             </div>
                         )}
                         {ratings.connectivity !== undefined && (
-                            <div className="space-y-2">
+                            <div className="space-y-1">
                                 <div className="flex items-center justify-between text-sm">
                                     <div className="flex items-center gap-2">
                                         <Wifi className="h-4 w-4 text-muted-foreground" />
@@ -64,7 +64,7 @@ export function ListingNeighborhood({ review, ratings, images }: ListingNeighbor
                             </div>
                         )}
                         {ratings.amenities !== undefined && (
-                            <div className="space-y-2">
+                            <div className="space-y-1">
                                 <div className="flex items-center justify-between text-sm">
                                     <div className="flex items-center gap-2">
                                         <Coffee className="h-4 w-4 text-muted-foreground" />

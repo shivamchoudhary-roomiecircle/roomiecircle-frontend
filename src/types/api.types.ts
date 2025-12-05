@@ -324,7 +324,7 @@ export interface RoomSearchResultDTO {
   photos: MediaLinkDTO[];
   lister: ListerSummaryDTO;
   roomType?: RoomType;
-  bhkType?: BhkType;
+  bhkType?: number; // 0 = RK, 1 = 1BHK, 2 = 2BHK, etc.
   floor?: number;
   propertyTypes?: PropertyType[];
 }

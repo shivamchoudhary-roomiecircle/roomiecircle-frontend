@@ -45,21 +45,21 @@ export function ListingAmenities({ listing }: ListingAmenitiesProps) {
 
     return (
         <Card className="border border-border/50 shadow-md bg-card">
-            <CardHeader>
-                <CardTitle className="text-lg">Amenities</CardTitle>
+            <CardHeader className="pb-2">
+                <CardTitle className="text-base">Amenities</CardTitle>
             </CardHeader>
-            <CardContent>
-                <div className="grid grid-cols-2 gap-y-4 gap-x-2">
+            <CardContent className="pt-0">
+                <div className="grid grid-cols-2 gap-y-2 gap-x-2">
                     {amenities.length > 0 ? (
                         amenities.map((item: any) => {
                             const iconSymbol = getAmenityIcon(item.key);
                             return (
-                                <div key={item.key} className="flex items-center gap-3 text-sm">
-                                    <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                                <div key={item.key} className="flex items-center gap-2 text-xs">
+                                    <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
                                         {iconSymbol ? (
-                                            <IconRenderer symbol={iconSymbol} className="h-4 w-4 text-primary" />
+                                            <IconRenderer symbol={iconSymbol} className="h-3 w-3 text-primary" />
                                         ) : (
-                                            <Check className="h-4 w-4 text-primary" />
+                                            <Check className="h-3 w-3 text-primary" />
                                         )}
                                     </div>
                                     <span className="text-foreground/80">{item.label}</span>

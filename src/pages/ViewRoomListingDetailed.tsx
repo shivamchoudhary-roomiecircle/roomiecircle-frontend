@@ -50,17 +50,17 @@ export default function ViewRoomListingDetailed() {
     return (
       <div className="min-h-screen flex flex-col bg-background">
         <Navbar />
-        <div className="flex-1 container mx-auto px-4 py-8">
-          <div className="space-y-8 max-w-6xl mx-auto">
-            <Skeleton className="h-[400px] w-full rounded-xl" />
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              <div className="lg:col-span-2 space-y-4">
+        <div className="flex-1 container mx-auto px-4 py-6">
+          <div className="space-y-6 max-w-6xl mx-auto">
+            <Skeleton className="h-[280px] w-full rounded-xl" />
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+              <div className="lg:col-span-2 space-y-3">
                 <Skeleton className="h-12 w-3/4" />
-                <Skeleton className="h-32 w-full" />
-                <Skeleton className="h-64 w-full" />
+                <Skeleton className="h-24 w-full" />
+                <Skeleton className="h-48 w-full" />
               </div>
-              <div className="space-y-4">
-                <Skeleton className="h-[200px] w-full" />
+              <div className="space-y-3">
+                <Skeleton className="h-[150px] w-full" />
               </div>
             </div>
           </div>
@@ -81,10 +81,10 @@ export default function ViewRoomListingDetailed() {
       />
       <Navbar />
 
-      <main className="flex-1 container mx-auto px-4 py-8">
-        <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <main className="flex-1 container mx-auto px-4 py-4">
+        <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-4">
           {/* Main Content Column */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="lg:col-span-2 space-y-4">
             {/* Photos */}
             <ListingPhotos
               images={listing.photos?.map((p: any) => p.url) || (Array.isArray(listing.images) ? listing.images.map((img: any) => typeof img === 'string' ? img : img.url) : [])}
@@ -100,7 +100,7 @@ export default function ViewRoomListingDetailed() {
 
 
           {/* Sidebar Column */}
-          <div className="space-y-6">
+          <div className="space-y-3">
             {/* Map Card */}
             <ListingMap listing={listing} />
 

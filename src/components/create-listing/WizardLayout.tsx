@@ -50,9 +50,9 @@ export function WizardLayout({
     };
 
     return (
-        <div className="min-h-screen bg-background flex flex-col max-w-md mx-auto relative shadow-2xl overflow-hidden h-screen">
+        <div className="h-screen bg-background flex flex-col max-w-md mx-auto relative shadow-2xl overflow-hidden">
             {/* Header */}
-            <div className="px-6 pt-6 pb-2 flex items-center justify-between shrink-0 z-10 bg-background/80 backdrop-blur-sm">
+            <div className="px-4 pt-4 pb-2 flex items-center justify-between shrink-0 z-10 bg-background/80 backdrop-blur-sm">
                 {showCloseButton ? (
                     <Button variant="ghost" size="icon" onClick={handleClose} className="rounded-full hover:bg-muted/50 -ml-2 border border-primary">
                         <X className="h-6 w-6" />
@@ -83,28 +83,28 @@ export function WizardLayout({
                 )}
             </div>
 
-            {/* Main Content */}
-            <div className="flex-1 overflow-y-auto px-6 py-4 flex flex-col">
+            {/* Main Content - fixed, no scroll */}
+            <div className="flex-1 px-4 py-2 flex flex-col min-h-0 overflow-hidden">
                 {title && (
-                    <div className="mb-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                        <h1 className="text-3xl md:text-4xl font-serif font-bold tracking-tight text-foreground mb-2">
+                    <div className="mb-2 shrink-0 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        <h1 className="text-lg font-serif font-bold tracking-tight text-foreground mb-0.5">
                             {title}
                         </h1>
                         {description && (
-                            <p className="text-muted-foreground text-lg">
+                            <p className="text-muted-foreground text-xs">
                                 {description}
                             </p>
                         )}
                     </div>
                 )}
 
-                <div className="flex-1 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-100">
+                <div className="flex-1 min-h-0 overflow-hidden animate-in fade-in slide-in-from-bottom-8 duration-700 delay-100">
                     {children}
                 </div>
             </div>
 
             {/* Footer / Navigation */}
-            <div className="p-6 bg-background/80 backdrop-blur-sm shrink-0 flex justify-between items-center z-10">
+            <div className="p-4 bg-background/80 backdrop-blur-sm shrink-0 flex justify-between items-center z-10">
                 {showBackButton && onBack ? (
                     <Button
                         variant="ghost"

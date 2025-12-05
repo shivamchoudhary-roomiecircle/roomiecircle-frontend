@@ -49,6 +49,17 @@ export const ListingCard = ({ listing, onClick, className }: ListingCardProps) =
         }
     };
 
+    const formatBhkType = (type: number) => {
+        switch (type) {
+            case 0: return "RK";
+            case 1: return "1 BHK";
+            case 2: return "2 BHK";
+            case 3: return "3 BHK";
+            case 4: return "4 BHK";
+            default: return `${type} BHK`;
+        }
+    };
+
     return (
         <Card
             className={cn(
@@ -58,13 +69,13 @@ export const ListingCard = ({ listing, onClick, className }: ListingCardProps) =
             onClick={onClick}
         >
             {/* Image Carousel */}
-            <div className="relative aspect-[4/3] bg-muted overflow-hidden">
+            <div className="relative aspect-[16/10] bg-muted overflow-hidden">
                 {photos && photos.length > 0 ? (
                     <Carousel className="w-full h-full group/carousel">
                         <CarouselContent>
                             {photos.map((photo, index) => (
                                 <CarouselItem key={index}>
-                                    <div className="aspect-[4/3] relative w-full h-full">
+                                    <div className="aspect-[16/10] relative w-full h-full">
                                         <img
                                             src={getImageUrl(photo.url)}
                                             alt={`Room photo ${index + 1}`}
@@ -79,16 +90,16 @@ export const ListingCard = ({ listing, onClick, className }: ListingCardProps) =
                         {photos.length > 1 && (
                             <>
                                 <div
-                                    className="absolute left-2 top-1/2 -translate-y-1/2 opacity-0 group-hover/carousel:opacity-100 transition-opacity duration-300 z-10"
+                                    className="absolute left-1.5 top-1/2 -translate-y-1/2 opacity-0 group-hover/carousel:opacity-100 transition-opacity duration-300 z-10"
                                     onClick={(e) => e.stopPropagation()}
                                 >
-                                    <CarouselPrevious className="h-8 w-8 bg-background/80 backdrop-blur-sm hover:bg-background border-0 shadow-sm" />
+                                    <CarouselPrevious className="h-6 w-6 bg-background/80 backdrop-blur-sm hover:bg-background border-0 shadow-sm" />
                                 </div>
                                 <div
-                                    className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover/carousel:opacity-100 transition-opacity duration-300 z-10"
+                                    className="absolute right-1.5 top-1/2 -translate-y-1/2 opacity-0 group-hover/carousel:opacity-100 transition-opacity duration-300 z-10"
                                     onClick={(e) => e.stopPropagation()}
                                 >
-                                    <CarouselNext className="h-8 w-8 bg-background/80 backdrop-blur-sm hover:bg-background border-0 shadow-sm" />
+                                    <CarouselNext className="h-6 w-6 bg-background/80 backdrop-blur-sm hover:bg-background border-0 shadow-sm" />
                                 </div>
                             </>
                         )}
@@ -114,7 +125,7 @@ export const ListingCard = ({ listing, onClick, className }: ListingCardProps) =
             </div>
 
             {/* Content */}
-            <div className="p-4 space-y-4">
+            <div className="p-3 space-y-2">
                 {/* Lister Info */}
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2.5">
@@ -143,7 +154,7 @@ export const ListingCard = ({ listing, onClick, className }: ListingCardProps) =
                     <div className="flex items-center gap-2 text-sm font-medium text-foreground/90">
                         <span>{formatRoomType(roomType)}</span>
                         <span className="text-muted-foreground">•</span>
-                        <span>{bhkType}</span>
+                        <span>{bhkType !== undefined && bhkType !== null ? formatBhkType(bhkType) : 'N/A'}</span>
                         <span className="text-muted-foreground">•</span>
                         <span>{propertyTypes?.[0] || "Apartment"}</span>
                     </div>

@@ -1,9 +1,11 @@
+import { useCallback, useRef } from "react";
 import { Card } from "@/components/ui/card.tsx";
 import { Badge } from "@/components/ui/badge.tsx";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel.tsx";
 import { MapPin, Home, Bed, Building2 } from "lucide-react";
 import { RoomSearchResultDTO, RoomType, BhkType, PropertyType } from "@/types/api.types";
-import { cn } from "@/lib/utils.ts";
+import { cn, getImageUrl } from "@/lib/utils.ts";
+import { preloadImages } from "@/lib/imagePreload.ts";
 
 interface RoomSearchCardProps {
     room: RoomSearchResultDTO;
@@ -38,13 +40,14 @@ export const RoomSearchCard = ({ room, onClick, className }: RoomSearchCardProps
         }
     };
 
-    const formatBhkType = (type: BhkType) => {
+    const formatBhkType = (type: number) => {
         switch (type) {
-            case BhkType.RK: return "RK";
-            case BhkType.ONE_BHK: return "1 BHK";
-            case BhkType.TWO_BHK: return "2 BHK";
-            case BhkType.THREE_BHK: return "3 BHK";
-            default: return (type as string)?.replace(/_/g, ' ') || type;
+            case 0: return "RK";
+            case 1: return "1 BHK";
+            case 2: return "2 BHK";
+            case 3: return "3 BHK";
+            case 4: return "4 BHK";
+            default: return `${type} BHK`;
         }
     };
 
@@ -71,27 +74,39 @@ export const RoomSearchCard = ({ room, onClick, className }: RoomSearchCardProps
 
     const floorDisplay = formatFloor(floor);
 
+    // Track if we've already preloaded to avoid duplicate work
+    const hasPreloaded = useRef(false);
+
+    const handleMouseEnter = useCallback(() => {
+        if (hasPreloaded.current || !photos?.length) return;
+        hasPreloaded.current = true;
+        // Preload all photos for instant loading on detail page
+        preloadImages(photos.map(p => p.url));
+    }, [photos]);
+
     return (
         <Card
             className={cn(
-                "group overflow-hidden cursor-pointer border-border/50 bg-card hover:shadow-2xl transition-all duration-300 hover:-translate-y-2",
+                "group overflow-hidden cursor-pointer border-border/50 bg-card hover:shadow-xl transition-all duration-300 hover:-translate-y-1",
                 className
             )}
             onClick={onClick}
+            onMouseEnter={handleMouseEnter}
         >
             {/* Image Carousel */}
-            <div className="relative aspect-[4/3] bg-muted overflow-hidden">
+            <div className="relative aspect-[16/10] bg-muted overflow-hidden">
                 {photos && photos.length > 0 ? (
                     <Carousel className="w-full h-full group/carousel">
                         <CarouselContent>
                             {photos.map((photo, index) => (
                                 <CarouselItem key={index}>
-                                    <div className="aspect-[4/3] relative w-full h-full">
+                                    <div className="aspect-[16/10] relative w-full h-full">
                                         <img
-                                            src={photo.url}
+                                            src={getImageUrl(photo.url)}
                                             alt={`Room photo ${index + 1}`}
-                                            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                                            loading="lazy"
+                                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                            loading={index === 0 ? "eager" : "lazy"}
+                                            fetchPriority={index === 0 ? "high" : "auto"}
                                         />
                                         <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                                     </div>
@@ -101,59 +116,59 @@ export const RoomSearchCard = ({ room, onClick, className }: RoomSearchCardProps
                         {photos.length > 1 && (
                             <>
                                 <div
-                                    className="absolute left-2 top-1/2 -translate-y-1/2 opacity-0 group-hover/carousel:opacity-100 transition-opacity duration-300 z-10"
+                                    className="absolute left-1.5 top-1/2 -translate-y-1/2 opacity-0 group-hover/carousel:opacity-100 transition-opacity duration-300 z-10"
                                     onClick={(e) => e.stopPropagation()}
                                 >
-                                    <CarouselPrevious className="h-8 w-8 bg-background/90 backdrop-blur-md hover:bg-background border-0 shadow-lg" />
+                                    <CarouselPrevious className="h-6 w-6 bg-background/90 backdrop-blur-md hover:bg-background border-0 shadow-lg" />
                                 </div>
                                 <div
-                                    className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover/carousel:opacity-100 transition-opacity duration-300 z-10"
+                                    className="absolute right-1.5 top-1/2 -translate-y-1/2 opacity-0 group-hover/carousel:opacity-100 transition-opacity duration-300 z-10"
                                     onClick={(e) => e.stopPropagation()}
                                 >
-                                    <CarouselNext className="h-8 w-8 bg-background/90 backdrop-blur-md hover:bg-background border-0 shadow-lg" />
+                                    <CarouselNext className="h-6 w-6 bg-background/90 backdrop-blur-md hover:bg-background border-0 shadow-lg" />
                                 </div>
                             </>
                         )}
                         {/* Photo count badge */}
-                        <div className="absolute bottom-3 right-3 px-2.5 py-1 bg-black/70 backdrop-blur-lg rounded-lg text-[11px] font-semibold text-white pointer-events-none shadow-lg">
-                            1 / {photos.length}
+                        <div className="absolute bottom-2 right-2 px-1.5 py-0.5 bg-black/70 backdrop-blur-lg rounded text-[10px] font-medium text-white pointer-events-none shadow-md">
+                            1/{photos.length}
                         </div>
                     </Carousel>
                 ) : (
                     <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-muted/30 to-muted/50 text-muted-foreground">
-                        <MapPin className="w-12 h-12 mb-2 opacity-20" />
-                        <span className="text-xs font-medium">No photos available</span>
+                        <MapPin className="w-8 h-8 mb-1 opacity-20" />
+                        <span className="text-[10px] font-medium">No photos</span>
                     </div>
                 )}
 
                 {/* Price Badge - Glassmorphism */}
-                <div className="absolute top-3 left-3 px-4 py-2 bg-gradient-to-r from-purple-600/95 to-blue-600/95 backdrop-blur-xl rounded-full shadow-lg border border-white/20 z-10 hover:scale-105 transition-transform duration-200">
-                    <div className="flex items-baseline gap-1">
-                        <span className="font-bold text-white text-sm">{formatPrice(monthlyRent)}</span>
-                        <span className="text-[10px] text-white/90 font-medium">/mo</span>
+                <div className="absolute top-2 left-2 px-2.5 py-1 bg-gradient-to-r from-purple-600/95 to-blue-600/95 backdrop-blur-xl rounded-full shadow-md border border-white/20 z-10 hover:scale-105 transition-transform duration-200">
+                    <div className="flex items-baseline gap-0.5">
+                        <span className="font-bold text-white text-xs">{formatPrice(monthlyRent)}</span>
+                        <span className="text-[9px] text-white/90 font-medium">/mo</span>
                     </div>
                 </div>
             </div>
 
             {/* Content */}
-            <div className="p-5 space-y-3">
+            <div className="p-3 space-y-2">
                 {/* Info Badges Row */}
-                <div className="flex items-center gap-2 flex-wrap">
+                <div className="flex items-center gap-1.5 flex-wrap">
                     {/* Room Type Badge */}
                     <Badge
                         variant="secondary"
-                        className="bg-blue-50 text-blue-700 hover:bg-blue-100 border-blue-200 px-2.5 py-1 text-xs font-semibold transition-all hover:scale-105"
+                        className="bg-blue-50 text-blue-700 hover:bg-blue-100 border-blue-200 px-1.5 py-0.5 text-[10px] font-semibold transition-all"
                     >
-                        <span className="mr-1.5">{getRoomTypeIcon(roomType)}</span>
+                        <span className="mr-1">{getRoomTypeIcon(roomType)}</span>
                         {formatRoomType(roomType)}
                     </Badge>
 
                     {/* BHK Badge */}
                     <Badge
                         variant="secondary"
-                        className="bg-green-50 text-green-700 hover:bg-green-100 border-green-200 px-2.5 py-1 text-xs font-semibold transition-all hover:scale-105"
+                        className="bg-green-50 text-green-700 hover:bg-green-100 border-green-200 px-1.5 py-0.5 text-[10px] font-semibold transition-all"
                     >
-                        <Bed className="w-3 h-3 mr-1.5" />
+                        <Bed className="w-2.5 h-2.5 mr-1" />
                         {formatBhkType(bhkType)}
                     </Badge>
 
@@ -161,19 +176,19 @@ export const RoomSearchCard = ({ room, onClick, className }: RoomSearchCardProps
                     {floorDisplay && (
                         <Badge
                             variant="secondary"
-                            className="bg-orange-50 text-orange-700 hover:bg-orange-100 border-orange-200 px-2.5 py-1 text-xs font-semibold transition-all hover:scale-105"
+                            className="bg-orange-50 text-orange-700 hover:bg-orange-100 border-orange-200 px-1.5 py-0.5 text-[10px] font-semibold transition-all"
                         >
-                            <Building2 className="w-3 h-3 mr-1.5" />
+                            <Building2 className="w-2.5 h-2.5 mr-1" />
                             {floorDisplay}
                         </Badge>
                     )}
                 </div>
 
                 {/* Location */}
-                <div className="flex items-start gap-2 min-w-0">
-                    <MapPin className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />
+                <div className="flex items-start gap-1.5 min-w-0">
+                    <MapPin className="w-3 h-3 text-muted-foreground shrink-0 mt-0.5" />
                     <p
-                        className="text-sm text-muted-foreground truncate leading-tight flex-1"
+                        className="text-xs text-muted-foreground truncate leading-tight flex-1"
                         title={address}
                     >
                         {address || "Location not available"}
@@ -182,19 +197,19 @@ export const RoomSearchCard = ({ room, onClick, className }: RoomSearchCardProps
 
                 {/* Property Type Tags */}
                 {propertyTypes && propertyTypes.length > 0 && (
-                    <div className="flex items-center gap-2 flex-wrap pt-1">
-                        <Home className="w-3.5 h-3.5 text-muted-foreground/60" />
-                        {propertyTypes.slice(0, 3).map((type, index) => (
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                        <Home className="w-3 h-3 text-muted-foreground/60" />
+                        {propertyTypes.slice(0, 2).map((type, index) => (
                             <span
                                 key={index}
-                                className="inline-flex items-center px-2 py-0.5 rounded-md border border-border bg-background/50 text-[11px] font-medium text-foreground/70 hover:bg-accent transition-colors"
+                                className="inline-flex items-center px-1.5 py-0.5 rounded border border-border bg-background/50 text-[10px] font-medium text-foreground/70"
                             >
                                 {formatPropertyType(type)}
                             </span>
                         ))}
-                        {propertyTypes.length > 3 && (
-                            <span className="text-[11px] text-muted-foreground font-medium">
-                                +{propertyTypes.length - 3} more
+                        {propertyTypes.length > 2 && (
+                            <span className="text-[10px] text-muted-foreground font-medium">
+                                +{propertyTypes.length - 2}
                             </span>
                         )}
                     </div>

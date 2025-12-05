@@ -48,11 +48,11 @@ export function DesktopWizardLayout({
     };
 
     return (
-        <div className="min-h-screen bg-background flex overflow-hidden">
-            {/* Sidebar */}
-            <div className="w-80 border-r bg-muted/30 flex flex-col h-screen shrink-0">
-                <div className="p-6 border-b">
-                    <div className="flex items-center gap-2 mb-6">
+        <div className="h-screen w-screen flex bg-background overflow-hidden">
+            {/* Fixed Sidebar - 320px width */}
+            <aside className="w-80 shrink-0 border-r bg-muted/30 flex flex-col h-full">
+                <div className="p-6 border-b shrink-0">
+                    <div className="flex items-center gap-2">
                         <Button variant="ghost" size="icon" onClick={handleClose} className="-ml-2">
                             <X className="h-5 w-5" />
                         </Button>
@@ -60,11 +60,11 @@ export function DesktopWizardLayout({
                     </div>
                 </div>
 
-                <div className="flex-1 overflow-y-auto py-6 px-4 space-y-1">
+                <nav className="flex-1 overflow-y-auto py-6 px-4 space-y-1">
                     {steps.map((step, idx) => {
                         const isCompleted = idx < currentStep;
                         const isCurrent = idx === currentStep;
-                        const isClickable = idx < currentStep; // Only allow going back to completed steps
+                        const isClickable = idx < currentStep;
 
                         return (
                             <div
@@ -87,59 +87,62 @@ export function DesktopWizardLayout({
                             </div>
                         );
                     })}
-                </div>
-            </div>
+                </nav>
+            </aside>
 
-            {/* Main Content */}
-            <div className="flex-1 flex flex-col h-screen overflow-hidden relative">
-                <div className="flex-1 overflow-y-auto">
-                    <div className="max-w-3xl mx-auto px-8 py-12">
+            {/* Main Content Area - Takes remaining width */}
+            <main className="flex-1 flex flex-col h-full min-w-0 overflow-hidden">
+                {/* Content - scrollable when needed */}
+                <div className="flex-1 overflow-y-auto flex flex-col min-h-0">
+                    <div className="max-w-3xl mx-auto px-8 py-6 w-full flex-1 flex flex-col min-h-0">
                         {title && (
-                            <div className="mb-8">
-                                <h1 className="text-3xl font-bold tracking-tight text-foreground mb-2">
+                            <div className="mb-4 shrink-0">
+                                <h1 className="text-2xl font-bold tracking-tight text-foreground mb-1">
                                     {title}
                                 </h1>
                                 {description && (
-                                    <p className="text-muted-foreground text-lg">
+                                    <p className="text-muted-foreground text-base">
                                         {description}
                                     </p>
                                 )}
                             </div>
                         )}
 
-                        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        <div className="flex-1 min-h-0 animate-in fade-in slide-in-from-bottom-4 duration-500">
                             {children}
                         </div>
                     </div>
                 </div>
 
-                {/* Footer Bar */}
-                <div className="p-6 border-t bg-background flex justify-between items-center max-w-3xl mx-auto w-full">
-                    {showBackButton && onBack ? (
-                        <Button
-                            variant="outline"
-                            onClick={onBack}
-                            className="gap-2"
-                        >
-                            <ChevronLeft className="h-4 w-4" />
-                            Back
-                        </Button>
-                    ) : (
-                        <div />
-                    )}
+                {/* Fixed Footer Bar */}
+                <footer className="shrink-0 p-4 border-t bg-background">
+                    <div className="max-w-3xl mx-auto flex justify-between items-center">
+                        {showBackButton && onBack ? (
+                            <Button
+                                variant="outline"
+                                onClick={onBack}
+                                className="gap-2"
+                            >
+                                <ChevronLeft className="h-4 w-4" />
+                                Back
+                            </Button>
+                        ) : (
+                            <div />
+                        )}
 
-                    {onNext && (
-                        <Button
-                            onClick={onNext}
-                            disabled={isNextDisabled}
-                            className="gap-2 min-w-[120px]"
-                        >
-                            {nextLabel}
-                            <ChevronRight className="h-4 w-4" />
-                        </Button>
-                    )}
-                </div>
-            </div>
+                        {onNext && (
+                            <Button
+                                onClick={onNext}
+                                disabled={isNextDisabled}
+                                className="gap-2 min-w-[120px]"
+                            >
+                                {nextLabel}
+                                <ChevronRight className="h-4 w-4" />
+                            </Button>
+                        )}
+                    </div>
+                </footer>
+            </main>
         </div>
     );
 }

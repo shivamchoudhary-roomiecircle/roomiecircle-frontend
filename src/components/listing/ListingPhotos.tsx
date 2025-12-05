@@ -52,8 +52,8 @@ export function ListingPhotos({ images, description }: ListingPhotosProps) {
 
     if (!images || images.length === 0) {
         return (
-            <div className="relative h-[300px] md:h-[400px] rounded-xl overflow-hidden bg-muted flex items-center justify-center text-muted-foreground">
-                <Home className="h-16 w-16 opacity-20" />
+            <div className="relative h-[200px] md:h-[280px] rounded-xl overflow-hidden bg-muted flex items-center justify-center text-muted-foreground">
+                <Home className="h-12 w-12 opacity-20" />
             </div>
         );
     }
@@ -64,7 +64,7 @@ export function ListingPhotos({ images, description }: ListingPhotosProps) {
         <>
             <div className={cn(
                 "grid grid-cols-1 md:grid-cols-4 gap-2 rounded-xl overflow-hidden",
-                imageCount === 1 ? "h-auto min-h-[300px]" : "h-[300px] md:h-[400px]"
+                imageCount === 1 ? "h-auto min-h-[200px]" : "h-[200px] md:h-[280px]"
             )}>
                 {/* Main Image */}
                 <div
@@ -79,8 +79,10 @@ export function ListingPhotos({ images, description }: ListingPhotosProps) {
                         alt={description || "Listing main image"}
                         className={cn(
                             "w-full h-full transition-transform duration-500 group-hover:scale-105",
-                            imageCount === 1 ? "object-contain max-h-[600px] bg-black/5" : "object-cover"
+                            imageCount === 1 ? "object-contain max-h-[400px] bg-black/5" : "object-cover"
                         )}
+                        fetchPriority="high"
+                        decoding="sync"
                     />
                     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
 
@@ -111,6 +113,8 @@ export function ListingPhotos({ images, description }: ListingPhotosProps) {
                                     src={getImageUrl(img)}
                                     alt={`Listing image ${idx + 2}`}
                                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                    loading="eager"
+                                    decoding="async"
                                 />
                                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
 

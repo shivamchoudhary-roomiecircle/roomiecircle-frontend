@@ -18,9 +18,9 @@ export function ListedBy({ lister }: ListedByProps) {
             <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Posted by</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-                <div className="flex items-center gap-3">
-                    <Avatar className="h-12 w-12 border-2 border-background shadow-sm">
+            <CardContent className="space-y-3">
+                <div className="flex items-center gap-2.5">
+                    <Avatar className="h-10 w-10 border-2 border-background shadow-sm">
                         <AvatarImage src={lister?.profilePicture} />
                         <AvatarFallback className="text-sm bg-primary/10 text-primary">
                             {lister?.name?.charAt(0).toUpperCase() || "U"}

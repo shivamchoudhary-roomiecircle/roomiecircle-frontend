@@ -187,7 +187,7 @@ export const RoomsResultsListViewMobile = ({
                     </div>
                 ) : (
                     <>
-                        <div className="grid grid-cols-1 gap-4">
+                        <div className="grid grid-cols-2 gap-3">
                             {rooms.map((room: RoomSearchResultDTO) => (
                                 <RoomSearchCard
                                     key={room.id}

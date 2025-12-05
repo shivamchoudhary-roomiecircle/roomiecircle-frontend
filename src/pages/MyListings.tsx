@@ -139,11 +139,11 @@ const MyListings = () => {
     }
   };
 
-  const handleDelete = async (listingId: number) => {
+  const handleArchive = async (listingId: number) => {
     try {
-      await listingsApi.deleteRoom(listingId.toString());
+      await listingsApi.updateRoomStatus(listingId.toString(), "ARCHIVED");
 
-      // Remove from UI and maintain sort order
+      // Remove from UI and maintain sort order (archived items won't appear in active/inactive lists)
       setActiveListings(prev => {
         const filtered = prev.filter(l => l.id !== listingId);
         return [...filtered].sort((a, b) => {
@@ -163,18 +163,19 @@ const MyListings = () => {
 
       toast({
         title: "Success",
-        description: "Listing deleted successfully",
+        description: "Listing archived successfully",
       });
     } catch (err: any) {
       toast({
         title: "Error",
-        description: err.message || "Failed to delete listing",
+        description: err.message || "Failed to archive listing",
         variant: "destructive",
       });
     }
   };
 
   const handleStatusChange = async (listingId: number, newStatus: string) => {
+    console.log('handleStatusChange called with:', { listingId, newStatus });
     try {
       await listingsApi.updateRoomStatus(listingId.toString(), newStatus);
 
@@ -288,7 +289,7 @@ const MyListings = () => {
                 key={listing.id}
                 listing={listing}
                 onEdit={handleEdit}
-                onDelete={handleDelete}
+                onArchive={handleArchive}
                 onStatusChange={handleStatusChange}
               />
             ))}

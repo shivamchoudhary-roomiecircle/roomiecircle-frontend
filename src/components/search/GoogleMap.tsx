@@ -418,9 +418,9 @@ export const GoogleMap = ({
                     ${listing.propertyTypes[0]}
                   </span>
                 ` : ''}
-                ${listing.bhkType ? `
+                ${listing.bhkType !== undefined && listing.bhkType !== null ? `
                   <span style="background: #F3F4F6; color: #374151; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 500;">
-                    ${listing.bhkType}
+                    ${listing.bhkType === 0 ? 'RK' : listing.bhkType + ' BHK'}
                   </span>
                 ` : ''}
               </div>
@@ -464,8 +464,8 @@ export const GoogleMap = ({
   }, [isMapReady, center]);
 
   return (
-    <div className="w-full h-full">
-      <div ref={mapRef} className="w-full h-full" />
+    <div className="w-full h-full min-h-[400px]">
+      <div ref={mapRef} className="w-full h-full min-h-[400px]" />
     </div>
   );
 };

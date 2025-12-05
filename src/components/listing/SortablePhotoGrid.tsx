@@ -51,10 +51,10 @@ const SortablePhoto = ({ id, url, onRemove, isUploading }: SortablePhotoProps) =
             {...listeners}
             className="relative group aspect-square touch-none"
         >
-            <div className="w-full h-full rounded-xl overflow-hidden bg-card relative border border-border shadow-sm transition-shadow hover:shadow-md">
+            <div className="w-full h-full rounded-lg overflow-hidden bg-card relative border border-border shadow-sm transition-shadow hover:shadow-md">
                 {isUploading && (
                     <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-10">
-                        <Loader2 className="h-6 w-6 animate-spin text-white" />
+                        <Loader2 className="h-4 w-4 animate-spin text-white" />
                     </div>
                 )}
                 <img
@@ -74,11 +74,11 @@ const SortablePhoto = ({ id, url, onRemove, isUploading }: SortablePhotoProps) =
                     e.stopPropagation();
                     onRemove();
                 }}
-                className="absolute top-2 right-2 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity z-20 hover:scale-110"
+                className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity z-20 hover:scale-110"
                 aria-label="Remove photo"
                 disabled={isUploading}
             >
-                <X className="h-4 w-4" />
+                <X className="h-3 w-3" />
             </button>
         </div>
     );
@@ -133,7 +133,7 @@ export function SortablePhotoGrid({
                 items={images.map(img => img.url)}
                 strategy={rectSortingStrategy}
             >
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                <div className="grid grid-cols-4 gap-2">
                     {/* Render Sortable Images */}
                     {images.map((img, index) => (
                         <SortablePhoto
@@ -151,13 +151,13 @@ export function SortablePhotoGrid({
                     {/* Render Upload Button (if space available) */}
                     {images.length < maxImages && (
                         <div
-                            className="aspect-square rounded-xl border-2 border-dashed border-muted-foreground/30 flex flex-col items-center justify-center cursor-pointer hover:bg-primary/5 hover:border-primary/50 transition-all duration-300 bg-card/50 group"
+                            className="aspect-square rounded-lg border-2 border-dashed border-muted-foreground/30 flex flex-col items-center justify-center cursor-pointer hover:bg-primary/5 hover:border-primary/50 transition-all duration-300 bg-card/50 group"
                             onClick={() => document.getElementById(uploadId)?.click()}
                         >
-                            <div className="h-10 w-10 rounded-full bg-muted/50 flex items-center justify-center mb-2 group-hover:scale-110 group-hover:bg-primary/10 transition-all duration-300">
-                                <Plus className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
+                            <div className="h-6 w-6 rounded-full bg-muted/50 flex items-center justify-center mb-1 group-hover:scale-110 group-hover:bg-primary/10 transition-all duration-300">
+                                <Plus className="h-3 w-3 text-muted-foreground group-hover:text-primary transition-colors" />
                             </div>
-                            <span className="text-xs text-muted-foreground font-medium group-hover:text-primary transition-colors">Add Photo</span>
+                            <span className="text-[10px] text-muted-foreground font-medium group-hover:text-primary transition-colors">Add</span>
                         </div>
                     )}
 
@@ -165,9 +165,9 @@ export function SortablePhotoGrid({
                     {Array.from({ length: Math.max(0, maxImages - images.length - 1) }).map((_, i) => (
                         <div
                             key={`placeholder-${i}`}
-                            className="aspect-square rounded-xl bg-muted/30 border-2 border-muted flex items-center justify-center"
+                            className="aspect-square rounded-lg bg-muted/30 border border-muted flex items-center justify-center"
                         >
-                            <ImageIcon className="h-6 w-6 text-muted-foreground/20" />
+                            <ImageIcon className="h-4 w-4 text-muted-foreground/20" />
                         </div>
                     ))}
                 </div>

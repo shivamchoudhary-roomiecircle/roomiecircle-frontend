@@ -6,7 +6,8 @@ import {
 } from "@/types/api.types";
 
 export const updateRoomStatus = async (roomId: string, status: string): Promise<RoomListingDTO> => {
-    const response = await apiClient.request<ApiResponse<RoomListingDTO>>(`/api/v1/listings/rooms/${roomId}/status`, {
+    console.log('updateRoomStatus API call:', { roomId, status, body: { status } });
+    const response = await apiClient.request<ApiResponse<RoomListingDTO>>(`/api/v1/listings/rooms/${roomId}`, {
         method: "PATCH",
         body: JSON.stringify({ status }),
     });

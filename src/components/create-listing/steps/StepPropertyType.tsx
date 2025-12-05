@@ -2,7 +2,7 @@ import React from 'react';
 import { useConfig } from "@/contexts/ConfigContext";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { SingleSelectOption, MultiSelectGroup, MultiSelectChip } from "@/components/create-listing/shared/ListingFormComponents";
+import { SingleSelectOption, MultiSelectGroup, MultiSelectChip, SingleSelectGroup } from "@/components/create-listing/shared/ListingFormComponents";
 import { cn } from "@/lib/utils";
 
 interface StepPropertyTypeProps {
@@ -14,27 +14,21 @@ export function StepPropertyType({ formData, onChange }: StepPropertyTypeProps) 
     const { config } = useConfig();
 
     return (
-        <div className="space-y-8">
+        <div className="h-full flex flex-col gap-3">
             {/* Room Type */}
-            <div className="space-y-4">
-                <Label className="text-xl font-semibold">Room Type</Label>
-                <div className="flex flex-wrap gap-4">
-                    {config?.roomTypes?.map((type) => (
-                        <SingleSelectOption
-                            key={type.value}
-                            label={type.label}
-                            value={type.value}
-                            symbol={type.symbol}
-                            selected={formData.roomType === type.value}
-                            onClick={() => onChange("roomType", type.value)}
-                        />
-                    ))}
-                </div>
+            <div className="space-y-1.5 shrink-0">
+                <Label className="text-sm font-semibold">Room Type</Label>
+                <SingleSelectGroup
+                    options={config?.roomTypes || []}
+                    selectedValue={formData.roomType}
+                    onChange={(value) => onChange("roomType", value)}
+                    limit={5}
+                />
             </div>
 
             {/* BHK Type */}
-            <div className="space-y-4">
-                <Label htmlFor="bhkType" className="text-xl font-semibold">BHK Type</Label>
+            <div className="space-y-1 shrink-0">
+                <Label htmlFor="bhkType" className="text-sm font-semibold">BHK Type</Label>
                 <div className="relative">
                     <Input
                         id="bhkType"
@@ -46,47 +40,48 @@ export function StepPropertyType({ formData, onChange }: StepPropertyTypeProps) 
                         placeholder="0"
                         value={formData.bhkType}
                         onChange={(e) => onChange("bhkType", e.target.value)}
-                        className="h-14 text-lg px-4 pr-20 rounded-xl border-2"
+                        className="h-10 text-sm px-3 pr-12 rounded-lg border"
                     />
-                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-lg text-gray-500 pointer-events-none">
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-500 pointer-events-none">
                         BHK
                     </span>
                 </div>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-[10px] text-muted-foreground">
                     Use 0 for RK (Room Kitchen), 1 for 1BHK, 2 for 2BHK, etc.
                 </p>
             </div>
 
             {/* Property Type */}
-            <div className="space-y-4">
-                <Label className="text-xl font-semibold">Property Type</Label>
-                <div className="flex flex-wrap gap-3">
-                    {/* None option - inline with other options */}
-                    <MultiSelectChip
-                        label="None"
-                        value="__NONE__"
-                        selected={(formData.propertyType || []).length === 0}
-                        onClick={() => onChange("propertyType", [])}
-                    />
-
-                    {/* Regular property type options */}
-                    {config?.propertyTypes?.map((type) => (
-                        <MultiSelectChip
-                            key={type.value}
-                            label={type.label}
-                            value={type.value}
-                            symbol={type.symbol}
-                            selected={(formData.propertyType || []).includes(type.value)}
-                            onClick={() => {
-                                const current = formData.propertyType || [];
-                                const updated = current.includes(type.value)
-                                    ? current.filter((v) => v !== type.value)
-                                    : [...current, type.value];
-                                onChange("propertyType", updated);
-                            }}
-                        />
-                    ))}
-                </div>
+            <div className="space-y-1.5 shrink-0">
+                <Label className="text-sm font-semibold">Property Type</Label>
+                <MultiSelectGroup
+                    options={[
+                        { label: "None", value: "__NONE__" },
+                        ...(config?.propertyTypes || [])
+                    ]}
+                    selectedValues={
+                        (formData.propertyType || []).length === 0
+                            ? ["__NONE__"]
+                            : formData.propertyType || []
+                    }
+                    onChange={(values) => {
+                        // If "None" is selected, clear the array
+                        if (values.includes("__NONE__")) {
+                            const currentEmpty = (formData.propertyType || []).length === 0;
+                            if (!currentEmpty) {
+                                // None was just selected, clear everything
+                                onChange("propertyType", []);
+                            } else {
+                                // None was already selected and something else was clicked, remove None
+                                const filtered = values.filter(v => v !== "__NONE__");
+                                onChange("propertyType", filtered);
+                            }
+                        } else {
+                            onChange("propertyType", values);
+                        }
+                    }}
+                    limit={5}
+                />
             </div>
         </div>
     );

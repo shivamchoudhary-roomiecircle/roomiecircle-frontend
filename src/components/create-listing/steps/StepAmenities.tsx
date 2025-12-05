@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { useConfig } from "@/contexts/ConfigContext";
 import { Label } from "@/components/ui/label";
-import { SingleSelectOption, MultiSelectGroup, OptionItem } from "@/components/create-listing/shared/ListingFormComponents";
+import { MultiSelectGroup } from "@/components/create-listing/shared/ListingFormComponents";
 
 interface StepAmenitiesProps {
     formData: any;
@@ -11,45 +11,24 @@ interface StepAmenitiesProps {
 export function StepAmenities({ formData, onChange }: StepAmenitiesProps) {
     const { config } = useConfig();
 
-    // Combine all amenities and features into one list for the MultiSelectGroup
-    const allAmenitiesOptions = useMemo(() => {
-        const options: OptionItem[] = [];
+    // Keys for special boolean fields that map to formData booleans
+    // These should match the API values from config (not display labels)
+    const BOOLEAN_AMENITY_KEYS = {
+        PRIVATE_BATH: 'hasPrivateWashroom',
+        BALCONY: 'hasBalcony',
+        FURNISHED: 'hasFurniture',
+    } as const;
 
-        // Add Key Features
-        options.push({ label: "Gated Society", value: "Gated Society" }); // Example hardcoded
-        options.push({ label: "Private Bath", value: "Private Bath" });
-        options.push({ label: "Balcony", value: "Balcony" });
-        options.push({ label: "Furnished", value: "Furnished" });
-
-        // Add Config Amenities - dynamically iterate over all categories
-        if (config?.amenities) {
-            Object.values(config.amenities).forEach((categoryItems) => {
-                options.push(...categoryItems);
-            });
-        }
-
-        // Remove duplicates based on value
-        return options.filter((v, i, a) => a.findIndex(t => t.value === v.value) === i);
-    }, [config]);
     // Helper to handle changes across all groups
     const handleAmenitiesChange = (newValues: string[]) => {
-        // Separate out the "Key Features" booleans
-        // We check if the new list includes these specific values
-        const hasPrivateWashroom = newValues.includes("Private Bath");
-        const hasBalcony = newValues.includes("Balcony");
-        const hasFurniture = newValues.includes("Furnished");
+        // Update boolean fields based on whether their API keys are selected
+        onChange("hasPrivateWashroom", newValues.includes("PRIVATE_BATH"));
+        onChange("hasBalcony", newValues.includes("BALCONY"));
+        onChange("hasFurniture", newValues.includes("FURNISHED"));
 
-        // Update booleans
-        onChange("hasPrivateWashroom", hasPrivateWashroom);
-        onChange("hasBalcony", hasBalcony);
-        onChange("hasFurniture", hasFurniture);
-
-        // Filter out the boolean-mapped values from the amenities array if we want to keep them separate in formData.amenities
-        // The previous logic seemed to imply they might be separate.
-        // However, usually if it's in the list, it's in the list.
-        // But let's stick to the previous behavior:
-        // "Private Bath", "Balcony", "Furnished" are NOT stored in formData.amenities string array, but as booleans.
-        const booleanKeys = ["Private Bath", "Balcony", "Furnished"];
+        // Filter out the boolean-mapped values from the amenities array
+        // These are stored as separate boolean fields, not in the amenities array
+        const booleanKeys = Object.keys(BOOLEAN_AMENITY_KEYS);
         const stringAmenities = newValues.filter(v => !booleanKeys.includes(v));
 
         onChange("amenities", stringAmenities);
@@ -58,11 +37,13 @@ export function StepAmenities({ formData, onChange }: StepAmenitiesProps) {
     // Construct current selected values for the UI (merging booleans back into the list for display)
     const currentSelectedValues = useMemo(() => {
         const selected = [...(formData.amenities || [])];
-        if (formData.hasPrivateWashroom) selected.push("Private Bath");
-        if (formData.hasBalcony) selected.push("Balcony");
-        if (formData.hasFurniture) selected.push("Furnished");
+        // Add boolean fields back as their API key values for display
+        if (formData.hasPrivateWashroom) selected.push("PRIVATE_BATH");
+        if (formData.hasBalcony) selected.push("BALCONY");
+        if (formData.hasFurniture) selected.push("FURNISHED");
         return selected;
     }, [formData]);
+
 
     // Wrapper for MultiSelectGroup to handle adding/removing from the global list
     const handleGroupChange = (groupValues: string[], allGroupOptions: any[]) => {
@@ -84,47 +65,38 @@ export function StepAmenities({ formData, onChange }: StepAmenitiesProps) {
         handleAmenitiesChange(newGlobal);
     };
 
+    // Helper to format category key to display label
+    // e.g., "IN_ROOM" -> "In-Room Amenities", "in_room" -> "In Room Amenities"
+    const formatCategoryLabel = (key: string): string => {
+        // Handle both UPPER_CASE and snake_case keys
+        const formatted = key
+            .toLowerCase()
+            .split('_')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+            .join('-');
+        return `${formatted} Amenities`;
+    };
+
     return (
-        <div className="space-y-10">
+        <div className="h-full flex flex-col gap-3">
+            {/* Dynamically render all amenity categories from config */}
+            {config?.amenities && Object.entries(config.amenities).map(([categoryKey, options]) => {
+                if (!options || options.length === 0) return null;
 
-            {/* In-Room Amenities */}
-            {config?.amenities?.in_room && config.amenities.in_room.length > 0 && (
-                <div className="space-y-4">
-                    <Label className="text-xl font-semibold">In-Room Amenities</Label>
-                    <MultiSelectGroup
-                        options={config.amenities.in_room}
-                        selectedValues={currentSelectedValues}
-                        onChange={(vals) => handleGroupChange(vals, config.amenities.in_room)}
-                        limit={10}
-                    />
-                </div>
-            )}
-
-            {/* In-Home Amenities */}
-            {config?.amenities?.in_home && config.amenities.in_home.length > 0 && (
-                <div className="space-y-4">
-                    <Label className="text-xl font-semibold">In-Home Amenities</Label>
-                    <MultiSelectGroup
-                        options={config.amenities.in_home}
-                        selectedValues={currentSelectedValues}
-                        onChange={(vals) => handleGroupChange(vals, config.amenities.in_home)}
-                        limit={10}
-                    />
-                </div>
-            )}
-
-            {/* On-Property Amenities */}
-            {config?.amenities?.on_property && config.amenities.on_property.length > 0 && (
-                <div className="space-y-4">
-                    <Label className="text-xl font-semibold">On-Property Amenities</Label>
-                    <MultiSelectGroup
-                        options={config.amenities.on_property}
-                        selectedValues={currentSelectedValues}
-                        onChange={(vals) => handleGroupChange(vals, config.amenities.on_property)}
-                        limit={10}
-                    />
-                </div>
-            )}
+                return (
+                    <div key={categoryKey} className="space-y-1.5 shrink-0">
+                        <Label className="text-sm font-semibold">
+                            {formatCategoryLabel(categoryKey)}
+                        </Label>
+                        <MultiSelectGroup
+                            options={options}
+                            selectedValues={currentSelectedValues}
+                            onChange={(vals) => handleGroupChange(vals, options)}
+                            limit={5}
+                        />
+                    </div>
+                );
+            })}
         </div>
     );
 }
