@@ -10,8 +10,11 @@ RUN npm install --legacy-peer-deps
 # Copy source code
 COPY . .
 
-# Run the build
-RUN npm run build
+# Accept build mode as argument (default: production)
+ARG BUILD_MODE=production
+
+# Run the build with the specified mode
+RUN npm run build -- --mode ${BUILD_MODE}
 
 # --- 🔍 DETECTIVE STEP 1 🔍 ---
 # Print the contents of the /app folder. 

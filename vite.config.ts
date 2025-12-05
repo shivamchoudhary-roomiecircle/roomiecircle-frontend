@@ -8,13 +8,17 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8082,
-    proxy: {
-      "/api": {
-        target: "http://localhost:8080",
-        changeOrigin: true,
-        secure: false,
+    // Only use proxy in development mode
+    // In staging/production, VITE_API_BASE_URL will be used directly
+    ...(mode === "development" && {
+      proxy: {
+        "/api": {
+          target: "http://localhost:8080",
+          changeOrigin: true,
+          secure: false,
+        },
       },
-    },
+    }),
   },
   plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
   resolve: {

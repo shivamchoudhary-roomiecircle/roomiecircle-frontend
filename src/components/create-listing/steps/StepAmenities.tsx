@@ -86,30 +86,19 @@ export function StepAmenities({ formData, onChange }: StepAmenitiesProps) {
 
     return (
         <div className="space-y-10">
-            {/* Gender Section */}
-            <div className="space-y-4">
-                <Label className="text-xl font-semibold">Gender:</Label>
-                <div className="flex gap-4">
-                    <SingleSelectOption
-                        label="Male"
-                        value="Male"
-                        selected={formData.gender === "Male"}
-                        onClick={() => onChange("gender", "Male")}
-                    />
-                    <SingleSelectOption
-                        label="Female"
-                        value="Female"
-                        selected={formData.gender === "Female"}
-                        onClick={() => onChange("gender", "Female")}
-                    />
-                    <SingleSelectOption
-                        label="Any"
-                        value="Any"
-                        selected={formData.gender === "Any"}
-                        onClick={() => onChange("gender", "Any")}
+
+            {/* In-Room Amenities */}
+            {config?.amenities?.in_room && config.amenities.in_room.length > 0 && (
+                <div className="space-y-4">
+                    <Label className="text-xl font-semibold">In-Room Amenities</Label>
+                    <MultiSelectGroup
+                        options={config.amenities.in_room}
+                        selectedValues={currentSelectedValues}
+                        onChange={(vals) => handleGroupChange(vals, config.amenities.in_room)}
+                        limit={10}
                     />
                 </div>
-            </div>
+            )}
 
             {/* In-Home Amenities */}
             {config?.amenities?.in_home && config.amenities.in_home.length > 0 && (
@@ -132,19 +121,6 @@ export function StepAmenities({ formData, onChange }: StepAmenitiesProps) {
                         options={config.amenities.on_property}
                         selectedValues={currentSelectedValues}
                         onChange={(vals) => handleGroupChange(vals, config.amenities.on_property)}
-                        limit={10}
-                    />
-                </div>
-            )}
-
-            {/* Safety Amenities */}
-            {config?.amenities?.safety && config.amenities.safety.length > 0 && (
-                <div className="space-y-4">
-                    <Label className="text-xl font-semibold">Safety Amenities</Label>
-                    <MultiSelectGroup
-                        options={config.amenities.safety}
-                        selectedValues={currentSelectedValues}
-                        onChange={(vals) => handleGroupChange(vals, config.amenities.safety)}
                         limit={10}
                     />
                 </div>

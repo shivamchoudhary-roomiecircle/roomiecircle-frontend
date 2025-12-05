@@ -1,0 +1,19 @@
+steps:
+  # Build the Docker image with BUILD_MODE argument
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '--build-arg'
+      - 'BUILD_MODE=staging'
+      - '-t'
+      - 'asia-south1-docker.pkg.dev/$PROJECT_ID/roomie-images/roomie-frontend'
+      - '.'
+  
+  # Push the image to Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - 'asia-south1-docker.pkg.dev/$PROJECT_ID/roomie-images/roomie-frontend'
+
+images:
+  - 'asia-south1-docker.pkg.dev/$PROJECT_ID/roomie-images/roomie-frontend'

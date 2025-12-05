@@ -14,6 +14,30 @@ export function StepPreferences({ formData, onChange }: StepPreferencesProps) {
 
     return (
         <div className="space-y-8">
+            {/* Gender Preference */}
+            <div className="space-y-4">
+                <Label className="text-xl font-semibold">Gender Preference</Label>
+                <div className="flex flex-wrap gap-4">
+                    <SingleSelectOption
+                        label="Male"
+                        value="MALE"
+                        selected={formData.gender === "MALE"}
+                        onClick={() => onChange("gender", "MALE")}
+                    />
+                    <SingleSelectOption
+                        label="Female"
+                        value="FEMALE"
+                        selected={formData.gender === "FEMALE"}
+                        onClick={() => onChange("gender", "FEMALE")}
+                    />
+                    <SingleSelectOption
+                        label="Any"
+                        value="ANY"
+                        selected={formData.gender === "ANY"}
+                        onClick={() => onChange("gender", "ANY")}
+                    />
+                </div>
+            </div>
             {/* Age Range */}
             <div className="space-y-4">
                 <Label className="text-xl font-semibold">Age Range</Label>

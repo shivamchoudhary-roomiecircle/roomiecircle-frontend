@@ -107,8 +107,8 @@ export default function CreateRoomListing() {
     },
     {
       id: 'amenities',
-      title: 'Amenities',
-      description: 'Select all the amenities available.',
+      title: 'Room Features',
+      description: 'Select amenities available in your room and property.',
       component: <StepAmenities formData={formData} onChange={handleFieldChange} />
     },
     {
@@ -135,7 +135,8 @@ export default function CreateRoomListing() {
     const step = steps[currentStep];
     switch (step.id) {
       case 'property':
-        return formData.roomType && formData.bhkType && formData.propertyType.length > 0;
+        // Property type is optional, so don't require it
+        return formData.roomType && formData.bhkType !== "" && formData.bhkType !== null;
       case 'location':
         return formData.addressText && formData.addressText.length > 5; // Basic check
       case 'basics':
@@ -248,7 +249,7 @@ export default function CreateRoomListing() {
     }
   };
 
-  return (
+  return isMobile ? (
     <WizardLayout
       currentStep={currentStep}
       totalSteps={steps.length}
@@ -263,5 +264,20 @@ export default function CreateRoomListing() {
     >
       {steps[currentStep].component}
     </WizardLayout>
+  ) : (
+    <DesktopWizardLayout
+      currentStep={currentStep}
+      totalSteps={steps.length}
+      steps={steps}
+      title={steps[currentStep].title}
+      description={steps[currentStep].description}
+      onNext={handleNext}
+      onBack={handleBack}
+      onStepClick={handleStepClick}
+      isNextDisabled={!isStepValid() || saving}
+      nextLabel={currentStep === steps.length - 1 ? "Finish" : "Next"}
+    >
+      {steps[currentStep].component}
+    </DesktopWizardLayout>
   );
 }
