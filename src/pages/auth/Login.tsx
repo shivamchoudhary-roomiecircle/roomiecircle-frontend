@@ -233,8 +233,8 @@ const Login = () => {
           </span>
         </div>
 
-        <div className="bg-card border border-border rounded-2xl p-8 shadow-lg">
-          <h1 className="text-3xl font-bold text-center mb-2">Welcome Back</h1>
+        <div className="bg-card border border-border rounded-2xl p-6 sm:p-8 shadow-lg">
+          <h1 className="text-2xl sm:text-3xl font-bold text-center mb-2">Welcome Back</h1>
           <p className="text-muted-foreground text-center mb-6">
             {step === 'credentials' ? 'Sign in to continue your search' : 'Enter the verification code sent to your email'}
           </p>
@@ -246,7 +246,7 @@ const Login = () => {
                   type="button"
                   variant={loginMethod === 'password' ? 'default' : 'outline'}
                   onClick={() => setLoginMethod('password')}
-                  className="flex-1"
+                  className="flex-1 text-sm px-3"
                 >
                   Password
                 </Button>
@@ -254,9 +254,9 @@ const Login = () => {
                   type="button"
                   variant={loginMethod === 'otp' ? 'default' : 'outline'}
                   onClick={() => setLoginMethod('otp')}
-                  className="flex-1"
+                  className="flex-1 text-sm px-3 whitespace-nowrap"
                 >
-                  Login with OTP
+                  OTP Login
                 </Button>
               </div>
 

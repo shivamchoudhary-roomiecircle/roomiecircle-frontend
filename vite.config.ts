@@ -8,6 +8,7 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8082,
+    allowedHosts: true,
     // Only use proxy in development mode
     // In staging/production, VITE_API_BASE_URL will be used directly
     ...(mode === "development" && {

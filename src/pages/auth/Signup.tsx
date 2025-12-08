@@ -158,8 +158,8 @@ const Signup = () => {
           </span>
         </div>
 
-        <div className="bg-card border border-border rounded-2xl p-8 shadow-lg">
-          <h1 className="text-3xl font-bold text-center mb-2">Create Account</h1>
+        <div className="bg-card border border-border rounded-2xl p-6 sm:p-8 shadow-lg">
+          <h1 className="text-2xl sm:text-3xl font-bold text-center mb-2">Create Account</h1>
           <p className="text-muted-foreground text-center mb-6">
             {step === 'email' ? 'Start your journey to find the perfect room' : 'Enter the verification code sent to your email'}
           </p>
