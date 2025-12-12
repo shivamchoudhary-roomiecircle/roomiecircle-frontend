@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -20,6 +21,13 @@ interface SearchFiltersProps {
     amenities: Amenity[];
     setAmenities: (val: Amenity[]) => void;
     trigger?: React.ReactNode;
+    // Budget props (optional, mainly for mobile filter sheet)
+    minPrice?: string;
+    maxPrice?: string;
+    setMinPrice?: (val: string) => void;
+    setMaxPrice?: (val: string) => void;
+    priceType?: string;
+    setPriceType?: (val: string) => void;
 }
 
 export const SearchFilters = ({
@@ -33,7 +41,13 @@ export const SearchFilters = ({
     setPropertyTypes,
     amenities,
     setAmenities,
-    trigger
+    trigger,
+    minPrice,
+    maxPrice,
+    setMinPrice,
+    setMaxPrice,
+    priceType,
+    setPriceType,
 }: SearchFiltersProps) => {
 
     const activeFiltersCount = roomTypes.length + bhkTypes.length + propertyTypes.length + amenities.length + (urgency ? 1 : 0);
@@ -74,6 +88,42 @@ export const SearchFilters = ({
                     </Button>
                 </SheetHeader>
                 <div className="space-y-6 mt-6">
+
+                    {/* Budget Filter - Only if props are provided (Mobile case) */}
+                    {setMinPrice && setMaxPrice && (
+                        <>
+                            <div className="space-y-4">
+                                <Label className="text-base font-medium">Budget Range</Label>
+                                <div className="flex gap-2">
+                                    <Select value={priceType || "monthly"} onValueChange={setPriceType}>
+                                        <SelectTrigger className="w-full">
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="monthly">Monthly Rent</SelectItem>
+                                            <SelectItem value="target">Target Limit</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <Input
+                                        type="number"
+                                        placeholder="Min"
+                                        value={minPrice || ''}
+                                        onChange={(e) => setMinPrice(e.target.value)}
+                                    />
+                                    <span>-</span>
+                                    <Input
+                                        type="number"
+                                        placeholder="Max"
+                                        value={maxPrice || ''}
+                                        onChange={(e) => setMaxPrice(e.target.value)}
+                                    />
+                                </div>
+                            </div>
+                            <Separator />
+                        </>
+                    )}
 
                     {/* Urgency Filter */}
                     <div className="space-y-3">

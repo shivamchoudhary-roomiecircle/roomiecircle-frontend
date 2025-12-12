@@ -1,22 +1,25 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { LocationAutocomplete } from "@/components/search/LocationAutocomplete";
 import { GoogleMap } from "@/components/search/GoogleMap";
-
-interface StepLocationProps {
-    formData: any;
-    onChange: (field: string, value: any) => void;
-    onLocationSelect: (address: string, placeId: string) => void;
-}
+import { useFormContext } from "react-hook-form";
+import { ListingFormData } from "@/schemas/listingSchema";
 
 const DELHI_CENTER = { lat: 28.6129, lng: 77.2295 };
 
-export function StepLocation({ formData, onChange, onLocationSelect }: StepLocationProps) {
-    const [mapCenter, setMapCenter] = useState<{ lat: number; lng: number }>(
-        formData.latitude && formData.longitude
-            ? { lat: Number(formData.latitude), lng: Number(formData.longitude) }
-            : DELHI_CENTER
-    );
-    const [searchValue, setSearchValue] = useState(formData.addressText || "");
+export function StepLocation() {
+    const { setValue, getValues, formState: { errors } } = useFormContext<ListingFormData>();
+
+    // We can still use local state for map visual center if needed, or drive it from form
+    // Driving from form is better for persistence.
+    // However, GoogleMap component manages its own center usually unless controlled.
+
+    const lat = getValues("latitude");
+    const lng = getValues("longitude");
+
+    const initialCenter = (lat && lng) ? { lat: Number(lat), lng: Number(lng) } : DELHI_CENTER;
+
+    const [mapCenter, setMapCenter] = useState<{ lat: number; lng: number }>(initialCenter);
+    const [searchValue, setSearchValue] = useState(getValues("addressText") || "");
     const isUserDraggingRef = useRef(false);
 
     // Handle map center changes from pin dragging
@@ -27,9 +30,9 @@ export function StepLocation({ formData, onChange, onLocationSelect }: StepLocat
 
         setMapCenter(center);
 
-        // Update coordinates immediately
-        onChange("latitude", center.lat);
-        onChange("longitude", center.lng);
+        // Update coordinates
+        setValue("latitude", center.lat, { shouldValidate: true });
+        setValue("longitude", center.lng, { shouldValidate: true });
 
         // Reverse geocode to get address
         try {
@@ -38,9 +41,13 @@ export function StepLocation({ formData, onChange, onLocationSelect }: StepLocat
                 const geocoder = new google.maps.Geocoder();
                 geocoder.geocode({ location: center }, (results: any, status: any) => {
                     if (status === "OK" && results[0]) {
+                        console.log("Map pin drag location found:", {
+                            address: results[0].formatted_address,
+                            placeId: results[0].place_id
+                        });
                         setSearchValue(results[0].formatted_address);
-                        onChange("addressText", results[0].formatted_address);
-                        onChange("placeId", results[0].place_id);
+                        setValue("addressText", results[0].formatted_address, { shouldValidate: true });
+                        setValue("placeId", results[0].place_id, { shouldValidate: true });
                     }
                 });
             }
@@ -56,11 +63,11 @@ export function StepLocation({ formData, onChange, onLocationSelect }: StepLocat
     // Handle search selection
     const handleSearchChange = async (value: string, placeId?: string) => {
         setSearchValue(value);
-        onChange("addressText", value);
+        setValue("addressText", value, { shouldValidate: true });
 
         if (placeId) {
             // User selected a place from autocomplete
-            onLocationSelect(value, placeId);
+            setValue("placeId", placeId, { shouldValidate: true });
 
             // Get coordinates for the selected place using Google Geocoder
             try {
@@ -75,9 +82,8 @@ export function StepLocation({ formData, onChange, onLocationSelect }: StepLocat
                                 lng: location.lng()
                             };
                             setMapCenter(newCenter);
-                            onChange("latitude", newCenter.lat);
-                            onChange("longitude", newCenter.lng);
-                            onChange("placeId", placeId);
+                            setValue("latitude", newCenter.lat, { shouldValidate: true });
+                            setValue("longitude", newCenter.lng, { shouldValidate: true });
                         } else {
                             console.error("Geocode failed:", status);
                         }
@@ -91,15 +97,16 @@ export function StepLocation({ formData, onChange, onLocationSelect }: StepLocat
 
     // Handle initial location detection
     const handleInitialLocationFound = (location: { lat: number; lng: number; address: string; placeId?: string }) => {
-        if (!formData.addressText && !formData.latitude) {
+        const currentAddr = getValues("addressText");
+        if (!currentAddr) {
             // Only set if no location is already set
             setMapCenter({ lat: location.lat, lng: location.lng });
             setSearchValue(location.address);
-            onChange("addressText", location.address);
-            onChange("latitude", location.lat);
-            onChange("longitude", location.lng);
+            setValue("addressText", location.address, { shouldValidate: true });
+            setValue("latitude", location.lat, { shouldValidate: true });
+            setValue("longitude", location.lng, { shouldValidate: true });
             if (location.placeId) {
-                onChange("placeId", location.placeId);
+                setValue("placeId", location.placeId, { shouldValidate: true });
             }
         }
     };
@@ -114,6 +121,8 @@ export function StepLocation({ formData, onChange, onLocationSelect }: StepLocat
                     onCenterChange={handleCenterChange}
                     fullscreenControl={false}
                     onInitialLocationFound={handleInitialLocationFound}
+                    gestureHandling="none"
+                    pinDraggable={false}
                 />
 
                 {/* Search Bar Overlay at Bottom */}
@@ -130,9 +139,9 @@ export function StepLocation({ formData, onChange, onLocationSelect }: StepLocat
                                 className="h-10 text-sm"
                                 dropdownDirection="up"
                             />
-                            <p className="text-xs text-muted-foreground">
-                                Drag the pin to adjust your exact location
-                            </p>
+                            {errors.addressText && (
+                                <p className="text-xs text-destructive font-medium">{errors.addressText.message}</p>
+                            )}
                         </div>
                     </div>
                 </div>

@@ -21,14 +21,29 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { IconRenderer } from "@/lib/iconMapper";
-import { useConfig } from "@/contexts/ConfigContext";
+import {
+    PROPERTY_TYPE_UI,
+    BHK_TYPES,
+    PROFESSION_UI,
+    LIFESTYLE_UI,
+    ROOM_TYPE_UI
+} from "@/constants/ui-constants";
+import {
+    Gender,
+    LifestylePreference,
+    Profession,
+    PropertyType,
+    RoomType,
+} from "@api-docs/typescript/enums";
 
 interface ListingDetailsProps {
     listing: any;
+    isWishlisted?: boolean;
+    onToggleWishlist?: () => void;
 }
 
-export function ListingDetails({ listing }: ListingDetailsProps) {
-    const { config } = useConfig();
+export function ListingDetails({ listing, isWishlisted, onToggleWishlist }: ListingDetailsProps) {
+
 
     const formatBhkType = (type: number) => {
         switch (type) {
@@ -54,19 +69,19 @@ export function ListingDetails({ listing }: ListingDetailsProps) {
                                 </Badge>
                                 {listing.roomType && (
                                     <Badge variant="secondary">
-                                        {config?.roomTypes?.find((t: any) => t.value === listing.roomType)?.label || listing.roomType}
+                                        {ROOM_TYPE_UI[listing.roomType as RoomType]?.label || listing.roomType}
                                     </Badge>
                                 )}
                                 {listing.bhkType && (
                                     <Badge variant="outline">
-                                        {config?.bhkTypes?.find((t: any) => t.value === listing.bhkType)?.label || listing.bhkType}
+                                        {BHK_TYPES.find(t => t.value === listing.bhkType)?.label || listing.bhkType}
                                     </Badge>
                                 )}
                             </div>
 
                             <h1 className="text-lg md:text-xl font-bold text-foreground mb-1">
                                 {listing.bhkType !== undefined && listing.bhkType !== null ? `${formatBhkType(listing.bhkType)} ` : ''}
-                                {listing.propertyType?.[0] ? config?.propertyTypes?.find((t: any) => t.value === listing.propertyType[0])?.label : 'Property'}
+                                {listing.propertyType?.[0] ? PROPERTY_TYPE_UI[listing.propertyType[0] as PropertyType]?.label : 'Property'}
                                 {' '}in {listing.addressText?.split(',')[0]}
                             </h1>
 
@@ -82,8 +97,13 @@ export function ListingDetails({ listing }: ListingDetailsProps) {
                             <Button variant="ghost" size="icon" className="rounded-full hover:bg-background/80">
                                 <Share2 className="h-5 w-5" />
                             </Button>
-                            <Button variant="ghost" size="icon" className="rounded-full hover:bg-background/80">
-                                <Heart className="h-5 w-5" />
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="rounded-full hover:bg-background/80"
+                                onClick={onToggleWishlist}
+                            >
+                                <Heart className={`h-5 w-5 ${isWishlisted ? "fill-red-500 text-red-500" : ""}`} />
                             </Button>
                         </div>
                     </div>
@@ -219,7 +239,7 @@ export function ListingDetails({ listing }: ListingDetailsProps) {
                                                 <p className="text-xs text-muted-foreground uppercase tracking-wide">Profession</p>
                                                 <p className="font-medium">
                                                     {listing.roommatePreferences.profession
-                                                        ? (config?.professions?.find((p: any) => p.value === listing.roommatePreferences.profession)?.label ||
+                                                        ? (PROFESSION_UI[listing.roommatePreferences.profession as Profession]?.label ||
                                                             listing.roommatePreferences.profession)
                                                         : 'Any'
                                                     }
@@ -235,15 +255,15 @@ export function ListingDetails({ listing }: ListingDetailsProps) {
                                                     <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Lifestyle</p>
                                                     <div className="flex flex-wrap gap-1.5">
                                                         {listing.roommatePreferences.lifestyle.map((tag: string) => {
-                                                            const lifestyleConfig = config?.lifestylePreferences?.find((l: any) => l.value === tag);
+                                                            const lifestyleConfig = LIFESTYLE_UI[tag as LifestylePreference];
                                                             return (
                                                                 <Badge
                                                                     key={tag}
                                                                     variant="outline"
                                                                     className="text-xs font-normal border-primary/20 bg-primary/5 text-primary hover:bg-primary/10 flex items-center gap-1.5"
                                                                 >
-                                                                    {lifestyleConfig?.symbol && (
-                                                                        <IconRenderer symbol={lifestyleConfig.symbol} className="h-3 w-3" />
+                                                                    {lifestyleConfig?.iconName && (
+                                                                        <IconRenderer symbol={lifestyleConfig.iconName} className="h-3 w-3" />
                                                                     )}
                                                                     <span>{lifestyleConfig?.label || tag.replace(/_/g, ' ').toLowerCase()}</span>
                                                                 </Badge>

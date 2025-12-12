@@ -5,14 +5,17 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface ListedByProps {
     lister: {
+        id: number;
         name: string;
         profilePicture?: string;
         verificationLevel?: string;
         profileScore?: number;
     };
+    onStartChat: () => void;
+    isOwnListing: boolean;
 }
 
-export function ListedBy({ lister }: ListedByProps) {
+export function ListedBy({ lister, onStartChat, isOwnListing }: ListedByProps) {
     return (
         <Card className="border border-border/50 shadow-md bg-card">
             <CardHeader className="pb-2">
@@ -42,7 +45,12 @@ export function ListedBy({ lister }: ListedByProps) {
                 </div>
 
                 <div className="grid grid-cols-2 gap-2">
-                    <Button className="w-full font-semibold shadow-sm" size="sm">
+                    <Button
+                        className="w-full font-semibold shadow-sm"
+                        size="sm"
+                        onClick={onStartChat}
+                        disabled={isOwnListing}
+                    >
                         Start a chat
                     </Button>
                     <Button variant="outline" className="w-full shadow-sm" size="sm">

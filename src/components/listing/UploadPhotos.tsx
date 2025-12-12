@@ -40,7 +40,7 @@ export default function UploadPhotosContent({ listingId, onFinish }: UploadPhoto
 
       try {
         setLoading(true);
-        const listing = await listingsApi.getRoomDetails(listingId);
+        const listing = await listingsApi.getRoomListingById(listingId);
 
         // Fetch actual media objects to get IDs
         try {
@@ -55,15 +55,15 @@ export default function UploadPhotosContent({ listingId, onFinish }: UploadPhoto
           if (listing) {
             const listingData = listing;
 
-            const newPropertyImages = (listingData.images || []).map((url: string, index: number) => ({
-              id: index, // Fake ID, might cause issues with delete/reorder if not real
-              url: getImageUrl(url)
+            const newPropertyImages = (listingData.images || []).map((img: any, index: number) => ({
+              id: img.id || index,
+              url: getImageUrl(img.url || img)
             }));
             setPropertyImages(newPropertyImages);
 
-            const newNeighborhoodImages = (listingData.neighborhoodImages || []).map((url: string, index: number) => ({
-              id: index + 100,
-              url: getImageUrl(url)
+            const newNeighborhoodImages = (listingData.neighborhoodImages || []).map((img: any, index: number) => ({
+              id: img.id || index + 100,
+              url: getImageUrl(img.url || img)
             }));
             setNeighborhoodImages(newNeighborhoodImages);
           }

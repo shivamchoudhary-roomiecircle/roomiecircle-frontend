@@ -1,7 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate, useSearchParams, useParams } from "react-router-dom";
 import { listingsApi } from "@/lib/api";
-import { useConfig } from "@/contexts/ConfigContext";
 import { toast } from "@/hooks/use-toast";
 import { WizardLayout } from "@/components/create-listing/WizardLayout";
 import { DesktopWizardLayout } from "@/components/create-listing/DesktopWizardLayout";
@@ -13,77 +12,61 @@ import { StepAmenities } from "@/components/create-listing/steps/StepAmenities";
 import { StepPricing } from "@/components/create-listing/steps/StepPricing";
 import { StepPreferences } from "@/components/create-listing/steps/StepPreferences";
 import { StepPhotos } from "@/components/create-listing/steps/StepPhotos";
-
-interface MediaItem {
-  id: number;
-  url: string;
-  isUploading?: boolean;
-}
+import { useForm, FormProvider } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { listingSchema, ListingFormData } from "@/schemas/listingSchema";
 
 export default function CreateRoomListing() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { config } = useConfig();
+
   const isMobile = useIsMobile();
   const [listingId, setListingId] = useState<string | null>(id || null);
 
   const [currentStep, setCurrentStep] = useState(0);
   const [saving, setSaving] = useState(false);
 
-  const [formData, setFormData] = useState({
-    description: "",
-    monthlyRent: "",
-    maintenance: "",
-    maintenanceIncluded: false,
-    deposit: "",
-    availableDate: "",
-    addressText: "",
-    placeId: "",
-    latitude: 0,
-    longitude: 0,
-    roomType: "",
-    propertyType: [] as string[],
-    bhkType: "",
-    floor: "",
-    hasBalcony: false,
-    hasPrivateWashroom: false,
-    hasFurniture: false,
-    amenities: [] as string[],
-    images: [] as MediaItem[],
-    minAge: "",
-    maxAge: "",
-    gender: "",
-    profession: "",
-    lifestyle: [] as string[],
-    // Keeping these for compatibility but not using in wizard yet
-    roommates: [] as any[],
-    neighborhoodReview: "",
-    neighborhoodRatings: {
-      safety: 0,
-      connectivity: 0,
-      amenities: 0,
+  // Initialize form
+  const form = useForm<ListingFormData>({
+    resolver: zodResolver(listingSchema),
+    defaultValues: {
+      description: "",
+      monthlyRent: undefined,
+      maintenance: undefined,
+      maintenanceIncluded: false,
+      deposit: undefined,
+      availableDate: "",
+      addressText: "",
+      placeId: "",
+      latitude: 0,
+      longitude: 0,
+      roomType: undefined,
+      propertyType: [],
+      bhkType: undefined,
+      floor: undefined,
+      amenities: [],
+      images: [],
+      minAge: undefined,
+      maxAge: undefined,
+      gender: undefined,
+      profession: "",
+      lifestyle: [],
     },
-    neighborhoodImages: [] as any[],
+    mode: "onChange"
   });
 
-  const handleFieldChange = (field: string, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-  };
+  const { trigger, getValues } = form;
 
-  const handleLocationSelect = (address: string, placeId: string) => {
-    setFormData(prev => ({
-      ...prev,
-      addressText: address,
-      placeId: placeId,
-    }));
-  };
-
-  const handleStepClick = (index: number) => {
-    // Only allow navigating to previous steps or the current step
-    if (index <= currentStep) {
-      setCurrentStep(index);
-    }
+  // Define fields for each step to validate before moving next
+  const stepFields: Record<string, (keyof ListingFormData)[]> = {
+    property: ['roomType', 'bhkType', 'propertyType'],
+    location: ['addressText', 'placeId', 'latitude', 'longitude'],
+    basics: ['floor', 'availableDate', 'description'],
+    amenities: ['amenities'],
+    pricing: ['monthlyRent', 'deposit', 'maintenance', 'maintenanceIncluded'],
+    preferences: ['gender', 'minAge', 'maxAge', 'profession', 'lifestyle'],
+    photos: ['images']
   };
 
   const steps = [
@@ -91,102 +74,80 @@ export default function CreateRoomListing() {
       id: 'property',
       title: 'Property Details',
       description: 'What kind of place are you listing?',
-      component: <StepPropertyType formData={formData} onChange={handleFieldChange} />
+      component: <StepPropertyType />
     },
     {
       id: 'location',
       title: 'Location',
       description: 'Where is your property located?',
-      component: <StepLocation formData={formData} onChange={handleFieldChange} onLocationSelect={handleLocationSelect} />
+      component: <StepLocation />
     },
     {
       id: 'basics',
       title: 'The Basics',
       description: 'Tell us a bit more about the space.',
-      component: <StepBasics formData={formData} onChange={handleFieldChange} />
+      component: <StepBasics />
     },
     {
       id: 'amenities',
       title: 'Room Features',
       description: 'Select amenities available in your room and property.',
-      component: <StepAmenities formData={formData} onChange={handleFieldChange} />
+      component: <StepAmenities />
     },
     {
       id: 'pricing',
       title: 'Pricing',
       description: 'Set your monthly rent and deposit.',
-      component: <StepPricing formData={formData} onChange={handleFieldChange} />
+      component: <StepPricing />
     },
     {
       id: 'preferences',
       title: 'Roommate Preferences',
       description: 'Who would be your ideal roommate?',
-      component: <StepPreferences formData={formData} onChange={handleFieldChange} />
+      component: <StepPreferences />
     },
     {
       id: 'photos',
       title: 'Photos',
       description: 'Add some photos of the room.',
-      component: <StepPhotos listingId={listingId} images={formData.images} onChange={(imgs) => handleFieldChange("images", imgs)} />
+      component: <StepPhotos listingId={listingId} />
     }
   ];
-
-  const isStepValid = () => {
-    const step = steps[currentStep];
-    switch (step.id) {
-      case 'property':
-        // Property type is optional, roomType and bhkType are required
-        return formData.roomType && formData.bhkType !== "" && formData.bhkType !== null;
-      case 'location':
-        // Require both address text and placeId for valid location
-        return formData.addressText && formData.addressText.length > 5 && formData.placeId;
-      case 'basics':
-        // Floor can be 0 (ground floor) which is valid
-        return formData.floor !== "" && formData.floor !== null && formData.description.length > 10;
-      case 'pricing':
-        // Rent and deposit must be positive numbers
-        const rent = parseInt(formData.monthlyRent);
-        const deposit = parseInt(formData.deposit);
-        return !isNaN(rent) && rent > 0 && !isNaN(deposit) && deposit > 0;
-      default:
-        return true;
-    }
-  };
 
   const saveListing = async () => {
     setSaving(true);
     try {
+      const data = getValues();
       const payload: any = {};
 
       // Map formData to API payload
-      if (formData.description) payload.description = formData.description;
-      if (formData.monthlyRent) payload.monthlyRent = parseInt(formData.monthlyRent);
-      if (formData.maintenance) payload.maintenance = parseInt(formData.maintenance);
-      payload.maintenanceIncluded = formData.maintenanceIncluded;
-      if (formData.deposit) payload.deposit = parseInt(formData.deposit);
-      if (formData.availableDate) payload.availableDate = formData.availableDate;
-      if (formData.addressText) payload.addressText = formData.addressText;
-      if (formData.placeId) payload.placeId = formData.placeId;
-      if (formData.latitude) payload.latitude = formData.latitude;
-      if (formData.longitude) payload.longitude = formData.longitude;
-      if (formData.roomType) payload.roomType = formData.roomType;
-      if (formData.propertyType.length > 0) payload.propertyType = formData.propertyType;
-      if (formData.bhkType !== "" && formData.bhkType !== null) payload.bhkType = parseInt(formData.bhkType);
-      if (formData.floor !== "" && formData.floor !== null) payload.floor = parseInt(formData.floor);
-      payload.hasBalcony = formData.hasBalcony;
-      payload.hasPrivateWashroom = formData.hasPrivateWashroom;
-      payload.hasFurniture = formData.hasFurniture;
-      if (formData.amenities.length > 0) payload.amenities = formData.amenities;
+      if (data.description) payload.description = data.description;
+      if (data.monthlyRent) payload.monthlyRent = Number(data.monthlyRent);
+      if (data.maintenance) payload.maintenance = Number(data.maintenance);
+      payload.maintenanceIncluded = data.maintenanceIncluded;
+      if (data.deposit) payload.deposit = Number(data.deposit);
+      if (data.availableDate) payload.availableDate = data.availableDate;
+      if (data.addressText) payload.addressText = data.addressText;
+      if (data.placeId) payload.placeId = data.placeId;
+      if (data.latitude) payload.latitude = data.latitude;
+      if (data.longitude) payload.longitude = data.longitude;
+      if (data.roomType) payload.roomType = data.roomType;
+      // Property Type is optional array
+      if (data.propertyType && data.propertyType.length > 0) payload.propertyType = data.propertyType;
 
-      // Note: Images are handled separately via PhotoUploadGrid/API
+      if (data.bhkType !== undefined && data.bhkType !== null) payload.bhkType = Number(data.bhkType);
+      if (data.floor !== undefined && data.floor !== null) payload.floor = Number(data.floor);
+
+
+      if (data.amenities.length > 0) payload.amenities = data.amenities;
 
       // Roommate Preferences
       const roommatePreferences: any = {};
-      if (formData.minAge) roommatePreferences.minAge = parseInt(formData.minAge);
-      if (formData.maxAge) roommatePreferences.maxAge = parseInt(formData.maxAge);
-      if (formData.gender) roommatePreferences.gender = formData.gender;
-      if (formData.profession) roommatePreferences.profession = formData.profession;
-      if (formData.lifestyle.length > 0) roommatePreferences.lifestyle = formData.lifestyle;
+      if (data.minAge) roommatePreferences.minAge = Number(data.minAge);
+      if (data.maxAge) roommatePreferences.maxAge = Number(data.maxAge);
+      if (data.gender) roommatePreferences.gender = data.gender;
+      if (data.profession) roommatePreferences.profession = data.profession;
+      if (data.lifestyle && data.lifestyle.length > 0) roommatePreferences.lifestyle = data.lifestyle;
 
       if (Object.keys(roommatePreferences).length > 0) {
         payload.roommatePreferences = roommatePreferences;
@@ -223,6 +184,19 @@ export default function CreateRoomListing() {
   };
 
   const handleNext = async () => {
+    const stepId = steps[currentStep].id;
+    const fieldsToValidate = stepFields[stepId];
+
+    // Trigger validation for current step fields
+    const isStepValid = await trigger(fieldsToValidate);
+
+    if (!isStepValid) {
+      // Find the first error to toast or focus?
+      // react-hook-form handles focus usually, but steps might be custom
+      // We can show a generic toast if needed, but inline errors are better
+      return;
+    }
+
     if (currentStep === steps.length - 1) {
       // Final step (Photos) - Finish
       navigate('/my-listings');
@@ -254,35 +228,39 @@ export default function CreateRoomListing() {
     }
   };
 
-  return isMobile ? (
-    <WizardLayout
-      currentStep={currentStep}
-      totalSteps={steps.length}
-      title={steps[currentStep].title}
-      description={steps[currentStep].description}
-      onNext={handleNext}
-      onBack={handleBack}
-      onSkip={handleSkip}
-      isNextDisabled={!isStepValid() || saving}
-      showCloseButton={true}
-      showSkipButton={steps[currentStep].id !== 'photos'}
-    >
-      {steps[currentStep].component}
-    </WizardLayout>
-  ) : (
-    <DesktopWizardLayout
-      currentStep={currentStep}
-      totalSteps={steps.length}
-      steps={steps}
-      title={steps[currentStep].title}
-      description={steps[currentStep].description}
-      onNext={handleNext}
-      onBack={handleBack}
-      onStepClick={handleStepClick}
-      isNextDisabled={!isStepValid() || saving}
-      nextLabel={currentStep === steps.length - 1 ? "Finish" : "Next"}
-    >
-      {steps[currentStep].component}
-    </DesktopWizardLayout>
+  return (
+    <FormProvider {...form}>
+      {isMobile ? (
+        <WizardLayout
+          currentStep={currentStep}
+          totalSteps={steps.length}
+          title={steps[currentStep].title}
+          description={steps[currentStep].description}
+          onNext={handleNext}
+          onBack={handleBack}
+          onSkip={handleSkip}
+          isNextDisabled={saving} // Validation handled by inline errors and blocking handleNext, so we don't disable button to allow clicking to see errors
+          showCloseButton={true}
+          showSkipButton={steps[currentStep].id !== 'photos'}
+        >
+          {steps[currentStep].component}
+        </WizardLayout>
+      ) : (
+        <DesktopWizardLayout
+          currentStep={currentStep}
+          totalSteps={steps.length}
+          steps={steps}
+          title={steps[currentStep].title}
+          description={steps[currentStep].description}
+          onNext={handleNext}
+          onBack={handleBack}
+          onStepClick={(idx) => setCurrentStep(idx)} // Ideally we should validate intermediate steps if jumping forward
+          isNextDisabled={saving}
+          nextLabel={currentStep === steps.length - 1 ? "Finish" : "Next"}
+        >
+          {steps[currentStep].component}
+        </DesktopWizardLayout>
+      )}
+    </FormProvider>
   );
 }

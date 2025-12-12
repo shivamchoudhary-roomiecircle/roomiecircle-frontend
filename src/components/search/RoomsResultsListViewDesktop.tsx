@@ -3,14 +3,19 @@ import { LocationAutocomplete } from "./LocationAutocomplete";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { IndianRupee, ArrowUpDown, Map as MapIcon, Search } from "lucide-react";
+import { IndianRupee, ArrowUpDown, Map as MapIcon, Search, Heart } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { PremiumSlider } from "@/components/ui/PremiumSlider";
-import { RoomSearchCard } from "@/components/search/RoomSearchCard.tsx";
+import { PropertyCard } from "@/components/shared/PropertyCard";
+import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SearchFilters } from "./SearchFilters";
 import { RoomSearchResultDTO } from "@/types/api.types";
 import { SearchFilters as SearchFiltersType } from "@/hooks/useSearchFilters";
+import { useAuth } from "@/contexts/AuthContext";
+import { wishlistApi } from "@/lib/api/wishlist";
+import { toast } from "sonner";
+import { useEffect, useState, useCallback } from "react";
 
 interface RoomsResultsListViewDesktopProps {
     filters: SearchFiltersType;
@@ -21,6 +26,8 @@ interface RoomsResultsListViewDesktopProps {
     rooms: RoomSearchResultDTO[];
     observerTarget: React.RefObject<HTMLDivElement>;
     isFetchingNextPage: boolean;
+    wishlistedRoomIds: Set<number>;
+    onToggleWishlist: (id: number) => void;
 }
 
 export const RoomsResultsListViewDesktop = ({
@@ -32,6 +39,8 @@ export const RoomsResultsListViewDesktop = ({
     rooms,
     observerTarget,
     isFetchingNextPage,
+    wishlistedRoomIds,
+    onToggleWishlist,
 }: RoomsResultsListViewDesktopProps) => {
     const {
         location,
@@ -67,131 +76,7 @@ export const RoomsResultsListViewDesktop = ({
 
     return (
         <div className="block pb-8">
-            {/* Search Bar */}
-            <div className="sticky top-0 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-b border-border shadow-sm transition-all duration-200">
-                <div className="container mx-auto px-4 py-4 space-y-4">
-                    {/* Row 1: Location Search */}
-                    <div className="w-full max-w-3xl mx-auto">
-                        <LocationAutocomplete
-                            value={location}
-                            onChange={handleLocationChange}
-                            placeholder="Search by city, neighborhood, or address..."
-                            className="h-12 text-lg shadow-sm border-muted-foreground/20 focus-visible:ring-primary/20"
-                        />
-                    </div>
-
-                    {/* Row 2: Filters */}
-                    <div className="flex items-center gap-3 overflow-x-auto pb-1 scrollbar-hide">
-                        <Popover>
-                            <PopoverTrigger asChild>
-                                <Button variant="outline" className="h-10 rounded-full border-dashed border-muted-foreground/40 hover:border-primary/50 hover:bg-secondary/50">
-                                    <IndianRupee className="h-4 w-4 mr-2 text-muted-foreground" />
-                                    {priceType === "monthly" ? "Monthly" : "Target"}
-                                    {(minPrice || maxPrice) && (
-                                        <span className="ml-2 font-medium text-foreground">
-                                            {minPrice && `₹${parseInt(minPrice).toLocaleString('en-IN')}`}{minPrice && maxPrice && "-"}{maxPrice && `₹${parseInt(maxPrice).toLocaleString('en-IN')}`}
-                                        </span>
-                                    )}
-                                </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-80">
-                                <div className="space-y-4">
-                                    <div className="flex gap-2">
-                                        <Button
-                                            variant={priceType === "monthly" ? "default" : "outline"}
-                                            onClick={() => setPriceType("monthly")}
-                                            className="flex-1"
-                                        >
-                                            Monthly
-                                        </Button>
-                                        <Button
-                                            variant={priceType === "target" ? "default" : "outline"}
-                                            onClick={() => setPriceType("target")}
-                                            className="flex-1"
-                                        >
-                                            Target
-                                        </Button>
-                                    </div>
-                                    <div className="flex gap-2">
-                                        <Input
-                                            placeholder="Min"
-                                            value={minPrice}
-                                            onChange={(e) => setMinPrice(e.target.value)}
-                                            type="number"
-                                        />
-                                        <Input
-                                            placeholder="Max"
-                                            value={maxPrice}
-                                            onChange={(e) => setMaxPrice(e.target.value)}
-                                            type="number"
-                                        />
-                                    </div>
-                                </div>
-                            </PopoverContent>
-                        </Popover>
-
-                        <div className="h-8 w-px bg-border mx-1 block" />
-
-                        {/* Integrated Radius Slider */}
-                        <div className="flex items-center gap-3 bg-secondary/30 px-4 py-2 rounded-full border border-border/50">
-                            <span className="text-xs font-medium text-muted-foreground whitespace-nowrap uppercase tracking-wider">Radius</span>
-                            <div className="w-[140px]">
-                                <PremiumSlider
-                                    value={radius}
-                                    onChange={setRadius}
-                                    onCommit={(val) => {
-                                        if (placeId) {
-                                            handleLocationChange(location, placeId);
-                                        }
-                                    }}
-                                    min={1}
-                                    max={50}
-                                />
-                            </div>
-                            <span className="text-sm font-semibold min-w-[3rem] text-right">{radius} km</span>
-                        </div>
-
-                        <div className="flex-1" />
-
-                        <SearchFilters
-                            urgency={urgency}
-                            setUrgency={setUrgency}
-                            roomTypes={roomTypes}
-                            setRoomTypes={setRoomTypes}
-                            bhkTypes={bhkTypes}
-                            setBhkTypes={setBhkTypes}
-                            propertyTypes={propertyTypes}
-                            setPropertyTypes={setPropertyTypes}
-                            amenities={amenities}
-                            setAmenities={setAmenities}
-                        />
-
-                        <Select value={sortBy} onValueChange={setSortBy}>
-                            <SelectTrigger className="h-10 w-[140px] rounded-full">
-                                <ArrowUpDown className="h-4 w-4 mr-2" />
-                                <SelectValue placeholder="Sort by" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="price-low">Price: Low to High</SelectItem>
-                                <SelectItem value="price-high">Price: High to Low</SelectItem>
-                                <SelectItem value="newest">Newest First</SelectItem>
-                                <SelectItem value="relevant">Most Relevant</SelectItem>
-                            </SelectContent>
-                        </Select>
-
-                        <Button
-                            variant="default"
-                            onClick={() => setViewMode("map")}
-                            className="h-10 rounded-full px-6 shadow-md hover:shadow-lg transition-all"
-                        >
-                            <MapIcon className="h-4 w-4 mr-2" />
-                            Map View
-                        </Button>
-                    </div>
-                </div>
-            </div>
-
-            {/* Results Count */}
+            {/* Results Count & Grid */}
             <div className="container mx-auto px-4 py-4">
                 <div className="flex items-center justify-between">
                     <p className="text-sm text-muted-foreground">
@@ -219,11 +104,49 @@ export const RoomsResultsListViewDesktop = ({
                     <>
                         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
                             {rooms.map((room: RoomSearchResultDTO) => (
-                                <RoomSearchCard
+                                <PropertyCard
                                     key={room.id}
-                                    room={room}
-                                    onClick={() => navigate(`/listings/${room.id}`)}
-                                />
+                                    id={room.id}
+                                    images={room.photos?.map(p => ({ url: p.url })) || []}
+                                    price={room.monthlyRent}
+                                    address={room.address || "Location not available"}
+                                    onClick={() => navigate(`/listings/${room.id}`, { state: { previewImage: room.photos?.[0].url } })}
+                                    isWishlisted={wishlistedRoomIds.has(room.id)}
+                                    onToggleWishlist={(e) => {
+                                        e.stopPropagation();
+                                        onToggleWishlist(room.id);
+                                    }}
+                                // Move badges to children for custom layout inside card
+                                >
+                                    <div className="flex flex-col gap-2">
+                                        {/* Badges Row */}
+                                        <div className="flex items-center gap-1.5 flex-wrap">
+                                            <Badge variant="secondary" className="bg-blue-50 text-blue-700 border-blue-200 px-1.5 py-0.5 text-[10px]">
+                                                {room.roomType === 'PRIVATE_ROOM' ? 'Private' : room.roomType === 'SHARED_ROOM' ? 'Shared' : room.roomType}
+                                            </Badge>
+                                            {room.bhkType !== null && (
+                                                <Badge variant="secondary" className="bg-green-50 text-green-700 border-green-200 px-1.5 py-0.5 text-[10px]">
+                                                    {room.bhkType === 0 ? "RK" : `${room.bhkType} BHK`}
+                                                </Badge>
+                                            )}
+                                            {room.floor !== null && room.floor !== undefined && (
+                                                <Badge variant="secondary" className="bg-orange-50 text-orange-700 border-orange-200 px-1.5 py-0.5 text-[10px]">
+                                                    {room.floor === 0 ? "Ground" : `${room.floor}th Floor`}
+                                                </Badge>
+                                            )}
+                                        </div>
+                                        {/* Property Types */}
+                                        {room.propertyTypes && room.propertyTypes.length > 0 && (
+                                            <div className="flex items-center gap-1 flex-wrap text-[10px] text-muted-foreground/80">
+                                                {room.propertyTypes.slice(0, 2).map((pt, i) => (
+                                                    <span key={i} className="bg-secondary/50 px-1.5 py-0.5 rounded border border-border/50">
+                                                        {pt.replace(/_/g, ' ').toLowerCase()}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                </PropertyCard>
                             ))}
 
                             {/* Loading Skeletons */}

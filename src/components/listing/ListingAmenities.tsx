@@ -1,14 +1,14 @@
 import { Check } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { IconRenderer } from "@/lib/iconMapper";
-import { useConfig } from "@/contexts/ConfigContext";
+import { AMENITY_UI } from "@/constants/ui-constants";
+import { Amenity } from "@api-docs/typescript/enums";
 
 interface ListingAmenitiesProps {
     listing: any;
 }
 
 export function ListingAmenities({ listing }: ListingAmenitiesProps) {
-    const { config } = useConfig();
 
     // Flatten amenities logic
     const getAllAmenities = () => {
@@ -30,16 +30,12 @@ export function ListingAmenities({ listing }: ListingAmenitiesProps) {
     const amenities = getAllAmenities();
 
     const getAmenityIcon = (amenityKey: string) => {
-        if (!config?.amenities) return null;
-
-        // Search in all amenity categories
-        for (const category of Object.values(config.amenities) as any[]) {
-            const found = category.find((a: any) => a.value === amenityKey);
-            if (found?.icon) return found.icon;
-            if (found?.symbol) return found.symbol;
+        // Try to find in static configuration
+        const uiConfig = AMENITY_UI[amenityKey as unknown as Amenity];
+        if (uiConfig) {
+            return uiConfig.iconName || uiConfig.symbol || amenityKey;
         }
 
-        // Fallback: try to use the key itself as symbol if it matches icon names
         return amenityKey;
     };
 

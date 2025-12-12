@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { cn } from "@/lib/utils";
 import { IconRenderer } from "@/lib/iconMapper";
 import { Plus, X } from "lucide-react";
@@ -119,7 +119,16 @@ export function MultiSelectGroup({
         onChange(updated);
     };
 
-    const visibleOptions = options.slice(0, limit);
+    // Sort options so selected ones are first, trying to preserve original order for unselected
+    const sortedOptions = useMemo(() => {
+        const selectedSet = new Set(selectedValues);
+        // Split into selected and unselected arrays to preserve relative order within groups
+        const selected = options.filter(opt => selectedSet.has(opt.value));
+        const unselected = options.filter(opt => !selectedSet.has(opt.value));
+        return [...selected, ...unselected];
+    }, [options, selectedValues]);
+
+    const visibleOptions = sortedOptions.slice(0, limit);
     const hasMore = options.length > limit;
 
     return (
@@ -201,7 +210,17 @@ export function SingleSelectGroup({
         setIsDialogOpen(false);
     };
 
-    const visibleOptions = options.slice(0, limit);
+    // Sort options so selected one is first
+    const sortedOptions = useMemo(() => {
+        if (!selectedValue) return options;
+        const selected = options.find(opt => opt.value === selectedValue);
+        if (!selected) return options;
+
+        const unselected = options.filter(opt => opt.value !== selectedValue);
+        return [selected, ...unselected];
+    }, [options, selectedValue]);
+
+    const visibleOptions = sortedOptions.slice(0, limit);
     const hasMore = options.length > limit;
 
     return (

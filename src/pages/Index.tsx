@@ -1,16 +1,10 @@
-import { useSearchParams } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ScrollToTop from "@/components/ScrollToTop";
 import { RoomsResults } from "@/components/search/RoomsResults";
-import Profile from "./Profile";
 import SEO from "@/components/SEO";
 
-
 const Index = () => {
-  const [searchParams] = useSearchParams();
-  const currentTab = searchParams.get("tab");
-
   return (
     <div className="min-h-screen flex flex-col">
       <SEO
@@ -21,11 +15,7 @@ const Index = () => {
       <Navbar />
 
       <main className="flex-1">
-        {currentTab === "profile" ? (
-          <Profile />
-        ) : (
-          <RoomsResults />
-        )}
+        <RoomsResults />
       </main>
 
       <Footer />

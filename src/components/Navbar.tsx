@@ -18,7 +18,7 @@ import {
   AvatarFallback,
   AvatarImage,
 } from "@/components/ui/avatar";
-import { Home, Menu, Sun, Moon, LayoutDashboard, UserCircle, List, LogOut, LogIn, PlusCircle } from "lucide-react";
+import { Home, Menu, Sun, Moon, LayoutDashboard, UserCircle, List, LogOut, LogIn, PlusCircle, MessageCircle, Heart } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -70,13 +70,13 @@ const Navbar = () => {
           {/* Centered Toggle - Desktop & Mobile */}
           <div className="absolute left-1/2 -translate-x-1/2 flex items-center bg-muted/30 backdrop-blur-md p-1 rounded-full border border-border/30 shadow-sm">
             <button
-              onClick={() => navigate("/")}
-              className={`relative px-4 md:px-6 py-1.5 md:py-2 rounded-full text-xs md:text-sm font-medium transition-all duration-300 ease-out ${window.location.pathname === "/"
+              onClick={() => navigate("/rooms")}
+              className={`relative px-4 md:px-6 py-1.5 md:py-2 rounded-full text-xs md:text-sm font-medium transition-all duration-300 ease-out ${window.location.pathname === "/rooms" || window.location.pathname === "/"
                 ? "text-foreground"
                 : "text-muted-foreground hover:text-foreground"
                 }`}
             >
-              {window.location.pathname === "/" && (
+              {(window.location.pathname === "/rooms" || window.location.pathname === "/") && (
                 <span className="absolute inset-0 bg-background rounded-full shadow-md -z-10 animate-scale-in" />
               )}
               <span className="relative z-10">Rooms</span>
@@ -138,13 +138,21 @@ const Navbar = () => {
                   </DropdownMenuTrigger>
                   <DropdownMenuContent className="w-56" align="end" forceMount>
 
-                    <DropdownMenuItem onClick={() => navigate('/?tab=profile')}>
+                    <DropdownMenuItem onClick={() => navigate('/profile')}>
                       <UserCircle className="mr-2 h-4 w-4" />
                       <span>Profile</span>
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => navigate('/my-listings')}>
                       <List className="mr-2 h-4 w-4" />
                       <span>My Listings</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate('/wishlist')}>
+                      <Heart className="mr-2 h-4 w-4" />
+                      <span>My Wishlist</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate('/messages')}>
+                      <MessageCircle className="mr-2 h-4 w-4" />
+                      <span>Messages</span>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={logout} className="text-destructive focus:text-destructive">
@@ -207,13 +215,17 @@ const Navbar = () => {
                     {isAuthenticated ? (
                       <>
 
-                        <Button variant="ghost" className="w-full justify-start" onClick={() => { navigate('/?tab=profile'); setMobileMenuOpen(false); }}>
+                        <Button variant="ghost" className="w-full justify-start" onClick={() => { navigate('/profile'); setMobileMenuOpen(false); }}>
                           <UserCircle className="mr-2 h-4 w-4" />
                           Profile
                         </Button>
                         <Button variant="ghost" className="w-full justify-start" onClick={() => { navigate('/my-listings'); setMobileMenuOpen(false); }}>
                           <List className="mr-2 h-4 w-4" />
                           My Listings
+                        </Button>
+                        <Button variant="ghost" className="w-full justify-start" onClick={() => { navigate('/messages'); setMobileMenuOpen(false); }}>
+                          <MessageCircle className="mr-2 h-4 w-4" />
+                          Messages
                         </Button>
                         <div className="my-2 border-t" />
                         <Button variant="ghost" className="w-full justify-start text-destructive hover:text-destructive" onClick={() => { logout(); setMobileMenuOpen(false); }}>

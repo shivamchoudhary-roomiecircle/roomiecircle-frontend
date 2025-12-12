@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Home, X, ChevronLeft, ChevronRight, Grid } from "lucide-react";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { cn, getImageUrl } from "@/lib/utils";
 
@@ -64,7 +64,7 @@ export function ListingPhotos({ images, description }: ListingPhotosProps) {
         <>
             <div className={cn(
                 "grid grid-cols-1 md:grid-cols-4 gap-2 rounded-xl overflow-hidden",
-                imageCount === 1 ? "h-auto min-h-[200px]" : "h-[200px] md:h-[280px]"
+                imageCount === 1 ? "h-auto min-h-[300px]" : "h-[300px] md:h-[500px]"
             )}>
                 {/* Main Image */}
                 <div
@@ -81,7 +81,8 @@ export function ListingPhotos({ images, description }: ListingPhotosProps) {
                             "w-full h-full transition-transform duration-500 group-hover:scale-105",
                             imageCount === 1 ? "object-contain max-h-[400px] bg-black/5" : "object-cover"
                         )}
-                        fetchPriority="high"
+                        // @ts-expect-error - fetchpriority is valid HTML but not yet in React types
+                        fetchpriority="high"
                         decoding="sync"
                     />
                     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
@@ -145,6 +146,8 @@ export function ListingPhotos({ images, description }: ListingPhotosProps) {
             {/* Lightbox */}
             <Dialog open={isLightboxOpen} onOpenChange={setIsLightboxOpen}>
                 <DialogContent className="max-w-[95vw] h-[90vh] p-0 bg-black/95 border-none shadow-none flex flex-col items-center justify-center [&>button]:hidden">
+                    <DialogTitle className="sr-only">Listing Image Lightbox</DialogTitle>
+                    <DialogDescription className="sr-only">View full screen listing images</DialogDescription>
                     <div className="relative w-full h-full flex items-center justify-center">
                         <img
                             src={getImageUrl(images[activeImageIndex])}

@@ -75,7 +75,7 @@ const Footer = ({ className }: FooterProps) => {
           <div>
             <h3 className="font-semibold mb-4">Quick Links</h3>
             <ul className="space-y-2 text-sm text-muted-foreground">
-              <li><a href="#" className="hover:text-primary transition-colors">Find Rooms</a></li>
+              <li><Link to="/rooms" className="hover:text-primary transition-colors">Find Rooms</Link></li>
               <li>
                 <Link to="/roommates" className="hover:text-primary transition-colors flex flex-col items-start leading-none">
                   Find Roommates
@@ -84,7 +84,7 @@ const Footer = ({ className }: FooterProps) => {
                   </span>
                 </Link>
               </li>
-              <li><a href="#" className="hover:text-primary transition-colors">Post a Room</a></li>
+              <li><Link to="/create-listing" className="hover:text-primary transition-colors">Post a Room</Link></li>
               <li><a href="#" className="hover:text-primary transition-colors">How It Works</a></li>
             </ul>
           </div>
@@ -95,8 +95,8 @@ const Footer = ({ className }: FooterProps) => {
             <ul className="space-y-2 text-sm text-muted-foreground">
               <li><a href="#" className="hover:text-primary transition-colors">Help Center</a></li>
               <li><a href="#" className="hover:text-primary transition-colors">Safety Tips</a></li>
-              <li><a href="#" className="hover:text-primary transition-colors">Terms of Service</a></li>
-              <li><a href="#" className="hover:text-primary transition-colors">Privacy Policy</a></li>
+              <li><Link to="/terms" className="hover:text-primary transition-colors">Terms of Service</Link></li>
+              <li><Link to="/privacy" className="hover:text-primary transition-colors">Privacy Policy</Link></li>
             </ul>
           </div>
 
@@ -106,8 +106,8 @@ const Footer = ({ className }: FooterProps) => {
             <ul className="space-y-3 text-sm text-muted-foreground">
               <li className="flex items-center gap-2">
                 <Mail className="h-4 w-4" />
-                <a href="mailto:shivamchoudhary.roomiecircle@gmail.com" className="hover:text-primary transition-colors">
-                  shivamchoudhary.roomiecircle@gmail.com
+                <a href="mailto:support@roomiecircle.com" className="hover:text-primary transition-colors">
+                  support@roomiecircle.com
                 </a>
               </li>
               <li className="flex items-center gap-2">

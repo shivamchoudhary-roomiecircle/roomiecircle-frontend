@@ -20,9 +20,9 @@ export const useSearchFilters = () => {
     const [location, setLocation] = useState("");
     const [placeId, setPlaceId] = useState("");
     const [priceType, setPriceType] = useState("monthly");
-    const [minPrice, setMinPrice] = useState("");
-    const [maxPrice, setMaxPrice] = useState("");
-    const [radius, setRadius] = useState(10);
+    const [minPrice, setMinPrice] = useState("0");
+    const [maxPrice, setMaxPrice] = useState("50000");
+    const [radius, setRadius] = useState(5);
     const [urgency, setUrgency] = useState<Urgency | undefined>(undefined);
     const [propertyTypes, setPropertyTypes] = useState<PropertyType[]>([]);
     const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);

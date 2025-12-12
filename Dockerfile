@@ -4,6 +4,7 @@ WORKDIR /app
 
 # Copy package files
 COPY package*.json ./
+
 # Use --legacy-peer-deps to ignore potential Bun/NPM conflicts
 RUN npm install --legacy-peer-deps
 
@@ -20,9 +21,6 @@ RUN npm run build -- --mode ${BUILD_MODE}
 # Print the contents of the /app folder. 
 # Do we see 'dist'? Do we see 'build'?
 RUN echo "=== CONTENTS OF /app ===" && ls -la /app
-
-# --- 🔍 DETECTIVE STEP 2 🔍 ---
-# Print the contents of the output folder (if it exists)
 RUN echo "=== CONTENTS OF /app/dist ===" && ls -la /app/dist || echo "DIST FOLDER NOT FOUND"
 
 # Stage 2: Serve

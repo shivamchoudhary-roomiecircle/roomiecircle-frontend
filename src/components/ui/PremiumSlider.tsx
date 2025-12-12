@@ -7,12 +7,14 @@ interface PremiumSliderProps {
     onCommit: (value: number) => void;
     min?: number; // Ignored in favor of fixed scale, kept for compatibility
     max?: number; // Ignored in favor of fixed scale, kept for compatibility
+    hideValue?: boolean;
 }
 
 export const PremiumSlider: React.FC<PremiumSliderProps> = ({
     value,
     onChange,
-    onCommit
+    onCommit,
+    hideValue = false
 }) => {
     // Generate non-linear scale values
     const radiusValues = useMemo(() => {
@@ -101,25 +103,29 @@ export const PremiumSlider: React.FC<PremiumSliderProps> = ({
         }
     };
 
+
+
     return (
         <div className="PB-range-slider-div">
-            {isEditing ? (
-                <input
-                    autoFocus
-                    type="number"
-                    value={inputValue}
-                    onChange={handleInputChange}
-                    onBlur={handleInputBlur}
-                    onKeyDown={handleKeyDown}
-                    className="w-12 text-center text-sm border rounded p-1"
-                />
-            ) : (
-                <div
-                    className="PB-range-slidervalue text-sm cursor-pointer hover:underline"
-                    onClick={() => setIsEditing(true)}
-                >
-                    {value} km
-                </div>
+            {!hideValue && (
+                isEditing ? (
+                    <input
+                        autoFocus
+                        type="number"
+                        value={inputValue}
+                        onChange={handleInputChange}
+                        onBlur={handleInputBlur}
+                        onKeyDown={handleKeyDown}
+                        className="w-12 text-center text-sm border rounded p-1"
+                    />
+                ) : (
+                    <div
+                        className="PB-range-slidervalue text-sm cursor-pointer hover:underline"
+                        onClick={() => setIsEditing(true)}
+                    >
+                        {value} km
+                    </div>
+                )
             )}
             <input
                 type="range"

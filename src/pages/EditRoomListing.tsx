@@ -1,247 +1,133 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
-import { listingsApi, mediaApi } from "@/lib/api";
-import { useConfig } from "@/contexts/ConfigContext";
-import { toast } from "@/hooks/use-toast";
+import { listingsApi } from "@/lib/api";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { useToast } from "@/hooks/use-toast";
+import { Loader2, ArrowLeft, MapPin, Trash2, Archive, Power, PowerOff, AlertTriangle } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Home, DollarSign, MapPin, Bed, Users, Image as ImageIcon, Star, X, ArrowLeft, Plus } from "lucide-react";
-import { LocationAutocomplete } from "@/components/search/LocationAutocomplete";
-import { IconRenderer } from "@/lib/iconMapper";
-import { convertFileToJpeg } from "@/lib/image-utils";
-import UploadPhotosContent from "../components/listing/UploadPhotos";
-import { PhotoUploadGrid } from "@/components/listing/PhotoUploadGrid";
-import { SortablePhotoGrid } from "@/components/listing/SortablePhotoGrid";
-interface RoommateData {
-  name: string;
-  gender: string;
-  age: number;
-  profession: string;
-  bio: string;
-}
+import { ListingFormData } from "@/components/listing-form/types";
 
-const EditableField = ({
-  label,
-  value,
-  onSave,
-  type = "text",
-  options = [],
-  placeholder = "Click to edit",
-  multiline = false,
-  className = ""
-}: {
-  label: string;
-  value: any;
-  onSave: (val: any) => void;
-  type?: "text" | "number" | "date" | "select";
-  options?: { label: string; value: string; symbol?: string }[];
-  placeholder?: string;
-  multiline?: boolean;
-  className?: string;
-}) => {
-  const [isEditing, setIsEditing] = useState(false);
-  const [tempValue, setTempValue] = useState(value);
+// Sections
+import { BasicDetailsSection } from "@/components/listing-form/BasicDetailsSection";
+import { PricingSection } from "@/components/listing-form/PricingSection";
+import { LocationSection } from "@/components/listing-form/LocationSection";
+import { AmenitiesSection } from "@/components/listing-form/AmenitiesSection";
+import { RoommatesSection } from "@/components/listing-form/RoommatesSection";
+import { PreferencesSection } from "@/components/listing-form/PreferencesSection";
+import { NeighborhoodSection } from "@/components/listing-form/NeighborhoodSection";
+import { PhotosSection } from "@/components/listing-form/PhotosSection";
 
-  useEffect(() => {
-    setTempValue(value);
-  }, [value]);
-
-  const handleSave = () => {
-    onSave(tempValue);
-    setIsEditing(false);
-  };
-
-  const handleCancel = () => {
-    setTempValue(value);
-    setIsEditing(false);
-  };
-
-  if (isEditing) {
-    return (
-      <div className="space-y-2 mb-4 p-4 border rounded-lg bg-muted/20 animate-in fade-in zoom-in-95 duration-200">
-        <Label>{label}</Label>
-        {type === "select" ? (
-          <Select value={tempValue} onValueChange={setTempValue}>
-            <SelectTrigger>
-              <SelectValue placeholder={placeholder} />
-            </SelectTrigger>
-            <SelectContent>
-              {options.map((opt) => (
-                <SelectItem key={opt.value} value={opt.value}>
-                  <div className="flex items-center gap-2">
-                    {opt.symbol && <IconRenderer symbol={opt.symbol} />}
-                    <span>{opt.label}</span>
-                  </div>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        ) : multiline ? (
-          <Textarea
-            value={tempValue}
-            onChange={(e) => setTempValue(e.target.value)}
-            placeholder={placeholder}
-            rows={4}
-          />
-        ) : (
-          <Input
-            type={type}
-            value={tempValue}
-            onChange={(e) => setTempValue(e.target.value)}
-            placeholder={placeholder}
-          />
-        )}
-        <div className="flex gap-2 justify-end mt-2">
-          <Button size="sm" variant="ghost" onClick={handleCancel}>Cancel</Button>
-          <Button size="sm" onClick={handleSave}>Done</Button>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div
-      className={`py-4 border-b border-border/50 cursor-pointer hover:bg-muted/30 transition-colors flex justify-between items-center group ${className}`}
-      onClick={() => setIsEditing(true)}
-    >
-      <span className="text-muted-foreground font-medium">{label}</span>
-      <div className="flex items-center gap-2 text-right">
-        <span className="font-medium text-foreground max-w-[200px] truncate">
-          {type === "select"
-            ? options.find((o) => o.value === value)?.label || value || <span className="text-muted-foreground italic">Not set</span>
-            : value || <span className="text-muted-foreground italic">Not set</span>}
-        </span>
-        <span className="opacity-0 group-hover:opacity-100 text-xs text-primary transition-opacity">Edit</span>
-      </div>
-    </div>
-  );
-};
+// Existing Components
+import UploadPhotosContent from "@/components/listing/UploadPhotos";
 
 export default function EditRoomListing() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const listingId = searchParams.get("id");
-  const { config, loading: configLoading } = useConfig();
+  const location = useLocation();
+  const { toast } = useToast();
 
-  const [loading, setLoading] = useState(false);
-  const [uploadingImages, setUploadingImages] = useState(false);
+
+  const listingId = searchParams.get("id");
+  const step = searchParams.get("step") || "details";
   const [listingStatus, setListingStatus] = useState<"ACTIVE" | "INACTIVE">("ACTIVE");
 
+  const [loading, setLoading] = useState(false);
 
-  const [step, setStep] = useState<'details' | 'photos'>('details');
-  const [isLifestyleModalOpen, setIsLifestyleModalOpen] = useState(false);
-  const [customLifestyle, setCustomLifestyle] = useState("");
-
-  const [formData, setFormData] = useState({
+  // Initial State matching ListingFormData
+  const [formData, setFormData] = useState<ListingFormData>({
     description: "",
-    monthlyRent: "",
-    maintenance: "",
-    maintenanceIncluded: false,
-    deposit: "",
+    roomType: "",
+    bhkType: "",
+    floor: 0,
     availableDate: "",
+    propertyType: [],
+    monthlyRent: 0,
+    deposit: 0,
+    maintenance: 0,
+    maintenanceIncluded: false,
     addressText: "",
     placeId: "",
-    latitude: 0,
-    longitude: 0,
-    roomType: "",
-    propertyType: [] as string[],
-    bhkType: "",
-    floor: "",
-    hasBalcony: false,
-    hasPrivateWashroom: false,
-    hasFurniture: false,
-    amenities: [] as string[],
-    images: [] as { id: number; url: string; isUploading?: boolean }[],
+    amenities: [],
+    roommates: [], // RoommateData[]
     minAge: "",
     maxAge: "",
     gender: "",
     profession: "",
-    lifestyle: [] as string[],
-    roommates: [] as RoommateData[],
+    lifestyle: [],
     neighborhoodReview: "",
-    neighborhoodRatings: {
-      safety: 0,
-      connectivity: 0,
-      amenities: 0,
-    },
-    neighborhoodImages: [] as { id: number; url: string; isUploading?: boolean }[],
+    neighborhoodRatings: { safety: 0, connectivity: 0, amenities: 0 },
+    neighborhoodImages: [],
+    images: [],
   });
 
-  const location = useLocation();
+  // Transform API response to Form Data
+  const transformListingToFormData = (listing: any): ListingFormData => {
+    // Helper to safely get mapped amenities
+    // API might return a Map<String, Boolean> (object) or Array<String>
+    // We need Array<String> for the form
+    let mappedAmenities: string[] = [];
+    if (Array.isArray(listing.amenities)) {
+      mappedAmenities = listing.amenities;
+    } else if (listing.amenities && typeof listing.amenities === 'object') {
+      mappedAmenities = Object.keys(listing.amenities).filter(key => listing.amenities[key] === true);
+    }
 
-  // Helper to transform listing data to form data
-  const transformListingToFormData = (listing: any) => {
+    const preferences = listing.roommatePreferences || listing.preferences || {};
+
     return {
       description: listing.description || "",
-      monthlyRent: listing.monthlyRent ? listing.monthlyRent.toString() : "",
-      maintenance: listing.maintenance ? listing.maintenance.toString() : "",
-      maintenanceIncluded: listing.maintenanceIncluded || false,
-      deposit: listing.deposit ? listing.deposit.toString() : "",
-      availableDate: listing.availableDate || "",
-      addressText: listing.addressText || "",
-      placeId: listing.placeId || "",
-      latitude: listing.latitude || 0,
-      longitude: listing.longitude || 0,
-      roomType: listing.roomType || "",
+      roomType: listing.type?.toLowerCase() || listing.roomType?.toLowerCase() || "",
+      bhkType: typeof listing.bhk === 'string' ? listing.bhk : (listing.bhk !== undefined ? listing.bhk.toString() : (listing.bhkType !== undefined ? listing.bhkType.toString() : "")),
+      floor: listing.floor || 0,
+      availableDate: listing.availableFrom ? new Date(listing.availableFrom).toISOString() : (listing.availableDate ? new Date(listing.availableDate).toISOString() : ""),
+
+      // Property type can be array or string in different API versions/contexts
       propertyType: Array.isArray(listing.propertyType)
         ? listing.propertyType
-        : listing.propertyType
-          ? [listing.propertyType]
-          : [],
-      bhkType: listing.bhkType || "",
-      floor: listing.floor ? listing.floor.toString() : "",
-      hasBalcony: listing.hasBalcony || false,
-      hasPrivateWashroom: listing.hasPrivateWashroom || false,
-      hasFurniture: listing.hasFurniture || false,
-      amenities: (() => {
-        // Handle different amenities formats
-        if (Array.isArray(listing.amenities)) {
-          return listing.amenities;
-        }
-        if (listing.amenities && typeof listing.amenities === 'object') {
-          // Extract amenity keys from nested structure like { in_home: [{ key: "air_conditioning" }], on_property: [...] }
-          const amenityKeys: string[] = [];
-          Object.values(listing.amenities).forEach((category: any) => {
-            if (Array.isArray(category)) {
-              category.forEach((item: any) => {
-                // Handle both { key: "air_conditioning" } and direct string formats
-                if (typeof item === 'string') {
-                  amenityKeys.push(item);
-                } else if (item && item.key) {
-                  amenityKeys.push(item.key);
-                } else if (item && typeof item === 'object') {
-                  // If it's an object without 'key', try to use the value directly
-                  amenityKeys.push(item);
-                }
-              });
-            }
-          });
-          return amenityKeys;
-        }
-        return [];
-      })(),
-      images: Array.isArray(listing.images)
-        ? listing.images.map((img: any) => typeof img === 'string' ? { id: 0, url: img } : { id: img.id, url: img.url })
-        : [],
-      minAge: listing.roommatePreferences?.minAge ? listing.roommatePreferences.minAge.toString() : "",
-      maxAge: listing.roommatePreferences?.maxAge ? listing.roommatePreferences.maxAge.toString() : "",
-      gender: listing.roommatePreferences?.gender || "",
-      profession: listing.roommatePreferences?.profession || "",
-      lifestyle: listing.roommatePreferences?.lifestyle || [],
-      roommates: (listing.existingRoommates || []).map((r: any) => ({
+        : (listing.propertyType ? [listing.propertyType] : (Array.isArray(listing.propertyTypes) ? listing.propertyTypes : [])),
+
+
+      monthlyRent: listing.monthlyRent || 0,
+      deposit: listing.deposit || 0,
+      maintenance: listing.maintenance || 0,
+      maintenanceIncluded: listing.maintenanceCovered || listing.maintenanceIncluded || false,
+
+      addressText: listing.address || listing.addressText || "",
+      placeId: listing.placeId || "",
+
+      amenities: mappedAmenities,
+
+      images: Array.isArray(listing.photos)
+        ? listing.photos.map((img: any) => typeof img === 'string' ? { id: 0, url: img } : { id: img.id, url: img.url })
+        : (Array.isArray(listing.images) ? listing.images.map((img: any) => typeof img === 'string' ? { id: 0, url: img } : { id: img.id, url: img.url }) : []),
+
+      roommates: (listing.existingRoommates || listing.roommates || []).map((r: any) => ({
         name: r.name,
         gender: r.gender || "",
         age: r.age || 0,
         profession: r.profession || "",
         bio: r.bio || ""
       })),
+
+      // Preferences
+      minAge: preferences.minAge ? preferences.minAge.toString() : "",
+      maxAge: preferences.maxAge ? preferences.maxAge.toString() : "",
+      gender: preferences.gender || "",
+      profession: preferences.profession || preferences.occupation || "",
+      lifestyle: preferences.lifestyle || [],
+
       neighborhoodReview: listing.neighborhoodReview || "",
       neighborhoodRatings: {
         safety: listing.neighborhoodRatings?.safety || 0,
@@ -254,38 +140,29 @@ export default function EditRoomListing() {
     };
   };
 
-  // Fetch listing data when editing
   useEffect(() => {
     const fetchListingData = async () => {
       if (!listingId) return;
 
-      // Check if we have listing data in location state
       if (location.state?.listing) {
-        console.log("Using listing data from navigation state");
         const listing = location.state.listing;
-        if (listing.status) {
-          setListingStatus(listing.status as "ACTIVE" | "INACTIVE");
-        }
+        if (listing.status) setListingStatus(listing.status);
+        // Note: location.state.listing might be DTO, might need simpler transform if it matches DTO
+        // We'll reuse the generic transform but ensure it handles DTO shape
+        // For now, let's assume we fetch fresh to be safe or map carefully
         setFormData(transformListingToFormData(listing));
         return;
       }
 
       try {
         setLoading(true);
-        const response = await listingsApi.getRoomDetails(listingId);
-        // Handle response structure - could be response.data or response directly
-        const listing = response;
-
-        if (listing.status) {
-          setListingStatus(listing.status as "ACTIVE" | "INACTIVE");
-        }
-
-        // Transform and prefill form data
-        setFormData(transformListingToFormData(listing));
+        const response = await listingsApi.getRoomListingById(listingId);
+        if (response.status) setListingStatus(response.status as any);
+        setFormData(transformListingToFormData(response));
       } catch (error: any) {
         toast({
           title: "Error",
-          description: error?.message || "Failed to load listing data. Please try again.",
+          description: error?.message || "Failed to load listing data.",
           variant: "destructive",
         });
         navigate("/my-listings");
@@ -295,158 +172,109 @@ export default function EditRoomListing() {
     };
 
     fetchListingData();
-  }, [listingId, navigate, location.state]);
+  }, [listingId, navigate, location.state, toast]);
 
-  // Helper function to update listing
   const updateListing = async (updates: any) => {
     if (!listingId) return;
-
     try {
       await listingsApi.updateRoom(listingId, updates);
-      toast({
-        title: "Saved",
-        description: "Changes saved successfully",
-        duration: 2000,
-      });
-    } catch (error: any) {
+      toast({ title: "Saved", description: "Changes saved successfully", duration: 1000 });
+    } catch (error) {
       console.error("Failed to update listing:", error);
-      toast({
-        title: "Error",
-        description: "Failed to save changes",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "Failed to save changes", variant: "destructive" });
     }
   };
 
-
-
-  const handleFieldChange = (field: string, value: any) => {
+  const handleChange = (field: string, value: any) => {
     let parsedValue = value;
-    if (field === "monthlyRent" || field === "maintenance" || field === "deposit" ||
-      field === "floor" || field === "minAge" || field === "maxAge") {
+    // Number parsing logic
+    if (["monthlyRent", "maintenance", "deposit", "floor", "minAge", "maxAge"].includes(field)) {
       parsedValue = value === "" ? "" : parseInt(value);
     }
 
     setFormData(prev => ({ ...prev, [field]: parsedValue }));
 
-    // Handle nested roommate preferences
-    if (['minAge', 'maxAge', 'gender', 'profession'].includes(field)) {
-      const currentPreferences = {
+    // Prepare API updates
+    // Map internal fields to API fields
+    const updates: any = {};
+
+    // Direct mapping for most
+    if (field === "roomType") updates.type = parsedValue;
+    else if (field === "bhkType") updates.bhk = parsedValue; // API expects String or Enum?
+    else if (field === "availableDate") updates.availableFrom = parsedValue;
+    else if (field === "maintenanceIncluded") updates.maintenanceCovered = parsedValue;
+    else if (field === "addressText") updates.address = parsedValue;
+    else if (field === "placeId") updates.placeId = parsedValue;
+    else if (field === "amenities") updates.amenities = parsedValue;
+    else if (["monthlyRent", "deposit", "maintenance", "floor", "description", "neighborhoodReview"].includes(field)) {
+      updates[field] = parsedValue;
+    }
+    else if (field === "images" || field === "neighborhoodImages") {
+      // Did we upload? Usually images component handles upload separately, this State is just for UI
+      // But if we reorder, we might need to send updates? The section handles reorder API calls.
+      return;
+    }
+    else if (field === "roommates") {
+      updates.existingRoommates = parsedValue;
+    }
+    else if (field === "neighborhoodRatings") {
+      updates.neighborhoodRatings = parsedValue;
+    }
+    else if (field === "propertyType") {
+      updates.propertyType = parsedValue; // API expects array
+    }
+
+    // Preferences Handling
+    if (["minAge", "maxAge", "gender", "profession", "lifestyle"].includes(field)) {
+      const currentPrefs = {
         minAge: field === 'minAge' ? parsedValue : (formData.minAge ? parseInt(formData.minAge) : undefined),
         maxAge: field === 'maxAge' ? parsedValue : (formData.maxAge ? parseInt(formData.maxAge) : undefined),
         gender: field === 'gender' ? parsedValue : formData.gender,
         profession: field === 'profession' ? parsedValue : formData.profession,
-        lifestyle: formData.lifestyle
+        lifestyle: field === 'lifestyle' ? parsedValue : formData.lifestyle
       };
-      updateListing({ roommatePreferences: currentPreferences });
-    } else {
-      updateListing({ [field]: parsedValue });
+      updates.roommatePreferences = currentPrefs;
+    }
+
+    // Booleans (hasBalcony etc) -> removed from UI, handled via amenities only.
+
+    if (Object.keys(updates).length > 0) {
+      updateListing(updates);
     }
   };
 
-  const handleNestedFieldChange = (parent: string, field: string, value: any) => {
-    setFormData(prev => {
-      const updatedParent = { ...(prev[parent as keyof typeof prev] as any), [field]: value };
-      updateListing({ [parent]: updatedParent });
-      return {
-        ...prev,
-        [parent]: updatedParent
-      };
-    });
-  };
+  const handleStatusChange = async (newStatus: "ACTIVE" | "INACTIVE" | "ARCHIVED") => {
+    if (!listingId) return;
+    try {
+      await listingsApi.updateRoomStatus(listingId, newStatus);
+      setListingStatus(newStatus === "ARCHIVED" ? "INACTIVE" : newStatus); // UI treats Archived as Inactive or we might redirect? 
+      // Actually checking api.types.ts, status is string. 
+      // If archived, maybe we redirect to my-listings? 
 
-  const handleAmenityToggle = (amenity: string) => {
-    setFormData(prev => {
-      const newAmenities = prev.amenities.includes(amenity)
-        ? prev.amenities.filter(a => a !== amenity)
-        : [...prev.amenities, amenity];
-      updateListing({ amenities: newAmenities });
-      return { ...prev, amenities: newAmenities };
-    });
-  };
+      toast({
+        title: "Status Updated",
+        description: `Listing is now ${newStatus.toLowerCase()}.`
+      });
 
-  const handlePropertyTypeToggle = (propertyType: string) => {
-    setFormData(prev => {
-      const newPropertyTypes = prev.propertyType.includes(propertyType)
-        ? prev.propertyType.filter(p => p !== propertyType)
-        : [...prev.propertyType, propertyType];
-      updateListing({ propertyType: newPropertyTypes });
-      return { ...prev, propertyType: newPropertyTypes };
-    });
-  };
-
-  const handleLifestyleToggle = (lifestyle: string) => {
-    setFormData(prev => {
-      const newLifestyle = prev.lifestyle.includes(lifestyle)
-        ? prev.lifestyle.filter(l => l !== lifestyle)
-        : [...prev.lifestyle, lifestyle];
-
-      // Update with nested structure
-      const currentPreferences = {
-        minAge: prev.minAge ? parseInt(prev.minAge) : undefined,
-        maxAge: prev.maxAge ? parseInt(prev.maxAge) : undefined,
-        gender: prev.gender,
-        profession: prev.profession,
-        lifestyle: newLifestyle
-      };
-      updateListing({ roommatePreferences: currentPreferences });
-
-      return { ...prev, lifestyle: newLifestyle };
-    });
-  };
-
-  const handleAddCustomLifestyle = () => {
-    if (!customLifestyle.trim()) return;
-    const val = customLifestyle.trim();
-    if (!formData.lifestyle.includes(val)) {
-      handleLifestyleToggle(val);
-      setCustomLifestyle("");
-      toast({ title: "Added", description: `${val} added to your preferences.` });
-    } else {
-      toast({ title: "Already added", description: "This preference is already selected." });
-    }
-  };
-
-  const handleAddRoommate = () => {
-    setFormData(prev => {
-      const newRoommates = [...prev.roommates, { name: "", gender: "", age: 0, profession: "", bio: "" }];
-      updateListing({ roommates: newRoommates });
-      return { ...prev, roommates: newRoommates };
-    });
-  };
-
-  const handleRoommateChange = (index: number, field: keyof RoommateData, value: any) => {
-    setFormData(prev => {
-      const newRoommates = prev.roommates.map((r, i) => i === index ? { ...r, [field]: value } : r);
-      return { ...prev, roommates: newRoommates };
-    });
-  };
-
-  // Special handler for roommate inputs to save on blur
-  const handleRoommateBlur = (index: number) => {
-    updateListing({ roommates: formData.roommates });
-  };
-
-  const handleRemoveRoommate = (index: number) => {
-    setFormData(prev => {
-      const newRoommates = prev.roommates.filter((_, i) => i !== index);
-      updateListing({ roommates: newRoommates });
-      return { ...prev, roommates: newRoommates };
-    });
-  };
-
-  const handleLocationChange = (value: string, placeId?: string) => {
-    setFormData(prev => {
-      const updates = {
-        addressText: value,
-        placeId: placeId || "",
-      };
-      // Only save if we have a placeId or it's cleared
-      if (placeId || value === "") {
-        updateListing(updates);
+      if (newStatus === "ARCHIVED") {
+        navigate("/my-listings");
       }
-      return { ...prev, ...updates };
-    });
+    } catch (error) {
+      console.error("Failed to update status:", error);
+      toast({ title: "Error", description: "Failed to update listing status", variant: "destructive" });
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!listingId) return;
+    try {
+      await listingsApi.deleteRoom(listingId);
+      toast({ title: "Deleted", description: "Listing deleted successfully" });
+      navigate("/my-listings");
+    } catch (error) {
+      console.error("Failed to delete room:", error);
+      toast({ title: "Error", description: "Failed to delete listing", variant: "destructive" });
+    }
   };
 
 
@@ -458,7 +286,6 @@ export default function EditRoomListing() {
     );
   }
 
-
   return (
     <div className="min-h-screen">
       <Navbar />
@@ -466,7 +293,7 @@ export default function EditRoomListing() {
       <div className="container mx-auto px-4 py-8 max-w-7xl">
         {step === 'details' ? (
           <>
-            {/* Header Section */}
+            {/* Header */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
               <div className="flex items-center gap-2">
                 <Button
@@ -477,7 +304,7 @@ export default function EditRoomListing() {
                 >
                   <ArrowLeft className="h-5 w-5" />
                 </Button>
-                <h1 className="text-2xl">Your Room</h1>
+                <h1 className="text-2xl font-bold">Your Room</h1>
               </div>
 
               {formData.addressText && (
@@ -491,660 +318,135 @@ export default function EditRoomListing() {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              {/* Left Column: Details, Pricing, Location, Amenities, Preferences, Roommates */}
+              {/* Left Column */}
               <div className="space-y-8">
-                {/* Basic Details Section */}
-                <div>
-                  <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-xl font-semibold">Room Photos</h2>
-                    <span className="text-sm text-muted-foreground">{formData.images.length}/8</span>
-                  </div>
+                <PhotosSection formData={formData} onChange={handleChange} listingId={listingId || ""} />
 
-                  <PhotoUploadGrid
-                    listingId={listingId || ""}
-                    flow="listing"
-                    images={formData.images}
-                    onImagesChange={(newImages) => {
-                      setFormData(prev => ({ ...prev, images: newImages }));
-                    }}
-                  />
-                </div>
-                <div>
-                  <h2 className="text-xl font-semibold mb-4">Details</h2>
-                  <div className="bg-card rounded-lg border shadow-sm px-4">
-                    <EditableField
-                      label="Description"
-                      value={formData.description}
-                      onSave={(val) => handleFieldChange("description", val)}
-                      multiline
-                    />
-                    <EditableField
-                      label="Room Type"
-                      value={formData.roomType}
-                      onSave={(val) => handleFieldChange("roomType", val)}
-                      type="select"
-                      options={config?.roomTypes || []}
-                    />
-                    <EditableField
-                      label="BHK Type"
-                      value={formData.bhkType}
-                      onSave={(val) => handleFieldChange("bhkType", val)}
-                      type="select"
-                      options={config?.bhkTypes || []}
-                    />
-                    <EditableField
-                      label="Floor"
-                      value={formData.floor}
-                      onSave={(val) => handleFieldChange("floor", val)}
-                      type="number"
-                    />
-                    <EditableField
-                      label="Available From"
-                      value={formData.availableDate}
-                      onSave={(val) => handleFieldChange("availableDate", val)}
-                      type="date"
-                    />
+                <BasicDetailsSection formData={formData} onChange={handleChange} />
 
-                    {/* Property Types - Custom handling for multi-select/checkboxes */}
-                    <div className="py-4 border-b border-border/50">
-                      <span className="text-muted-foreground font-medium block mb-2">Property Type</span>
-                      <div className="flex flex-wrap gap-2">
-                        {config?.propertyTypes?.map(type => (
-                          <div
-                            key={type.value}
-                            className={`px-3 py-1.5 rounded-full text-sm border cursor-pointer transition-colors ${formData.propertyType.includes(type.value)
-                              ? "bg-primary text-primary-foreground border-primary"
-                              : "bg-background hover:bg-muted"
-                              }`}
-                            onClick={() => handlePropertyTypeToggle(type.value)}
-                          >
-                            <div className="flex items-center gap-1.5">
-                              <IconRenderer symbol={type.symbol} />
-                              <span>{type.label}</span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
+                <PricingSection formData={formData} onChange={handleChange} />
 
-                    {/* Boolean Toggles */}
-                    <div className="py-4 flex flex-wrap gap-4">
-                      <div
-                        className={`flex items-center gap-2 px-3 py-1.5 rounded-full border cursor-pointer ${formData.hasBalcony ? "bg-primary text-primary-foreground" : "bg-background"}`}
-                        onClick={() => {
-                          const newVal = !formData.hasBalcony;
-                          handleFieldChange("hasBalcony", newVal);
-                        }}
-                      >
-                        <span>Has Balcony</span>
-                      </div>
-                      <div
-                        className={`flex items-center gap-2 px-3 py-1.5 rounded-full border cursor-pointer ${formData.hasPrivateWashroom ? "bg-primary text-primary-foreground" : "bg-background"}`}
-                        onClick={() => {
-                          const newVal = !formData.hasPrivateWashroom;
-                          handleFieldChange("hasPrivateWashroom", newVal);
-                        }}
-                      >
-                        <span>Private Washroom</span>
-                      </div>
-                      <div
-                        className={`flex items-center gap-2 px-3 py-1.5 rounded-full border cursor-pointer ${formData.hasFurniture ? "bg-primary text-primary-foreground" : "bg-background"}`}
-                        onClick={() => {
-                          const newVal = !formData.hasFurniture;
-                          handleFieldChange("hasFurniture", newVal);
-                        }}
-                      >
-                        <span>Furnished</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                <LocationSection formData={formData} onChange={handleChange} />
 
-                {/* Pricing Section */}
-                <div>
-                  <h2 className="text-xl font-semibold mb-4">Pricing</h2>
-                  <div className="bg-card rounded-lg border shadow-sm px-4">
-                    <EditableField
-                      label="Monthly Rent (₹)"
-                      value={formData.monthlyRent}
-                      onSave={(val) => handleFieldChange("monthlyRent", val)}
-                      type="number"
-                    />
-                    <EditableField
-                      label="Security Deposit (₹)"
-                      value={formData.deposit}
-                      onSave={(val) => handleFieldChange("deposit", val)}
-                      type="number"
-                    />
-                    <EditableField
-                      label="Maintenance (₹)"
-                      value={formData.maintenance}
-                      onSave={(val) => handleFieldChange("maintenance", val)}
-                      type="number"
-                    />
+                <AmenitiesSection formData={formData} onChange={handleChange} />
 
-                    <div className="py-4 flex items-center justify-between">
-                      <span className="text-muted-foreground font-medium">Maintenance Included</span>
-                      <div
-                        className={`flex items-center gap-2 px-3 py-1.5 rounded-full border cursor-pointer ${formData.maintenanceIncluded ? "bg-primary text-primary-foreground" : "bg-background"}`}
-                        onClick={() => {
-                          const newVal = !formData.maintenanceIncluded;
-                          handleFieldChange("maintenanceIncluded", newVal);
-                        }}
-                      >
-                        <span>{formData.maintenanceIncluded ? "Yes" : "No"}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Location Section */}
-                <div>
-                  <h2 className="text-xl font-semibold mb-4">Location</h2>
-                  <div className="bg-card rounded-lg border shadow-sm px-4 py-4">
-                    <Label className="text-muted-foreground font-medium mb-2 block">Address</Label>
-                    {formData.addressText ? (
-                      <div className="group relative">
-                        <p className="text-foreground font-medium pr-8">{formData.addressText}</p>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="absolute top-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                          onClick={() => setFormData(prev => ({ ...prev, addressText: "" }))} // Clear to edit
-                        >
-                          Change
-                        </Button>
-                      </div>
-                    ) : (
-                      <LocationAutocomplete
-                        value={formData.addressText}
-                        onChange={handleLocationChange}
-                        placeholder="Search for your address..."
-                      />
-                    )}
-                    {/* Fallback if address is cleared, show autocomplete */}
-                    {formData.addressText === "" && (
-                      <div className="mt-2">
-                        <LocationAutocomplete
-                          value={formData.addressText}
-                          onChange={handleLocationChange}
-                          placeholder="Search for your address..."
-                        />
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Amenities Section */}
-                <div>
-                  <h2 className="text-xl font-semibold mb-4">Amenities</h2>
-                  <div className="bg-card rounded-lg border shadow-sm px-4 py-4">
-                    {config?.amenities && (
-                      <div className="space-y-6">
-                        <div>
-                          <h3 className="text-sm font-medium text-muted-foreground mb-3">In Home</h3>
-                          <div className="flex flex-wrap gap-2">
-                            {config.amenities.in_home.map(amenity => (
-                              <div
-                                key={amenity.value}
-                                className={`px-3 py-1.5 rounded-full text-sm border cursor-pointer transition-colors flex items-center gap-2 ${formData.amenities.includes(amenity.value)
-                                  ? "bg-primary text-primary-foreground border-primary"
-                                  : "bg-background hover:bg-muted"
-                                  }`}
-                                onClick={() => handleAmenityToggle(amenity.value)}
-                              >
-                                <IconRenderer symbol={amenity.symbol} />
-                                <span>{amenity.label}</span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-
-                        <div>
-                          <h3 className="text-sm font-medium text-muted-foreground mb-3">On Property</h3>
-                          <div className="flex flex-wrap gap-2">
-                            {config.amenities.on_property.map(amenity => (
-                              <div
-                                key={amenity.value}
-                                className={`px-3 py-1.5 rounded-full text-sm border cursor-pointer transition-colors flex items-center gap-2 ${formData.amenities.includes(amenity.value)
-                                  ? "bg-primary text-primary-foreground border-primary"
-                                  : "bg-background hover:bg-muted"
-                                  }`}
-                                onClick={() => handleAmenityToggle(amenity.value)}
-                              >
-                                <IconRenderer symbol={amenity.symbol} />
-                                <span>{amenity.label}</span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-
-                        <div>
-                          <h3 className="text-sm font-medium text-muted-foreground mb-3">Safety</h3>
-                          <div className="flex flex-wrap gap-2">
-                            {config.amenities.safety.map(amenity => (
-                              <div
-                                key={amenity.value}
-                                className={`px-3 py-1.5 rounded-full text-sm border cursor-pointer transition-colors flex items-center gap-2 ${formData.amenities.includes(amenity.value)
-                                  ? "bg-primary text-primary-foreground border-primary"
-                                  : "bg-background hover:bg-muted"
-                                  }`}
-                                onClick={() => handleAmenityToggle(amenity.value)}
-                              >
-                                <IconRenderer symbol={amenity.symbol} />
-                                <span>{amenity.label}</span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-
-                {/* Existing Roommates Section */}
-                <div>
-                  <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-xl font-semibold">Roommates</h2>
-                    <Button variant="outline" size="sm" onClick={handleAddRoommate}>
-                      Add Roommate
-                    </Button>
-                  </div>
-                  <div className="space-y-4">
-                    {formData.roommates.map((roommate, index) => (
-                      <div key={index} className="bg-card rounded-lg border shadow-sm p-4 relative group">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive"
-                          onClick={() => handleRemoveRoommate(index)}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                          <div>
-                            <Label className="text-xs text-muted-foreground">Name</Label>
-                            <Input
-                              value={roommate.name}
-                              onChange={(e) => handleRoommateChange(index, "name", e.target.value)}
-                              onBlur={() => handleRoommateBlur(index)}
-                              className="mt-1"
-                              placeholder="Name"
-                            />
-                          </div>
-                          <div>
-                            <Label className="text-xs text-muted-foreground">Gender</Label>
-                            <Select
-                              value={roommate.gender}
-                              onValueChange={(v) => {
-                                handleRoommateChange(index, "gender", v);
-                                const newRoommates = formData.roommates.map((r, i) => i === index ? { ...r, gender: v } : r);
-                                updateListing({ roommates: newRoommates });
-                              }}
-                            >
-                              <SelectTrigger className="mt-1">
-                                <SelectValue placeholder="Select gender" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {config?.genders?.map(option => (
-                                  <SelectItem key={option.value} value={option.value}>
-                                    {option.label}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div>
-                            <Label className="text-xs text-muted-foreground">Age</Label>
-                            <Input
-                              type="number"
-                              value={roommate.age || ""}
-                              onChange={(e) => handleRoommateChange(index, "age", parseInt(e.target.value))}
-                              onBlur={() => handleRoommateBlur(index)}
-                              className="mt-1"
-                              placeholder="Age"
-                            />
-                          </div>
-                          <div>
-                            <Label className="text-xs text-muted-foreground">Profession</Label>
-                            <Select
-                              value={roommate.profession}
-                              onValueChange={(v) => {
-                                handleRoommateChange(index, "profession", v);
-                                const newRoommates = formData.roommates.map((r, i) => i === index ? { ...r, profession: v } : r);
-                                updateListing({ roommates: newRoommates });
-                              }}
-                            >
-                              <SelectTrigger className="mt-1">
-                                <SelectValue placeholder="Select profession" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {config?.professions?.map(prof => (
-                                  <SelectItem key={prof.value} value={prof.value}>
-                                    {prof.label}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        </div>
-                        <div>
-                          <Label className="text-xs text-muted-foreground">Bio</Label>
-                          <Textarea
-                            value={roommate.bio}
-                            onChange={(e) => handleRoommateChange(index, "bio", e.target.value)}
-                            onBlur={() => handleRoommateBlur(index)}
-                            className="mt-1"
-                            placeholder="Tell us about this roommate..."
-                            rows={2}
-                          />
-                        </div>
-                      </div>
-                    ))}
-                    {formData.roommates.length === 0 && (
-                      <div className="text-center py-8 text-muted-foreground bg-muted/20 rounded-lg border border-dashed">
-                        No roommates added yet
-                      </div>
-                    )}
-                  </div>
-                </div>
+                <RoommatesSection formData={formData} onChange={handleChange} />
               </div>
 
-
-              {/* Right Column: Photos, Neighborhood */}
+              {/* Right Column */}
               <div className="space-y-8">
-                {/* Photos Section */}
+                <PreferencesSection formData={formData} onChange={handleChange} />
 
-                {/* Roommate Preferences Section */}
-                <div>
-                  <h2 className="text-xl font-semibold mb-4">Roommate Preferences</h2>
-                  <div className="bg-card rounded-lg border shadow-sm px-4">
-                    <EditableField
-                      label="Min Age"
-                      value={formData.minAge}
-                      onSave={(val) => handleFieldChange("minAge", val)}
-                      type="number"
-                    />
-                    <EditableField
-                      label="Max Age"
-                      value={formData.maxAge}
-                      onSave={(val) => handleFieldChange("maxAge", val)}
-                      type="number"
-                    />
-                    <EditableField
-                      label="Preferred Gender"
-                      value={formData.gender}
-                      onSave={(val) => handleFieldChange("gender", val)}
-                      type="select"
-                      options={config?.genders || []}
-                    />
-                    <EditableField
-                      label="Preferred Profession"
-                      value={formData.profession}
-                      onSave={(val) => handleFieldChange("profession", val)}
-                      type="select"
-                      options={config?.professions || []}
-                    />
+                <NeighborhoodSection formData={formData} onChange={handleChange} listingId={listingId || ""} />
+              </div>
+            </div>
 
-                    <div className="py-4 border-b border-border/50">
-                      <span className="text-muted-foreground font-medium block mb-2">Lifestyle Preferences</span>
-                      <div className="flex flex-wrap gap-2">
-                        {formData.lifestyle.map(value => {
-                          const configItem = config?.lifestylePreferences?.find(i => i.value === value);
-                          return (
-                            <div
-                              key={value}
-                              className="px-3 py-1.5 rounded-full text-sm border bg-primary text-primary-foreground border-primary flex items-center gap-2"
-                            >
-                              {configItem ? <IconRenderer symbol={configItem.symbol} /> : null}
-                              <span>{configItem ? configItem.label : value}</span>
-                            </div>
-                          );
-                        })}
-                        <button
-                          onClick={() => setIsLifestyleModalOpen(true)}
-                          className="px-3 py-1.5 rounded-full text-sm border border-dashed border-muted-foreground/50 hover:border-primary hover:text-primary hover:bg-primary/5 transition-all flex items-center gap-1 text-muted-foreground"
-                        >
-                          <Plus className="w-4 h-4" />
-                          <span>Add</span>
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+            {/* Danger Zone / Actions */}
+            <div className="mt-12 pt-8 border-t">
+              <h2 className="text-xl font-semibold mb-6 text-destructive flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5" />
+                Listing Actions
+              </h2>
 
+              <div className="flex flex-col md:flex-row gap-4 p-6 bg-secondary/20 rounded-lg border border-border">
+                {/* Activate/Deactivate */}
+                {listingStatus === "ACTIVE" ? (
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="outline" className="flex-1 gap-2 border-orange-500/50 hover:bg-orange-500/10 text-orange-600 hover:text-orange-700">
+                        <PowerOff className="h-4 w-4" />
+                        Deactivate Listing
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Deactivate this listing?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This will hide your listing from search results. You can reactivate it later at any time.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => handleStatusChange("INACTIVE")}>
+                          Deactivate
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                ) : (
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="outline" className="flex-1 gap-2 border-green-500/50 hover:bg-green-500/10 text-green-600 hover:text-green-700">
+                        <Power className="h-4 w-4" />
+                        Activate Listing
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Activate this listing?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This will make your listing visible to all users in search results.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => handleStatusChange("ACTIVE")}>
+                          Activate
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                )}
 
+                {/* Archive - Only if not already archived (simplified: we don't have explicit archived check in UI state yet, assuming active/inactive cover main flows. If we want archive, it's usually a soft delete or 'hide forever but keep data') */}
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="outline" className="flex-1 gap-2 border-muted-foreground/50 hover:bg-muted/50">
+                      <Archive className="h-4 w-4" />
+                      Archive Listing
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Archive this listing?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Archiving will move this listing to your archives. It won't be visible in search.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={() => handleStatusChange("ARCHIVED")}>
+                        Archive
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
 
-                {/* Neighborhood Photos Section */}
-                {/* Neighborhood Details Section */}
-                <div>
-                  <h2 className="text-sm uppercase tracking-widest text-muted-foreground/80 font-bold mb-4 bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent w-fit">Neighborhood Details</h2>
-                  <div className="rounded-xl border border-white/20 bg-white/5 backdrop-blur-md shadow-lg p-6 hover:bg-white/10 transition-colors duration-300">
-                    <EditableField
-                      label="Neighborhood Review"
-                      value={formData.neighborhoodReview}
-                      onSave={(val) => handleFieldChange("neighborhoodReview", val)}
-                      multiline
-                    />
+                <div className="w-px bg-border hidden md:block" />
 
-                    <div className="py-4 space-y-4">
-                      <div className="flex items-center justify-between">
-                        <Label>Safety Rating</Label>
-                        <div className="flex items-center gap-1">
-                          {[1, 2, 3, 4, 5].map((star) => (
-                            <button
-                              key={star}
-                              type="button"
-                              onClick={() => handleNestedFieldChange("neighborhoodRatings", "safety", star)}
-                              className="focus:outline-none focus:ring-2 focus:ring-primary rounded"
-                            >
-                              <Star
-                                className={`h-6 w-6 transition-colors ${star <= formData.neighborhoodRatings.safety
-                                  ? "fill-yellow-400 text-yellow-400"
-                                  : "fill-none text-muted-foreground"
-                                  }`}
-                              />
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-
-                      <div className="flex items-center justify-between">
-                        <Label>Connectivity Rating</Label>
-                        <div className="flex items-center gap-1">
-                          {[1, 2, 3, 4, 5].map((star) => (
-                            <button
-                              key={star}
-                              type="button"
-                              onClick={() => handleNestedFieldChange("neighborhoodRatings", "connectivity", star)}
-                              className="focus:outline-none focus:ring-2 focus:ring-primary rounded"
-                            >
-                              <Star
-                                className={`h-6 w-6 transition-colors ${star <= formData.neighborhoodRatings.connectivity
-                                  ? "fill-yellow-400 text-yellow-400"
-                                  : "fill-none text-muted-foreground"
-                                  }`}
-                              />
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-
-                      <div className="flex items-center justify-between">
-                        <Label>Amenities Rating</Label>
-                        <div className="flex items-center gap-1">
-                          {[1, 2, 3, 4, 5].map((star) => (
-                            <button
-                              key={star}
-                              type="button"
-                              onClick={() => handleNestedFieldChange("neighborhoodRatings", "amenities", star)}
-                              className="focus:outline-none focus:ring-2 focus:ring-primary rounded"
-                            >
-                              <Star
-                                className={`h-6 w-6 transition-colors ${star <= formData.neighborhoodRatings.amenities
-                                  ? "fill-yellow-400 text-yellow-400"
-                                  : "fill-none text-muted-foreground"
-                                  }`}
-                              />
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div>
-                  <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-xl font-semibold">Neighborhood Photos</h2>
-                    <span className="text-sm text-muted-foreground">{formData.neighborhoodImages.length}/8</span>
-                  </div>
-
-                  <SortablePhotoGrid
-                    images={formData.neighborhoodImages}
-                    onImagesChange={async (newImages) => {
-                      setFormData(prev => ({ ...prev, neighborhoodImages: newImages }));
-                      // Call reorder API
-                      if (listingId) {
-                        try {
-                          await mediaApi.reorderMedia(
-                            listingId,
-                            "IMAGE",
-                            "NEIGHBORHOOD",
-                            newImages.map(img => ({ id: img.id }))
-                          );
-                        } catch (error) {
-                          console.error("Failed to reorder images:", error);
-                          toast({
-                            title: "Error",
-                            description: "Failed to save image order",
-                            variant: "destructive",
-                          });
-                        }
-                      }
-                    }}
-                    onUpload={async (e) => {
-                      const files = e.target.files;
-                      if (!files || files.length === 0 || !listingId) return;
-
-                      // Check limit (8 per tag)
-                      if (formData.neighborhoodImages.length + files.length > 8) {
-                        toast({
-                          title: "Media limit exceeded",
-                          description: "You can upload a maximum of 8 neighborhood photos",
-                          variant: "destructive",
-                        });
-                        e.target.value = '';
-                        return;
-                      }
-
-                      // Create local preview URLs immediately
-                      const fileArray = Array.from(files);
-                      const previewItems = fileArray.map(file => ({ id: 0, url: URL.createObjectURL(file), isUploading: true }));
-                      const startIndex = formData.neighborhoodImages.length;
-
-                      // Add preview URLs immediately for instant feedback
-                      setFormData(prev => ({
-                        ...prev,
-                        neighborhoodImages: [...prev.neighborhoodImages, ...previewItems]
-                      }));
-
-                      setUploadingImages(true);
-                      try {
-                        const uploadPromises = fileArray.map(async (file: File, index) => {
-                          // Validate file type
-                          const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
-                          if (!validTypes.includes(file.type)) {
-                            throw new Error(`Invalid file type: ${file.type}. Please upload JPEG, PNG, or WebP images.`);
-                          }
-
-                          // Step 1: Request upload URL
-                          const { uploadId, presigned_url } = await mediaApi.requestMediaUploadUrl(
-                            listingId,
-                            "NEIGHBORHOOD",
-                            "IMAGE",
-                            file.type,
-                          );
-
-                          // Step 2: Upload to GCS
-                          const uploadResponse = await fetch(presigned_url, {
-                            method: 'PUT',
-                            headers: {
-                              'Content-Type': file.type,
-                            },
-                            body: file,
-                          });
-
-                          if (!uploadResponse.ok) {
-                            throw new Error(`Failed to upload ${file.name}`);
-                          }
-
-                          // Step 3: Confirm upload
-                          const confirmResponse = await mediaApi.confirmMediaUpload(uploadId);
-
-                          return {
-                            index: startIndex + index,
-                            mediaId: confirmResponse.id,
-                            url: confirmResponse.url || confirmResponse.fullUrl || presigned_url
-                          };
-                        });
-
-                        const results = await Promise.all(uploadPromises);
-
-                        // Replace preview URLs with actual URLs
-                        setFormData(prev => {
-                          const newImages = [...prev.neighborhoodImages];
-                          results.forEach(({ index, mediaId, url }) => {
-                            URL.revokeObjectURL(newImages[index].url);
-                            newImages[index] = { id: mediaId, url: url, isUploading: false };
-                          });
-
-                          return {
-                            ...prev,
-                            neighborhoodImages: newImages
-                          };
-                        });
-
-
-                        toast({
-                          title: "Success",
-                          description: `${results.length} photo(s) uploaded successfully`,
-                        });
-                      } catch (error: any) {
-                        // Check for media limit error
-                        if (error?.message?.includes("Media limit exceeded")) {
-                          toast({
-                            title: "Upload limit reached",
-                            description: "Maximum 8 photos per neighborhood listing",
-                            variant: "destructive",
-                          });
-                        } else {
-                          toast({
-                            title: "Error",
-                            description: error?.message || "Failed to upload photos. Please try again.",
-                            variant: "destructive",
-                          });
-                        }
-
-                        // Remove failed previews
-                        setFormData(prev => {
-                          const newImages = prev.neighborhoodImages.slice(0, startIndex);
-                          previewItems.forEach(item => URL.revokeObjectURL(item.url));
-                          return {
-                            ...prev,
-                            neighborhoodImages: newImages
-                          };
-                        });
-
-                      } finally {
-                        setUploadingImages(false);
-                        e.target.value = '';
-                      }
-                    }}
-                    uploadId="neighborhood-photo-upload"
-                  />
-                </div>
+                {/* Delete */}
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="destructive" className="flex-1 gap-2 bg-destructive/10 text-destructive hover:bg-destructive/20 border-destructive/20 border shadow-none">
+                      <Trash2 className="h-4 w-4" />
+                      Delete Listing
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Delete this listing?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This action cannot be undone. This will permanently delete your listing and all associated data including photos and roommate references.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">
+                        Delete Permanently
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </div>
             </div>
           </>
@@ -1156,88 +458,6 @@ export default function EditRoomListing() {
         )}
       </div>
       <Footer />
-
-      {/* Lifestyle Preferences Modal */}
-      {isLifestyleModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-          <div className="bg-card w-full max-w-2xl rounded-2xl shadow-2xl border border-border/50 flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200">
-            {/* Header */}
-            <div className="flex items-center justify-between p-6 border-b border-border/50">
-              <h3 className="text-xl font-semibold">Lifestyle Preferences</h3>
-              <Button variant="ghost" size="icon" onClick={() => setIsLifestyleModalOpen(false)} className="rounded-full hover:bg-muted">
-                <X className="w-5 h-5" />
-              </Button>
-            </div>
-
-            {/* Content */}
-            <div className="p-6 overflow-y-auto custom-scrollbar">
-              {/* Custom Tag Input */}
-              <div className="mb-8">
-                <Label className="text-sm font-medium text-muted-foreground mb-3 block">Add Custom Preference</Label>
-                <div className="flex gap-3">
-                  <Input
-                    value={customLifestyle}
-                    onChange={(e) => setCustomLifestyle(e.target.value)}
-                    placeholder="e.g. Early Riser, Yoga Lover..."
-                    className="flex-1"
-                    onKeyDown={(e) => e.key === 'Enter' && handleAddCustomLifestyle()}
-                  />
-                  <Button onClick={handleAddCustomLifestyle}>Add</Button>
-                </div>
-              </div>
-
-              {/* Predefined Tags */}
-              <div>
-                <Label className="text-sm font-medium text-muted-foreground mb-3 block">Popular Tags</Label>
-                <div className="flex flex-wrap gap-3">
-                  {config?.lifestylePreferences?.map(lifestyle => {
-                    const isSelected = formData.lifestyle.includes(lifestyle.value);
-                    return (
-                      <div
-                        key={lifestyle.value}
-                        className={`px-4 py-2 rounded-full text-sm border cursor-pointer transition-all duration-200 flex items-center gap-2 ${isSelected
-                          ? "bg-primary text-primary-foreground border-primary shadow-md transform scale-105"
-                          : "bg-background hover:bg-muted hover:border-primary/50"
-                          }`}
-                        onClick={() => handleLifestyleToggle(lifestyle.value)}
-                      >
-                        <IconRenderer symbol={lifestyle.symbol} />
-                        <span>{lifestyle.label}</span>
-                        {isSelected && <X className="w-3 h-3 ml-1 opacity-70" />}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Selected Custom Tags (that are not in config) */}
-              {formData.lifestyle.some(l => !config?.lifestylePreferences?.find(c => c.value === l)) && (
-                <div className="mt-8">
-                  <Label className="text-sm font-medium text-muted-foreground mb-3 block">Your Custom Tags</Label>
-                  <div className="flex flex-wrap gap-3">
-                    {formData.lifestyle.filter(l => !config?.lifestylePreferences?.find(c => c.value === l)).map(tag => (
-                      <div
-                        key={tag}
-                        className="px-4 py-2 rounded-full text-sm border bg-primary text-primary-foreground border-primary shadow-md flex items-center gap-2 cursor-pointer hover:bg-destructive hover:border-destructive transition-colors"
-                        onClick={() => handleLifestyleToggle(tag)}
-                      >
-                        <span>{tag}</span>
-                        <X className="w-3 h-3 ml-1 opacity-70" />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Footer */}
-            <div className="p-4 border-t border-border/50 bg-muted/20 rounded-b-2xl flex justify-end">
-              <Button onClick={() => setIsLifestyleModalOpen(false)}>Done</Button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div >
+    </div>
   );
-
 }

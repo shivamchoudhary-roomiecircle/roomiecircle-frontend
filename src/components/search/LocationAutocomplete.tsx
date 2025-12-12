@@ -107,7 +107,20 @@ export const LocationAutocomplete = ({
                       { location: { lat: latitude, lng: longitude } },
                       (results: any, status: any) => {
                         if (status === "OK" && results[0]) {
-                          onChange(results[0].formatted_address, results[0].place_id);
+                          console.log("Current location found:", {
+                            address: results[0].formatted_address,
+                            placeId: results[0].place_id,
+                            fullResult: results[0]
+                          });
+
+                          if (results[0].place_id) {
+                            onChange(results[0].formatted_address, results[0].place_id);
+                          } else {
+                            console.warn("Location found but missing place_id", results[0]);
+                            onChange(results[0].formatted_address);
+                          }
+                        } else {
+                          console.error("Geocoding failed for current location:", status);
                         }
                       }
                     );

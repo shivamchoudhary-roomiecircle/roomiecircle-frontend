@@ -5,10 +5,29 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { MyListingCard } from "@/components/MyListingCard";
+import { PropertyCard } from "@/components/shared/PropertyCard";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
 import { Plus, FileX } from "lucide-react";
 import { RoomListingDTO, MediaDto } from "@/types/api.types";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+
+interface ConfirmationState {
+  type: 'DEACTIVATE' | 'ACTIVATE' | 'ARCHIVE';
+  id: number;
+  title: string;
+  description: string;
+  action: () => Promise<void>;
+}
 
 const MyListings = () => {
   const navigate = useNavigate();
@@ -22,6 +41,7 @@ const MyListings = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [inactiveLoaded, setInactiveLoaded] = useState(false);
+  const [confirmation, setConfirmation] = useState<ConfirmationState | null>(null);
 
   const transformListing = (listing: any): RoomListingDTO => {
     return {
@@ -285,19 +305,100 @@ const MyListings = () => {
         {!isLoading && !error && currentListings.length > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {currentListings.map((listing) => (
-              <MyListingCard
+              <PropertyCard
                 key={listing.id}
-                listing={listing}
-                onEdit={handleEdit}
-                onArchive={handleArchive}
-                onStatusChange={handleStatusChange}
-              />
+                id={listing.id}
+                images={listing.images.map(img => ({ url: typeof img === 'string' ? img : img.url }))}
+                price={listing.monthlyRent}
+                address={listing.addressText}
+                badges={[
+                  <Badge key="status" variant={listing.status === 'ACTIVE' ? "default" : "secondary"}>
+                    {listing.status}
+                  </Badge>
+                ]}
+                footer={
+                  <div className="grid grid-cols-2 gap-2 mt-2">
+                    <Button variant="outline" size="sm" onClick={() => handleEdit(listing.id)}>
+                      Edit
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setConfirmation({
+                        type: listing.status === 'ACTIVE' ? 'DEACTIVATE' : 'ACTIVATE',
+                        id: listing.id,
+                        title: listing.status === 'ACTIVE' ? "Deactivate Listing?" : "Activate Listing?",
+                        description: listing.status === 'ACTIVE'
+                          ? "This will hide your listing from search results. You can reactivate it later at any time."
+                          : "This will make your listing visible to all users in search results.",
+                        action: () => handleStatusChange(listing.id, listing.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE')
+                      })}
+                    >
+                      {listing.status === 'ACTIVE' ? 'Deactivate' : 'Activate'}
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      className="col-span-2"
+                      onClick={() => setConfirmation({
+                        type: 'ARCHIVE',
+                        id: listing.id,
+                        title: "Archive Listing?",
+                        description: "Archiving will move this listing to your archives. It won't be visible in search.",
+                        action: () => handleArchive(listing.id)
+                      })}
+                    >
+                      Archive
+                    </Button>
+                  </div>
+                }
+              >
+                <div className="flex flex-col gap-1 text-sm text-muted-foreground mb-2">
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold text-foreground">
+                      {listing.bhkType !== null && listing.bhkType !== undefined ? ((listing.bhkType as any) === 0 ? "RK" : listing.bhkType + " BHK") : "Room"}
+                    </span>
+                    <span>•</span>
+                    <span>{listing.roomType}</span>
+                  </div>
+                  <div className="flex flex-wrap gap-1">
+                    {listing.propertyType.slice(0, 3).map((pt, i) => (
+                      <Badge key={i} variant="outline" className="text-[10px] h-5 px-1.5 font-normal">{pt}</Badge>
+                    ))}
+                  </div>
+                </div>
+              </PropertyCard>
             ))}
           </div>
         )}
       </main>
 
       <Footer />
+
+      {confirmation && (
+        <AlertDialog open={!!confirmation} onOpenChange={(open) => !open && setConfirmation(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>{confirmation.title}</AlertDialogTitle>
+              <AlertDialogDescription>
+                {confirmation.description}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => {
+                  confirmation.action();
+                  setConfirmation(null);
+                }}
+                className={confirmation.type === 'DEACTIVATE' || confirmation.type === 'ARCHIVE' ? "bg-destructive hover:bg-destructive/90" : ""}
+              >
+                {confirmation.type === 'DEACTIVATE' ? 'Deactivate' : confirmation.type === 'ARCHIVE' ? 'Archive' : 'Activate'}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
     </div>
   );
 };

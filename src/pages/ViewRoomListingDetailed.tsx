@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { searchApi } from "@/lib/api";
+import { chatApi } from "@/lib/api/chat";
+import { wishlistApi } from "@/lib/api/wishlist";
 import Navbar from "@/components/Navbar.tsx";
 import Footer from "@/components/Footer.tsx";
 import { Button } from "@/components/ui/button.tsx";
@@ -16,22 +18,43 @@ import { ListingAmenities } from "@/components/listing/ListingAmenities.tsx";
 import { ListingNeighborhood } from "@/components/listing/ListingNeighborhood.tsx";
 import { ListedBy } from "@/components/listing/ListedBy.tsx";
 import { User } from "lucide-react";
-import { useConfig } from "@/contexts/ConfigContext.tsx";
 import { IconRenderer } from "@/lib/iconMapper.tsx";
+import { PROFESSION_UI } from "@/constants/ui-constants";
+import { Profession } from "@api-docs/typescript/enums";
 import SEO from "@/components/SEO.tsx";
+import { useAuth } from "@/contexts/AuthContext";
+import { InboxItem } from "@/types/chat";
 
 export default function ViewRoomListingDetailed() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { config } = useConfig();
-  const [listing, setListing] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+
+  const { user, isAuthenticated } = useAuth();
+  const location = useLocation();
+  const [listing, setListing] = useState<any>(() => {
+    // Initial state from navigation if available (reuse photo)
+    if (location.state && location.state.previewImage) {
+      return {
+        id: id,
+        photos: [{ url: location.state.previewImage }],
+        // Add skeleton/loading indicators for other fields if needed or handle comfortably in UI
+        isLoadingPreview: true
+      };
+    }
+    return null;
+  });
+  const [loading, setLoading] = useState(!listing); // If we have listing (preview), we are not fully "loading" in the sense of empty screen, but we are fetching.
+  const [isWishlisted, setIsWishlisted] = useState(false);
 
   useEffect(() => {
     const fetchListing = async () => {
       if (!id) return;
       try {
-        setLoading(true);
+        // If we don't have a preview, show full loading state
+        if (!listing?.isLoadingPreview) {
+          setLoading(true);
+        }
+
         const response = await searchApi.getRoomDetailsForSearch(id);
         setListing(response);
       } catch (error) {
@@ -44,7 +67,102 @@ export default function ViewRoomListingDetailed() {
     };
 
     fetchListing();
+
   }, [id, navigate]);
+
+  // Check wishlist status
+  useEffect(() => {
+    const checkWishlistStatus = async () => {
+      if (!isAuthenticated || !id) {
+        setIsWishlisted(false);
+        return;
+      }
+
+      try {
+        // Fetch users wishlist to check if this room is in it
+        // Optimisation: ideally backend would return "isWishlisted" field in getRoomDetails
+        // or we have a specific endpoint to check status.
+        // For now, fetching recent wishlist items.
+        const response = await wishlistApi.getWishlist({ page: 0, size: 100 });
+        if (response.success && response.data) {
+          const found = response.data.content.some((item: any) => item.id.toString() === id);
+          setIsWishlisted(found);
+        }
+      } catch (error) {
+        console.error("Failed to check wishlist status", error);
+      }
+    };
+
+    checkWishlistStatus();
+  }, [id, isAuthenticated]);
+
+  const handleToggleWishlist = async () => {
+    if (!isAuthenticated) {
+      toast.error("Please login to manage your wishlist");
+      return;
+    }
+
+    if (!listing || !listing.id) return;
+
+    // Optimistic update
+    const previousState = isWishlisted;
+    setIsWishlisted(!previousState);
+
+    try {
+      if (previousState) {
+        // Remove
+        await wishlistApi.removeFromWishlist(listing.id);
+        toast.success("Removed from wishlist");
+      } else {
+        // Add
+        await wishlistApi.addToWishlist(listing.id);
+        toast.success("Added to wishlist");
+      }
+    } catch (error) {
+      // Revert
+      setIsWishlisted(previousState);
+      toast.error("Failed to update wishlist");
+      console.error("Wishlist toggle error:", error);
+    }
+  };
+
+  const handleStartChat = async () => {
+    if (!isAuthenticated) {
+      toast.error("Please login to start a chat");
+      // navigate("/login"); // or open login modal
+      return;
+    }
+
+    if (!listing || !listing.lister) return;
+
+    try {
+      const threadData = await chatApi.createThread({
+        targetUserId: listing.lister.id,
+        resourceType: "ROOM_LISTING",
+        resourceId: listing.id
+      });
+
+      if (threadData && threadData.id) {
+        // Construct a temporary InboxItem or use the response to format it
+        const newThread: InboxItem = {
+          threadId: threadData.id,
+          resourceType: threadData.resourceType,
+          resourceId: threadData.resourceId,
+          lastMessageAt: threadData.lastMessageAt,
+          lastMessagePreview: "Start of conversation",
+          unreadCount: 0
+        };
+
+        navigate("/messages", { state: { thread: newThread } });
+      } else {
+        toast.error("Failed to create chat thread");
+      }
+
+    } catch (error) {
+      console.error("Error creating thread:", error);
+      toast.error("Failed to start chat. Please try again.");
+    }
+  };
 
   if (loading) {
     return (
@@ -72,12 +190,14 @@ export default function ViewRoomListingDetailed() {
 
   if (!listing) return null;
 
+  const isLoadingPreview = listing.isLoadingPreview;
+
   return (
     <div className="min-h-screen flex flex-col">
       <SEO
-        title={`${listing.addressText} - ${listing.monthlyRent}/mo`}
-        description={listing.description || `Check out this room in ${listing.addressText} for ${listing.monthlyRent}.`}
-        keywords={['room for rent', listing.addressText, 'shared apartment', 'roomiecircle']}
+        title={isLoadingPreview ? "Loading..." : `${listing.addressText} - ${listing.monthlyRent}/mo`}
+        description={isLoadingPreview ? "Loading room details..." : (listing.description || `Check out this room in ${listing.addressText} for ${listing.monthlyRent}.`)}
+        keywords={['room for rent', isLoadingPreview ? '' : listing.addressText, 'shared apartment', 'roomiecircle']}
       />
       <Navbar />
 
@@ -92,23 +212,50 @@ export default function ViewRoomListingDetailed() {
             />
 
             {/* Details */}
-            <ListingDetails listing={listing} />
+            {isLoadingPreview ? (
+              <div className="space-y-3">
+                <Skeleton className="h-12 w-3/4" />
+                <Skeleton className="h-48 w-full" />
+              </div>
+            ) : (
+              <ListingDetails
+                listing={listing}
+                isWishlisted={isWishlisted}
+                onToggleWishlist={handleToggleWishlist}
+              />
+            )}
 
             {/* Listed By */}
-            <ListedBy lister={listing.lister} />
+            {isLoadingPreview ? (
+              <Skeleton className="h-24 w-full" />
+            ) : (
+              <ListedBy
+                lister={listing.lister}
+                onStartChat={handleStartChat}
+                isOwnListing={user?.id === listing.lister?.id}
+              />
+            )}
           </div>
 
 
           {/* Sidebar Column */}
           <div className="space-y-3">
             {/* Map Card */}
-            <ListingMap listing={listing} />
+            {isLoadingPreview ? (
+              <Skeleton className="h-[250px] w-full" />
+            ) : (
+              <ListingMap listing={listing} />
+            )}
 
             {/* Amenities Card */}
-            <ListingAmenities listing={listing} />
+            {isLoadingPreview ? (
+              <Skeleton className="h-[200px] w-full" />
+            ) : (
+              <ListingAmenities listing={listing} />
+            )}
 
             {/* Current Roommates Card */}
-            {listing.existingRoommates && listing.existingRoommates.length > 0 && (
+            {!isLoadingPreview && listing.existingRoommates && listing.existingRoommates.length > 0 && (
               <Card className="border border-border/50 shadow-md bg-card">
                 <CardHeader>
                   <CardTitle className="text-lg">Current Roommates</CardTitle>
@@ -124,8 +271,8 @@ export default function ViewRoomListingDetailed() {
                           <p className="font-medium">{roommate.name}</p>
                           <p className="text-xs text-muted-foreground">
                             {roommate.age}{' '}
-                            {roommate.profession && config?.professions?.find((p: any) => p.value === roommate.profession)?.label
-                              ? config.professions.find((p: any) => p.value === roommate.profession)?.label
+                            {roommate.profession && PROFESSION_UI[roommate.profession as Profession]?.label
+                              ? PROFESSION_UI[roommate.profession as Profession]?.label
                               : roommate.profession
                             }
                           </p>
@@ -143,11 +290,15 @@ export default function ViewRoomListingDetailed() {
             )}
 
             {/* Neighborhood */}
-            <ListingNeighborhood
-              review={listing.neighborhoodReview}
-              ratings={listing.neighborhoodRatings}
-              images={listing.neighborhoodImages?.map((img: any) => typeof img === 'string' ? img : img.url)}
-            />
+            {isLoadingPreview ? (
+              <Skeleton className="h-[150px] w-full" />
+            ) : (
+              <ListingNeighborhood
+                review={listing.neighborhoodReview}
+                ratings={listing.neighborhoodRatings}
+                images={listing.neighborhoodImages?.map((img: any) => typeof img === 'string' ? img : img.url)}
+              />
+            )}
           </div>
         </div>
       </main>

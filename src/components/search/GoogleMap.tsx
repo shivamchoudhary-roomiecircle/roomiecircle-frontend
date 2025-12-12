@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { useConfig } from "@/contexts/ConfigContext";
+import { PROPERTY_TYPE_UI, ROOM_TYPE_UI } from "@/constants/ui-constants";
+import { PropertyType, RoomType } from "@api-docs/typescript/enums";
 import { RoomSearchResultDTO } from "@/types/api.types";
 import { getImageUrl } from "@/lib/utils";
 
@@ -15,6 +16,10 @@ interface GoogleMapProps {
   onCenterChange?: (center: { lat: number; lng: number }) => void;
   radiusKm?: number;
   onInitialLocationFound?: (location: { lat: number; lng: number; address: string; placeId?: string }) => void;
+  showRadiusCircle?: boolean;
+  defaultZoom?: number;
+  gestureHandling?: 'cooperative' | 'greedy' | 'none' | 'auto';
+  pinDraggable?: boolean;
 }
 
 export const GoogleMap = ({
@@ -25,7 +30,11 @@ export const GoogleMap = ({
   showMovablePin = false,
   onCenterChange,
   radiusKm = 5,
-  onInitialLocationFound
+  onInitialLocationFound,
+  showRadiusCircle = true,
+  defaultZoom = 13,
+  gestureHandling = 'greedy',
+  pinDraggable = true
 }: GoogleMapProps) => {
   // Initialize Map
   useEffect(() => {
@@ -35,7 +44,7 @@ export const GoogleMap = ({
     const initMap = async () => {
       const el = mapRef.current;
       const google = (window as any).google;
-      if (!el || !google?.maps || mapInstanceRef.current) return;
+      if (!el || !google?.maps?.Map || mapInstanceRef.current) return;
 
       // Wait until the element is in the DOM and has size
       if (!el.isConnected || el.offsetWidth === 0 || el.offsetHeight === 0) return;
@@ -46,22 +55,15 @@ export const GoogleMap = ({
 
       mapInstanceRef.current = new google.maps.Map(el, {
         center: initialCenter,
-        zoom: 13,
+        zoom: defaultZoom,
         mapId: "DEMO_MAP_ID",
-        styles: [
-          {
-            featureType: "poi",
-            elementType: "labels",
-            stylers: [{ visibility: "off" }],
-          },
-        ],
         mapTypeControl: false,
         fullscreenControl: fullscreenControl,
         streetViewControl: false,
         zoomControl: false,
-        scrollwheel: false,
+        scrollwheel: checkScrollWheel(gestureHandling),
         disableDoubleClickZoom: true,
-        gestureHandling: 'greedy',
+        gestureHandling: gestureHandling,
       });
 
       // If no center provided, try geolocation asynchronously
@@ -155,7 +157,7 @@ export const GoogleMap = ({
         centerMarkerRef.current = new google.maps.Marker({
           position: initialCenter,
           map: mapInstanceRef.current,
-          draggable: true,
+          draggable: pinDraggable,
           icon: {
             url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(pinSvg),
             scaledSize: new google.maps.Size(50, 50),
@@ -205,7 +207,7 @@ export const GoogleMap = ({
     };
 
     const loadGoogleMaps = (): Promise<void> => {
-      if ((window as any).google?.maps) {
+      if ((window as any).google?.maps?.Map) {
         return Promise.resolve();
       }
 
@@ -266,7 +268,7 @@ export const GoogleMap = ({
     };
   }, []); // Run once on mount
 
-  const { config } = useConfig();
+
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
   const markersRef = useRef<any[]>([]);
@@ -286,32 +288,43 @@ export const GoogleMap = ({
 
       if (!currentCenter) return;
 
-      // Create circle if it doesn't exist
-      if (!radiusCircleRef.current) {
-        radiusCircleRef.current = new google.maps.Circle({
-          strokeColor: "#4B0082", // Indigo
-          strokeOpacity: 0.6,
-          strokeWeight: 2,
-          fillColor: "#4B0082",   // Indigo
-          fillOpacity: 0.15,      // Subtle transparency
-          map: mapInstanceRef.current,
-          center: currentCenter,
-          radius: (radiusKm || 5) * 1000,
-          clickable: false
-        });
-      } else {
-        // Update existing circle
-        radiusCircleRef.current.setCenter(currentCenter);
-        radiusCircleRef.current.setRadius((radiusKm || 5) * 1000);
-      }
+      // Create circle if it doesn't exist AND showRadiusCircle is true
+      if (showRadiusCircle) {
+        if (!radiusCircleRef.current) {
+          radiusCircleRef.current = new google.maps.Circle({
+            strokeColor: "#4B0082", // Indigo
+            strokeOpacity: 0.6,
+            strokeWeight: 2,
+            fillColor: "#4B0082",   // Indigo
+            fillOpacity: 0.15,      // Subtle transparency
+            map: mapInstanceRef.current,
+            center: currentCenter,
+            radius: (radiusKm || 5) * 1000,
+            clickable: false
+          });
+        } else {
+          // Update existing circle
+          radiusCircleRef.current.setCenter(currentCenter);
+          radiusCircleRef.current.setRadius((radiusKm || 5) * 1000);
+        }
 
-      // Fit bounds to circle with 0 padding for tighter fit
+      }
+    } else {
+      // If showRadiusCircle is false but circle exists, remove it
+      if (radiusCircleRef.current) {
+        radiusCircleRef.current.setMap(null);
+        radiusCircleRef.current = null;
+      }
+    }
+
+    // Fit bounds to circle only if enabled
+    if (showRadiusCircle && radiusCircleRef.current) {
       const bounds = radiusCircleRef.current.getBounds();
       if (bounds) {
         mapInstanceRef.current.fitBounds(bounds, 0);
       }
     }
-  }, [isMapReady, radiusKm, center]);
+  }, [isMapReady, radiusKm, center, showRadiusCircle]);
 
   // Sync circle with movable pin
   useEffect(() => {
@@ -330,7 +343,7 @@ export const GoogleMap = ({
       // the marker usually stays at center or moves with map.
       // The existing logic at line 137 syncs marker to map center.
       // We should also sync the circle.
-      if (centerMarkerRef.current) {
+      if (centerMarkerRef.current && radiusCircleRef.current) {
         radiusCircleRef.current.setCenter(mapInstanceRef.current.getCenter());
       }
     });
@@ -385,7 +398,7 @@ export const GoogleMap = ({
 
       // Helper to get property label
       const getPropertyLabel = (value: string) => {
-        return config?.propertyTypes?.find((t: any) => t.value === value)?.label || value;
+        return PROPERTY_TYPE_UI[value as PropertyType]?.label || value;
       };
 
       const infoWindow = new google.maps.InfoWindow({
@@ -395,7 +408,7 @@ export const GoogleMap = ({
               <div style="position: relative; height: 150px; width: 100%;">
                 <img src="${getImageUrl(listing.photos[0].url)}" style="width: 100%; height: 100%; object-fit: cover;" alt="Listing" />
                 <div style="position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.6); color: white; padding: 4px 8px; border-radius: 4px; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
-                  ${listing.roomType === 'entire_place' ? 'Full House' : 'Room'}
+                  ${ROOM_TYPE_UI[listing.roomType as RoomType]?.label || listing.roomType}
                 </div>
               </div>
             ` : ''}
@@ -453,7 +466,7 @@ export const GoogleMap = ({
 
       markersRef.current.push(marker);
     });
-  }, [isMapReady, listings, config]);
+  }, [isMapReady, listings]);
 
   // Update map center when center prop changes
   useEffect(() => {
@@ -468,4 +481,10 @@ export const GoogleMap = ({
       <div ref={mapRef} className="w-full h-full min-h-[400px]" />
     </div>
   );
+};
+
+const checkScrollWheel = (gestureHandling: string) => {
+  if (gestureHandling === 'cooperative') return true;
+  if (gestureHandling === 'none') return false;
+  return false;
 };

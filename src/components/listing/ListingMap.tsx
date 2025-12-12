@@ -32,6 +32,8 @@ export function ListingMap({ listing }: ListingMapProps) {
                             center={{ lat: listing.latitude, lng: listing.longitude }}
                             listings={[listing]}
                             fullscreenControl={false}
+                            showRadiusCircle={false}
+                            defaultZoom={15}
                         />
 
                         {/* Overlay to darken/blur slightly and hold the CTA */}
@@ -67,6 +69,8 @@ export function ListingMap({ listing }: ListingMapProps) {
                                 center={{ lat: listing.latitude, lng: listing.longitude }}
                                 listings={[listing]}
                                 fullscreenControl={false}
+                                showRadiusCircle={false}
+                                defaultZoom={15}
                             />
 
                             <Button

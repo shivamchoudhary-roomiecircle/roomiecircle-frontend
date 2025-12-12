@@ -13,7 +13,7 @@ export default defineConfig(({ mode }) => ({
     // In staging/production, VITE_API_BASE_URL will be used directly
     ...(mode === "development" && {
       proxy: {
-        "/api": {
+        "/api/": {
           target: "http://localhost:8080",
           changeOrigin: true,
           secure: false,
@@ -21,10 +21,14 @@ export default defineConfig(({ mode }) => ({
       },
     }),
   },
+  define: {
+    global: "window",
+  },
   plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      "@api-docs": path.resolve(__dirname, "./api-docs"),
     },
   },
 }));

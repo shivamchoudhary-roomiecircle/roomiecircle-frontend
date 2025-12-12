@@ -56,7 +56,7 @@ export const getMyRooms = async (status?: "ACTIVE" | "INACTIVE"): Promise<RoomLi
     return [];
 };
 
-export const getRoomDetails = async (roomId: string): Promise<RoomListingDTO> => {
+export const getRoomListingById = async (roomId: string): Promise<RoomListingDTO> => {
     const response = await apiClient.request<ApiResponse<RoomListingDTO>>(`/api/v1/listings/rooms/${roomId}`);
     return response.data!;
 };

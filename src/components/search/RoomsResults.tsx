@@ -1,13 +1,12 @@
 import { useState, useEffect, useRef } from "react";
-import { useConfig } from "@/contexts/ConfigContext";
 import { useDebounce } from "@/hooks/useDebounce";
 import { RoomsResultsListView } from "./RoomsResultsListView";
 import { RoomsResultsMapView } from "./RoomsResultsMapView";
 import { useSearchFilters } from "@/hooks/useSearchFilters";
 import { useRoomSearch } from "@/hooks/useRoomSearch";
+import { RoomsResultsHeader } from "./RoomsResultsHeader";
 
 export const RoomsResults = () => {
-  const { config } = useConfig();
   const [mapCenter, setMapCenter] = useState<{ lat: number; lng: number } | undefined>();
   const [viewMode, setViewMode] = useState<"list" | "map">("list");
 
@@ -64,6 +63,15 @@ export const RoomsResults = () => {
 
   return (
     <>
+      <RoomsResultsHeader
+        filters={filters}
+        setters={setters}
+        viewMode={viewMode}
+        setViewMode={setViewMode}
+        totalElements={totalElements}
+        isLoading={isLoading}
+      />
+
       <div className={viewMode === "list" ? "block" : "hidden"}>
         <RoomsResultsListView
           filters={filters}
