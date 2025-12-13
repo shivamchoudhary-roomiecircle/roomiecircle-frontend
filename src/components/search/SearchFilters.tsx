@@ -8,6 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, SlidersHorizontal } from "lucide-react";
 import { Urgency, PropertyType, RoomType, BhkType, Amenity } from "@/types/api.types";
+import { AMENITY_GROUPS } from "@/constants/ui-constants";
 
 interface SearchFiltersProps {
     urgency: Urgency | undefined;
@@ -60,43 +61,82 @@ export const SearchFilters = ({
         setAmenities([]);
     };
 
+    const renderFilterSection = <T extends string | number>(
+        title: string,
+        items: T[],
+        selectedItems: T[],
+        onChange: (items: T[]) => void,
+        formatLabel?: (item: T) => string
+    ) => (
+        <div className="space-y-4">
+            <Label className="text-base font-semibold text-foreground/90">{title}</Label>
+            <div className="flex flex-wrap gap-2.5">
+                {items.map((item) => {
+                    const isSelected = selectedItems.includes(item);
+                    return (
+                        <div
+                            key={item}
+                            onClick={() => {
+                                if (isSelected) {
+                                    onChange(selectedItems.filter((i) => i !== item));
+                                } else {
+                                    onChange([...selectedItems, item]);
+                                }
+                            }}
+                            className={`
+                                cursor-pointer px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 border select-none
+                                ${isSelected
+                                    ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                                    : "bg-background text-muted-foreground border-muted hover:border-foreground/20 hover:bg-accent/50"
+                                }
+                            `}
+                        >
+                            {formatLabel ? formatLabel(item) : String(item)}
+                        </div>
+                    );
+                })}
+            </div>
+        </div>
+    );
+
     return (
         <Sheet>
             <SheetTrigger asChild>
                 {trigger || (
-                    <Button variant="outline" className="h-10 rounded-full">
+                    <Button variant="outline" className="h-10 rounded-full border-muted/40 hover:bg-accent/50">
                         <Plus className="h-4 w-4 mr-2" />
                         Filters
                         {activeFiltersCount > 0 && (
-                            <Badge variant="secondary" className="ml-2 h-5 px-1.5 rounded-full text-[10px]">
+                            <Badge variant="secondary" className="ml-2 h-5 px-1.5 rounded-full text-[10px] bg-primary/10 text-primary">
                                 {activeFiltersCount}
                             </Badge>
                         )}
                     </Button>
                 )}
             </SheetTrigger>
-            <SheetContent className="overflow-y-auto w-full sm:max-w-md">
-                <SheetHeader className="flex flex-row items-center justify-between space-y-0">
-                    <SheetTitle>More Filters</SheetTitle>
+            <SheetContent className="overflow-y-auto w-full sm:max-w-[540px] p-0 gap-0">
+                <div className="sticky top-0 z-10 flex items-center justify-between px-6 py-4 bg-background/80 backdrop-blur-md border-b">
+                    <SheetTitle className="text-xl">Filters</SheetTitle>
                     <Button
                         variant="ghost"
                         size="sm"
-                        className="h-auto px-2 text-muted-foreground hover:text-foreground"
+                        className="h-8 px-3 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-full"
                         onClick={handleClearAll}
                     >
                         Clear All
                     </Button>
-                </SheetHeader>
-                <div className="space-y-6 mt-6">
+                </div>
 
-                    {/* Budget Filter - Only if props are provided (Mobile case) */}
+                <div className="px-6 py-6 pb-24 space-y-8">
+
+                    {/* Budget Filter (Mobile) */}
                     {setMinPrice && setMaxPrice && (
-                        <>
-                            <div className="space-y-4">
-                                <Label className="text-base font-medium">Budget Range</Label>
+                        <div className="space-y-4">
+                            <Label className="text-base font-semibold text-foreground/90">Budget</Label>
+                            <div className="p-4 rounded-xl border bg-card/50 space-y-4">
                                 <div className="flex gap-2">
                                     <Select value={priceType || "monthly"} onValueChange={setPriceType}>
-                                        <SelectTrigger className="w-full">
+                                        <SelectTrigger className="w-full bg-background border-muted/60 h-10 rounded-lg">
                                             <SelectValue />
                                         </SelectTrigger>
                                         <SelectContent>
@@ -106,38 +146,46 @@ export const SearchFilters = ({
                                     </Select>
                                 </div>
                                 <div className="flex items-center gap-3">
-                                    <Input
-                                        type="number"
-                                        placeholder="Min"
-                                        value={minPrice || ''}
-                                        onChange={(e) => setMinPrice(e.target.value)}
-                                    />
-                                    <span>-</span>
-                                    <Input
-                                        type="number"
-                                        placeholder="Max"
-                                        value={maxPrice || ''}
-                                        onChange={(e) => setMaxPrice(e.target.value)}
-                                    />
+                                    <div className="relative flex-1">
+                                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-medium">₹</span>
+                                        <Input
+                                            type="number"
+                                            className="pl-7 bg-background border-muted/60 h-10 rounded-lg"
+                                            placeholder="Min"
+                                            value={minPrice || ''}
+                                            onChange={(e) => setMinPrice(e.target.value)}
+                                        />
+                                    </div>
+                                    <span className="text-muted-foreground font-medium">-</span>
+                                    <div className="relative flex-1">
+                                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-medium">₹</span>
+                                        <Input
+                                            type="number"
+                                            className="pl-7 bg-background border-muted/60 h-10 rounded-lg"
+                                            placeholder="Max"
+                                            value={maxPrice || ''}
+                                            onChange={(e) => setMaxPrice(e.target.value)}
+                                        />
+                                    </div>
                                 </div>
                             </div>
-                            <Separator />
-                        </>
+                            <Separator className="my-6" />
+                        </div>
                     )}
 
-                    {/* Urgency Filter */}
-                    <div className="space-y-3">
-                        <Label className="text-base font-medium">Urgency</Label>
+                    {/* Urgency */}
+                    <div className="space-y-4">
+                        <Label className="text-base font-semibold text-foreground/90">Move-in Date</Label>
                         <Select
                             value={urgency || "any"}
                             onValueChange={(val) => setUrgency(val === "any" ? undefined : val as Urgency)}
                         >
-                            <SelectTrigger className="w-full">
-                                <SelectValue placeholder="Any" />
+                            <SelectTrigger className="w-full h-11 rounded-xl bg-background border-muted/60 hover:border-primary/40 transition-colors">
+                                <SelectValue placeholder="When do you want to move in?" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="any">Any</SelectItem>
-                                <SelectItem value={Urgency.IMMEDIATE}>Immediate</SelectItem>
+                                <SelectItem value="any">Anytime</SelectItem>
+                                <SelectItem value={Urgency.IMMEDIATE}>Immediately</SelectItem>
                                 <SelectItem value={Urgency.WITHIN_1_WEEK}>Within 1 Week</SelectItem>
                                 <SelectItem value={Urgency.WITHIN_1_MONTH}>Within 1 Month</SelectItem>
                                 <SelectItem value={Urgency.FLEXIBLE}>Flexible</SelectItem>
@@ -147,118 +195,96 @@ export const SearchFilters = ({
 
                     <Separator />
 
-                    {/* Room Type Filter (Multi-select) */}
-                    <div className="space-y-3">
-                        <Label className="text-base font-medium">Room Type</Label>
-                        <div className="flex flex-wrap gap-2">
-                            {(Object.values(RoomType) as RoomType[]).map((type) => {
-                                const isSelected = roomTypes.includes(type);
-                                return (
-                                    <Badge
-                                        key={type}
-                                        variant={isSelected ? "default" : "outline"}
-                                        className="cursor-pointer px-3 py-1.5 text-sm font-normal hover:bg-primary/90 hover:text-primary-foreground transition-colors"
-                                        onClick={() => {
-                                            if (isSelected) {
-                                                setRoomTypes(roomTypes.filter(t => t !== type));
-                                            } else {
-                                                setRoomTypes([...roomTypes, type]);
-                                            }
-                                        }}
-                                    >
-                                        {type.replace(/_/g, ' ')}
-                                    </Badge>
-                                );
-                            })}
-                        </div>
-                    </div>
+                    {/* Room Type */}
+                    {renderFilterSection(
+                        "Room Type",
+                        Object.values(RoomType) as RoomType[],
+                        roomTypes,
+                        setRoomTypes,
+                        (t) => t.replace(/_/g, ' ')
+                    )}
 
                     <Separator />
 
-                    {/* BHK Type Filter (Multi-select) */}
-                    <div className="space-y-3">
-                        <Label className="text-base font-medium">BHK Type</Label>
-                        <div className="flex flex-wrap gap-2">
-                            {(Object.values(BhkType) as BhkType[]).map((type) => {
-                                const isSelected = bhkTypes.includes(type);
-                                return (
-                                    <Badge
-                                        key={type}
-                                        variant={isSelected ? "default" : "outline"}
-                                        className="cursor-pointer px-3 py-1.5 text-sm font-normal hover:bg-primary/90 hover:text-primary-foreground transition-colors"
-                                        onClick={() => {
-                                            if (isSelected) {
-                                                setBhkTypes(bhkTypes.filter(t => t !== type));
-                                            } else {
-                                                setBhkTypes([...bhkTypes, type]);
-                                            }
-                                        }}
-                                    >
-                                        {type.replace(/_/g, ' ')}
-                                    </Badge>
-                                );
-                            })}
-                        </div>
-                    </div>
+                    {/* BHK configuration */}
+                    {renderFilterSection(
+                        "BHK Configuration",
+                        Object.values(BhkType) as BhkType[],
+                        bhkTypes,
+                        setBhkTypes,
+                        (t) => t.replace(/_/g, ' ')
+                    )}
 
                     <Separator />
 
-                    {/* Property Type Filter (Multi-select) */}
-                    <div className="space-y-3">
-                        <Label className="text-base font-medium">Property Type</Label>
-                        <div className="flex flex-wrap gap-2">
-                            {(Object.values(PropertyType) as PropertyType[]).map((type) => {
-                                const isSelected = propertyTypes.includes(type);
-                                return (
-                                    <Badge
-                                        key={type}
-                                        variant={isSelected ? "default" : "outline"}
-                                        className="cursor-pointer px-3 py-1.5 text-sm font-normal hover:bg-primary/90 hover:text-primary-foreground transition-colors"
-                                        onClick={() => {
-                                            if (isSelected) {
-                                                setPropertyTypes(propertyTypes.filter(t => t !== type));
-                                            } else {
-                                                setPropertyTypes([...propertyTypes, type]);
-                                            }
-                                        }}
-                                    >
-                                        {type.replace(/_/g, ' ')}
-                                    </Badge>
-                                );
-                            })}
-                        </div>
-                    </div>
+                    {/* Property Type */}
+                    {renderFilterSection(
+                        "Property Type",
+                        Object.values(PropertyType) as PropertyType[],
+                        propertyTypes,
+                        setPropertyTypes,
+                        (t) => t.replace(/_/g, ' ')
+                    )}
 
                     <Separator />
 
-                    {/* Amenities Filter (Multi-select) */}
-                    <div className="space-y-3">
-                        <Label className="text-base font-medium">Amenities</Label>
-                        <div className="grid grid-cols-1 gap-3">
-                            {(Object.values(Amenity) as Amenity[]).map((item) => (
-                                <div key={item} className="flex items-center gap-2">
-                                    <Checkbox
-                                        id={`amenity-${item}`}
-                                        checked={amenities.includes(item)}
-                                        onCheckedChange={(checked) => {
-                                            if (checked) {
-                                                setAmenities([...amenities, item]);
-                                            } else {
-                                                setAmenities(amenities.filter((a) => a !== item));
-                                            }
-                                        }}
-                                    />
-                                    <label
-                                        htmlFor={`amenity-${item}`}
-                                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-                                    >
-                                        {item.replace(/_/g, ' ')}
-                                    </label>
+                    {/* Amenities - Grouped */}
+                    <div className="space-y-6">
+                        <div className="flex items-center justify-between">
+                            <Label className="text-lg font-semibold">Amenities</Label>
+                        </div>
+
+                        {Object.entries(AMENITY_GROUPS).map(([groupTitle, items]) => {
+                            // Correctly formatting the group title: IN_ROOM -> In Room
+                            const displayTitle = groupTitle.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ') + " Amenities";
+                            return (
+                                <div key={groupTitle} className="space-y-3">
+                                    <Label className="text-sm font-medium text-muted-foreground uppercase tracking-wider text-[11px]">{displayTitle}</Label>
+                                    <div className="flex flex-wrap gap-2.5">
+                                        {items.map((uiConfig) => {
+                                            const itemValue = uiConfig.value as Amenity;
+                                            const isSelected = amenities.includes(itemValue);
+                                            return (
+                                                <div
+                                                    key={itemValue}
+                                                    onClick={() => {
+                                                        if (isSelected) {
+                                                            setAmenities(amenities.filter((a) => a !== itemValue));
+                                                        } else {
+                                                            setAmenities([...amenities, itemValue]);
+                                                        }
+                                                    }}
+                                                    className={`
+                                                        cursor-pointer px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 border select-none flex items-center gap-2
+                                                        ${isSelected
+                                                            ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                                                            : "bg-background text-muted-foreground border-muted hover:border-foreground/20 hover:bg-accent/50"
+                                                        }
+                                                    `}
+                                                >
+                                                    {/* We could add icons here if available in AMENITY_UI */}
+                                                    {uiConfig.label}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
                                 </div>
-                            ))}
-                        </div>
+                            );
+                        })}
                     </div>
 
+                </div>
+
+                {/* Footer with Apply button (Mobile sticky) */}
+                <div className="sticky bottom-0 border-t bg-background p-4 flex justify-between items-center z-10">
+                    <div className="text-sm text-muted-foreground font-medium">
+                        {activeFiltersCount > 0 ? `${activeFiltersCount} filters active` : "No filters active"}
+                    </div>
+                    <SheetTrigger asChild>
+                        <Button className="rounded-full px-8 font-semibold">
+                            Show Results
+                        </Button>
+                    </SheetTrigger>
                 </div>
             </SheetContent>
         </Sheet>

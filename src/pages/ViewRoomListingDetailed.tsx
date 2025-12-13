@@ -20,7 +20,7 @@ import { ListedBy } from "@/components/listing/ListedBy.tsx";
 import { User } from "lucide-react";
 import { IconRenderer } from "@/lib/iconMapper.tsx";
 import { PROFESSION_UI } from "@/constants/ui-constants";
-import { Profession } from "@api-docs/typescript/enums";
+import { Profession } from "../types/api.types";
 import SEO from "@/components/SEO.tsx";
 import { useAuth } from "@/contexts/AuthContext";
 import { InboxItem } from "@/types/chat";

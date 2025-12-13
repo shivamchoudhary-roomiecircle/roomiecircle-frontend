@@ -8,8 +8,12 @@ export const chatApi = {
         return response.data || [];
     },
 
-    getMessages: async (threadId: number, page: number = 0, size: number = 20) => {
-        const response = await apiClient.request<ApiResponse<PagedResponse<Message>>>(`/api/v1/messages?threadId=${threadId}&page=${page}&size=${size}`);
+    getMessages: async (threadId: number, page: number = 0, size: number = 20, lastSeenId?: number) => {
+        let url = `/api/v1/messages?threadId=${threadId}&page=${page}&size=${size}`;
+        if (lastSeenId) {
+            url += `&lastSeenId=${lastSeenId}`;
+        }
+        const response = await apiClient.request<ApiResponse<PagedResponse<Message>>>(url);
         return response.data;
     },
 

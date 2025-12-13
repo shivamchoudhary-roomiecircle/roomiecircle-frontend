@@ -257,8 +257,10 @@ export const Amenity = {
   PRIVATE_BATH: 'PRIVATE_BATH',
   FURNISHED: 'FURNISHED',
   AIR_CONDITIONING: 'AIR_CONDITIONING',
+  BALCONY: 'BALCONY',
   // ON_PROPERTY
   ELEVATOR: 'ELEVATOR',
+  GYM: 'GYM',
   DOORMAN: 'DOORMAN',
   SWIMMING_POOL: 'SWIMMING_POOL',
   FREE_PARKING: 'FREE_PARKING',
@@ -268,6 +270,73 @@ export const Amenity = {
 } as const;
 
 export type Amenity = typeof Amenity[keyof typeof Amenity];
+
+export const Gender = {
+  MALE: 'MALE',
+  FEMALE: 'FEMALE',
+  ANY: 'ANY',
+  NOT_SURE_YET: 'NOT_SURE_YET'
+} as const;
+
+export type Gender = typeof Gender[keyof typeof Gender];
+
+export const Profession = {
+  SOFTWARE_ENGINEER: 'SOFTWARE_ENGINEER',
+  DATA_SCIENTIST: 'DATA_SCIENTIST',
+  PRODUCT_MANAGER: 'PRODUCT_MANAGER',
+  DESIGNER: 'DESIGNER',
+  MARKETING: 'MARKETING',
+  SALES: 'SALES',
+  CONSULTANT: 'CONSULTANT',
+  DOCTOR: 'DOCTOR',
+  NURSE: 'NURSE',
+  TEACHER: 'TEACHER',
+  LAWYER: 'LAWYER',
+  ACCOUNTANT: 'ACCOUNTANT',
+  FINANCIAL_ANALYST: 'FINANCIAL_ANALYST',
+  RESEARCHER: 'RESEARCHER',
+  STUDENT: 'STUDENT',
+  ENTREPRENEUR: 'ENTREPRENEUR',
+  FREELANCER: 'FREELANCER',
+  ARCHITECT: 'ARCHITECT',
+  ENGINEER: 'ENGINEER',
+  OTHER: 'OTHER'
+} as const;
+
+export type Profession = typeof Profession[keyof typeof Profession];
+
+export const LifestylePreference = {
+  EARLY_BIRD: 'EARLY_BIRD',
+  NIGHT_OWL: 'NIGHT_OWL',
+  SMOKER: 'SMOKER',
+  NON_SMOKER: 'NON_SMOKER',
+  VEGETARIAN: 'VEGETARIAN',
+  VEGAN: 'VEGAN',
+  PET_FRIENDLY: 'PET_FRIENDLY',
+  FITNESS_ENTHUSIAST: 'FITNESS_ENTHUSIAST',
+  MUSIC_LOVER: 'MUSIC_LOVER',
+  GAMER: 'GAMER',
+  BOOKWORM: 'BOOKWORM',
+  TRAVELER: 'TRAVELER',
+  SOCIAL: 'SOCIAL',
+  INTROVERT: 'INTROVERT',
+  EXTROVERT: 'EXTROVERT',
+  CLEAN_FREAK: 'CLEAN_FREAK',
+  MINIMALIST: 'MINIMALIST',
+  FOODIE: 'FOODIE',
+  PARTY_ANIMAL: 'PARTY_ANIMAL',
+  QUIET_LIFESTYLE: 'QUIET_LIFESTYLE'
+} as const;
+
+export type LifestylePreference = typeof LifestylePreference[keyof typeof LifestylePreference];
+
+export const RoomStatus = {
+  ACTIVE: 'ACTIVE',
+  INACTIVE: 'INACTIVE',
+  ARCHIVED: 'ARCHIVED'
+} as const;
+
+export type RoomStatus = typeof RoomStatus[keyof typeof RoomStatus];
 
 export interface RoomSearchFilterRequest {
   placeId?: string;
@@ -281,6 +350,9 @@ export interface RoomSearchFilterRequest {
   roomType?: RoomType[];
   page?: number;
   size?: number;
+  gender?: string;
+  floorMin?: number;
+  floorMax?: number;
 }
 
 export interface RoomSearchFilterOnMapRequest {

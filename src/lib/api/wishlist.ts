@@ -1,5 +1,5 @@
 import { apiClient } from "./core";
-import { ApiResponse, PagedResponse } from "../../types/api.types";
+import { ApiResponse, PagedResponse, MediaLinkDTO, RoomType, PropertyType } from "../../types/api.types";
 
 export interface WishlistRoomDto {
     id: number;
@@ -7,11 +7,11 @@ export interface WishlistRoomDto {
     address: string | null;
     latitude: number | null;
     longitude: number | null;
-    photos: { id: number; url: string; userId?: number }[];
-    roomType: string | null;
+    photos: MediaLinkDTO[];
+    roomType: RoomType | null;
     bhkType: number | null;
     floor: number | null;
-    propertyTypes: string[];
+    propertyTypes: PropertyType[];
     wishlistedAt: string;
     roomStatus: "ACTIVE" | "INACTIVE" | "ARCHIVED";
 }

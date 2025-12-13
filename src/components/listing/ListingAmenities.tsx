@@ -2,7 +2,7 @@ import { Check } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { IconRenderer } from "@/lib/iconMapper";
 import { AMENITY_UI } from "@/constants/ui-constants";
-import { Amenity } from "@api-docs/typescript/enums";
+import { Amenity } from "../../types/api.types";
 
 interface ListingAmenitiesProps {
     listing: any;

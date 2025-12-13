@@ -322,7 +322,7 @@ const MyListings = () => {
                       Edit
                     </Button>
                     <Button
-                      variant="outline"
+                      variant={listing.status === 'ACTIVE' ? "outline" : "default"}
                       size="sm"
                       onClick={() => setConfirmation({
                         type: listing.status === 'ACTIVE' ? 'DEACTIVATE' : 'ACTIVATE',
@@ -337,9 +337,9 @@ const MyListings = () => {
                       {listing.status === 'ACTIVE' ? 'Deactivate' : 'Activate'}
                     </Button>
                     <Button
-                      variant="destructive"
+                      variant="outline"
                       size="sm"
-                      className="col-span-2"
+                      className="col-span-2 border-destructive text-destructive hover:bg-destructive/10 hover:text-destructive"
                       onClick={() => setConfirmation({
                         type: 'ARCHIVE',
                         id: listing.id,

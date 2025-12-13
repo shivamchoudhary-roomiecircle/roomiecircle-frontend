@@ -1,5 +1,5 @@
 import { RoomType } from "@/types/api.types";
-import { Gender } from "@api-docs/typescript/enums";
+import { Gender } from "../../types/api.types";
 
 export interface RoommateData {
     name: string;

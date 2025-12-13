@@ -34,7 +34,7 @@ import {
     Profession,
     PropertyType,
     RoomType,
-} from "@api-docs/typescript/enums";
+} from "../../types/api.types";
 
 interface ListingDetailsProps {
     listing: any;

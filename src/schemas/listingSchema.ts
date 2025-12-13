@@ -6,7 +6,7 @@ import {
     PropertyType,
     RoomType,
     LifestylePreference
-} from "../../api-docs/typescript/enums";
+} from "../types/api.types";
 
 // Shared Schemas
 const requiredString = z.string().min(1, "This field is required");

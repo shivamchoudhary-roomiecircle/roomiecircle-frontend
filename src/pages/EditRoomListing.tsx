@@ -278,6 +278,14 @@ export default function EditRoomListing() {
   };
 
 
+  const handleSaveAndExit = () => {
+    // Determine tab based on status. Archived -> Inactive tab usually, or handled separately.
+    // Logic matches "Active" -> active tab, anything else -> inactive tab.
+    const tab = listingStatus === "ACTIVE" ? "active" : "inactive";
+    navigate(`/my-listings?tab=${tab}`);
+  };
+
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -307,14 +315,20 @@ export default function EditRoomListing() {
                 <h1 className="text-2xl font-bold">Your Room</h1>
               </div>
 
-              {formData.addressText && (
-                <div className="flex items-center gap-2 px-4 py-2 bg-primary/5 border border-primary/10 rounded-full text-primary animate-in fade-in slide-in-from-right-4 duration-500">
-                  <MapPin className="h-4 w-4 shrink-0" />
-                  <span className="text-sm font-medium truncate max-w-[200px] md:max-w-[300px]">
-                    {formData.addressText}
-                  </span>
-                </div>
-              )}
+              <div className="flex items-center gap-4">
+                {formData.addressText && (
+                  <div className="hidden md:flex items-center gap-2 px-4 py-2 bg-primary/5 border border-primary/10 rounded-full text-primary animate-in fade-in slide-in-from-right-4 duration-500">
+                    <MapPin className="h-4 w-4 shrink-0" />
+                    <span className="text-sm font-medium truncate max-w-[200px] md:max-w-[300px]">
+                      {formData.addressText}
+                    </span>
+                  </div>
+                )}
+
+                <Button onClick={handleSaveAndExit} className="shadow-lg hover:shadow-xl transition-all">
+                  Save & Exit
+                </Button>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -376,7 +390,7 @@ export default function EditRoomListing() {
                 ) : (
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
-                      <Button variant="outline" className="flex-1 gap-2 border-green-500/50 hover:bg-green-500/10 text-green-600 hover:text-green-700">
+                      <Button variant="default" className="flex-1 gap-2">
                         <Power className="h-4 w-4" />
                         Activate Listing
                       </Button>
@@ -398,10 +412,10 @@ export default function EditRoomListing() {
                   </AlertDialog>
                 )}
 
-                {/* Archive - Only if not already archived (simplified: we don't have explicit archived check in UI state yet, assuming active/inactive cover main flows. If we want archive, it's usually a soft delete or 'hide forever but keep data') */}
+                {/* Archive - Only if not already archived */}
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
-                    <Button variant="outline" className="flex-1 gap-2 border-muted-foreground/50 hover:bg-muted/50">
+                    <Button variant="outline" className="flex-1 gap-2 border-destructive text-destructive hover:bg-destructive/10 hover:text-destructive">
                       <Archive className="h-4 w-4" />
                       Archive Listing
                     </Button>
@@ -424,10 +438,9 @@ export default function EditRoomListing() {
 
                 <div className="w-px bg-border hidden md:block" />
 
-                {/* Delete */}
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
-                    <Button variant="destructive" className="flex-1 gap-2 bg-destructive/10 text-destructive hover:bg-destructive/20 border-destructive/20 border shadow-none">
+                    <Button variant="outline" className="flex-1 gap-2 border-destructive text-destructive hover:bg-destructive/10 hover:text-destructive shadow-none">
                       <Trash2 className="h-4 w-4" />
                       Delete Listing
                     </Button>

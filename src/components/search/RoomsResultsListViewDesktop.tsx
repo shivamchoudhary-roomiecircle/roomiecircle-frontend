@@ -110,7 +110,7 @@ export const RoomsResultsListViewDesktop = ({
                                     images={room.photos?.map(p => ({ url: p.url })) || []}
                                     price={room.monthlyRent}
                                     address={room.address || "Location not available"}
-                                    onClick={() => navigate(`/listings/${room.id}`, { state: { previewImage: room.photos?.[0].url } })}
+                                    onClick={() => navigate(`/listings/${room.id}`, { state: { previewImage: room.photos?.[0]?.url } })}
                                     isWishlisted={wishlistedRoomIds.has(room.id)}
                                     onToggleWishlist={(e) => {
                                         e.stopPropagation();

@@ -30,7 +30,10 @@ export const searchRoomsAroundPlace = async (filters: RoomSearchFilterRequest): 
     if (filters.radiusKm) params.append('radiusKm', filters.radiusKm.toString());
     if (filters.minRent) params.append('rentMin', filters.minRent.toString());
     if (filters.maxRent) params.append('rentMax', filters.maxRent.toString());
+    if (filters.floorMin) params.append('floorMin', filters.floorMin.toString());
+    if (filters.floorMax) params.append('floorMax', filters.floorMax.toString());
     if (filters.urgency) params.append('urgency', filters.urgency);
+    if (filters.gender) params.append('gender', filters.gender);
 
     if (filters.propertyType?.length) {
         filters.propertyType.forEach(type => params.append('propertyType', type));

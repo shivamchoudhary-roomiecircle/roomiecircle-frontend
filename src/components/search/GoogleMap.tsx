@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { PROPERTY_TYPE_UI, ROOM_TYPE_UI } from "@/constants/ui-constants";
-import { PropertyType, RoomType } from "@api-docs/typescript/enums";
+import { PropertyType, RoomType } from "../../types/api.types";
 import { RoomSearchResultDTO } from "@/types/api.types";
 import { getImageUrl } from "@/lib/utils";
 

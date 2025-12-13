@@ -199,7 +199,7 @@ export default function CreateRoomListing() {
 
     if (currentStep === steps.length - 1) {
       // Final step (Photos) - Finish
-      navigate('/my-listings');
+      navigate('/my-listings?tab=inactive');
       return;
     }
 

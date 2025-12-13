@@ -7,7 +7,7 @@ import {
     RoomStatus,
     LifestylePreference,
     Urgency
-} from "@api-docs/typescript/enums";
+} from "../types/api.types";
 
 export interface UIConfig {
     label: string;
@@ -134,22 +134,22 @@ export const BHK_TYPES = [
 ];
 
 export const AMENITY_GROUPS = {
-    "IN_UNIT": [
+    "IN_ROOM": [
         AMENITY_UI[Amenity.PRIVATE_BATH],
         AMENITY_UI[Amenity.FURNISHED],
         AMENITY_UI[Amenity.BALCONY],
         AMENITY_UI[Amenity.AIR_CONDITIONING],
+    ],
+    "IN_HOME": [
         AMENITY_UI[Amenity.WIFI_INCLUDED],
         AMENITY_UI[Amenity.IN_UNIT_LAUNDRY],
     ],
-    "BUILDING": [
+    "ON_PROPERTY": [
         AMENITY_UI[Amenity.ELEVATOR],
         AMENITY_UI[Amenity.DOORMAN],
         AMENITY_UI[Amenity.SWIMMING_POOL],
         AMENITY_UI[Amenity.FREE_PARKING],
         AMENITY_UI[Amenity.GYM],
-    ],
-    "SAFETY": [
         AMENITY_UI[Amenity.SMOKE_ALARM],
         AMENITY_UI[Amenity.SECURITY_SYSTEM],
     ]

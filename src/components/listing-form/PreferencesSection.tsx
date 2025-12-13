@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { SectionProps } from "./types";
 import { GENDERS, PROFESSIONS, LIFESTYLE_UI, LIFESTYLES } from "@/constants/ui-constants";
-import { LifestylePreference } from "@api-docs/typescript/enums";
+import { LifestylePreference } from "../../types/api.types";
 
 export const PreferencesSection = ({ formData, onChange }: SectionProps) => {
     const [isLifestyleModalOpen, setIsLifestyleModalOpen] = useState(false);
